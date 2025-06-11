@@ -239,6 +239,24 @@ export default function GraduationGownsPage() {
               <p>• Professional dry cleaning recommended</p>
               <p>• Available for rental (R299/day)</p>
             </div>
+
+            {/* Rental Option */}
+            <div className="mt-8 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 className="font-bold text-lg mb-3 text-yellow-800">Rental Option Available</h3>
+              <p className="text-yellow-700 mb-4">
+                Don't want to purchase? Rent this complete graduation set for just R299/day!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/rental">
+                  <Button variant="outline" className="border-yellow-600 text-yellow-700 hover:bg-yellow-100">
+                    Learn About Rental
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">Inquire About Rental</Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 

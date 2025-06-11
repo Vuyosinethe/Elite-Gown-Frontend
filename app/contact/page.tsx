@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, Mail, Instagram, Clock, User, Menu, X } from "lucide-react"
+import { Phone, Mail, Clock, User, Menu, X } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 
 export default function ContactPage() {
@@ -171,8 +171,18 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-full">
-                    <Instagram className="w-5 h-5" />
+                  <div className="bg-black text-white p-3 rounded-full">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">General Info</h3>
+                    <p className="text-gray-600">info@elitegowns.co.za</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="bg-black text-white p-3 rounded-full">
+                    <Image src="/instagram-logo.png" alt="Instagram" width={20} height={20} className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-semibold">Instagram</h3>
@@ -188,7 +198,7 @@ export default function ContactPage() {
                     <h3 className="font-semibold">Business Hours</h3>
                     <div className="text-gray-600 space-y-1">
                       <p>Monday - Friday: 8:00 AM - 6:00 PM</p>
-                      <p>Saturday: 9:00 AM - 4:00 PM</p>
+                      <p>Saturday: 9:00 AM - 2:00 PM</p>
                       <p>Sunday: Closed</p>
                     </div>
                   </div>

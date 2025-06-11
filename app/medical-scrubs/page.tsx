@@ -139,14 +139,32 @@ export default function MedicalScrubsPage() {
 
             {/* Color Selection */}
             <div>
-              <h3 className="font-semibold mb-3">Color</h3>
-              <div className="flex space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full border-2 border-black cursor-pointer"></div>
-                <div className="w-10 h-10 bg-green-600 rounded-full border-2 border-gray-300 hover:border-gray-400 cursor-pointer"></div>
-                <div className="w-10 h-10 bg-purple-600 rounded-full border-2 border-gray-300 hover:border-gray-400 cursor-pointer"></div>
-                <div className="w-10 h-10 bg-gray-600 rounded-full border-2 border-gray-300 hover:border-gray-400 cursor-pointer"></div>
-                <div className="w-10 h-10 bg-pink-400 rounded-full border-2 border-gray-300 hover:border-gray-400 cursor-pointer"></div>
+              <h3 className="font-semibold mb-3">Available Colors</h3>
+              <div className="mb-4">
+                <Image
+                  src="/scrubs-colors.png"
+                  alt="Available scrub colors"
+                  width={400}
+                  height={200}
+                  className="rounded-lg border border-gray-200"
+                />
               </div>
+              <p className="text-sm text-gray-600 mb-4">
+                We offer a comprehensive range of professional medical colors. Popular choices include:
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                <div>• Navy Blue - Classic professional</div>
+                <div>• Ceil Blue - Traditional medical</div>
+                <div>• Hunter Green - Surgical preference</div>
+                <div>• Wine/Burgundy - Elegant choice</div>
+                <div>• Black - Modern professional</div>
+                <div>• White - Clean, clinical look</div>
+                <div>• Gray - Versatile neutral</div>
+                <div>• Purple - Popular choice</div>
+              </div>
+              <p className="text-xs text-gray-500 mt-3">
+                * Colors may vary slightly from screen display. Contact us for color matching or bulk orders.
+              </p>
             </div>
 
             {/* Set Options */}
@@ -186,6 +204,24 @@ export default function MedicalScrubsPage() {
               <p>• 30-day return policy</p>
               <p>• Machine washable at 60°C</p>
               <p>• Bulk discounts available for institutions</p>
+            </div>
+
+            {/* Rental Option */}
+            <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-bold text-lg mb-3 text-blue-800">Short-term Rental Available</h3>
+              <p className="text-blue-700 mb-4">
+                Need scrubs for clinical rotations or short-term placements? Rent for R150/week!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/rental">
+                  <Button variant="outline" className="border-blue-600 text-blue-700 hover:bg-blue-100">
+                    Learn About Rental
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">Inquire About Rental</Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

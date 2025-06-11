@@ -44,7 +44,7 @@ Elite Gowns is a modern e-commerce platform built with Next.js, specializing in:
 
 ## 📁 Project Structure
 
-```
+\`\`\`
 elite-gowns/
 ├── app/
 │   ├── about/                 # About Us page
@@ -68,7 +68,7 @@ elite-gowns/
 │   ├── elite-gowns-logo.png   # Company logo
 │   └── cart-design.png        # Cart design reference
 └── README.md
-```
+\`\`\`
 
 ## 🚀 Getting Started
 
@@ -79,6 +79,6 @@ elite-gowns/
 ### Installation
 
 1. **Clone the repository**
-   ```bash
+   \`\`\`bash
    git clone https://github.com/yourusername/elite-gowns.git
    cd elite-gowns
