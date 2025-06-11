@@ -243,7 +243,10 @@ export default function HomePage() {
                 <p>CEO: Mandisa Bhengu</p>
                 <p>📞 081 424 3721</p>
                 <p>✉️ mandisa@elitegowns.co.za</p>
-                <p>📱 @elite_gowns24</p>
+                <div className="flex items-center space-x-2">
+                  <Image src="/instagram-logo.png" alt="Instagram" width={24} height={24} className="w-6 h-6" />
+                  <span>@elite_gowns24</span>
+                </div>
               </div>
             </div>
             <div>
