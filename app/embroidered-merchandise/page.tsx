@@ -1,11 +1,18 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Heart, Palette, Upload } from "lucide-react"
+import CartDrawer from "@/components/cart-drawer"
 
 export default function EmbroideredMerchandisePage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -32,9 +39,9 @@ export default function EmbroideredMerchandisePage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/cart" className="text-gray-700 hover:text-black transition-colors">
+              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
                 Cart (0)
-              </Link>
+              </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
             </div>
           </div>
@@ -279,6 +286,9 @@ export default function EmbroideredMerchandisePage() {
           </div>
         </div>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   )
 }

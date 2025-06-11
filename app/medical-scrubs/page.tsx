@@ -1,11 +1,18 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Heart, Stethoscope } from "lucide-react"
+import CartDrawer from "@/components/cart-drawer"
 
 export default function MedicalScrubsPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -32,9 +39,9 @@ export default function MedicalScrubsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/cart" className="text-gray-700 hover:text-black transition-colors">
+              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
                 Cart (0)
-              </Link>
+              </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
             </div>
           </div>
@@ -142,7 +149,7 @@ export default function MedicalScrubsPage() {
               <h3 className="font-semibold mb-3">Available Colors</h3>
               <div className="mb-4">
                 <Image
-                  src="/scrubs-colors.png"
+                  src="/medical-scrubs-colors.png"
                   alt="Available scrub colors"
                   width={400}
                   height={200}
@@ -153,12 +160,12 @@ export default function MedicalScrubsPage() {
                 We offer a comprehensive range of professional medical colors. Popular choices include:
               </p>
               <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                <div>• Navy Blue - Classic professional</div>
-                <div>• Ceil Blue - Traditional medical</div>
+                <div>• Royal Blue - Classic professional</div>
+                <div>• Teal - Modern medical</div>
                 <div>• Hunter Green - Surgical preference</div>
-                <div>• Wine/Burgundy - Elegant choice</div>
+                <div>• Burgundy - Elegant choice</div>
                 <div>• Black - Modern professional</div>
-                <div>• White - Clean, clinical look</div>
+                <div>• Light Blue - Traditional medical</div>
                 <div>• Gray - Versatile neutral</div>
                 <div>• Purple - Popular choice</div>
               </div>
@@ -188,7 +195,10 @@ export default function MedicalScrubsPage() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">
+              <Button
+                className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg"
+                onClick={() => setCartOpen(true)}
+              >
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 Add to Cart
               </Button>
@@ -277,6 +287,9 @@ export default function MedicalScrubsPage() {
           </div>
         </div>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   )
 }

@@ -364,9 +364,9 @@ export default function ReturnsPage() {
             Our customer service team is here to assist you with any questions about returns or exchanges.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="mailto:returns@elitegowns.co.za">
+            <Link href="/contact?subject=Returns%20Inquiry">
               <button className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-md">Email Returns Team</button>
-            </a>
+            </Link>
             <Link href="/contact">
               <button className="bg-white border border-gray-300 hover:bg-gray-50 text-black px-6 py-3 rounded-md">
                 Contact Us
