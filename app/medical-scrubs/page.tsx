@@ -160,14 +160,25 @@ export default function MedicalScrubsPage() {
                 We offer a comprehensive range of professional medical colors. Popular choices include:
               </p>
               <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                <div>• Royal Blue - Classic professional</div>
+                <div>
+                  • <strong>Black</strong> - Most popular choice
+                </div>
+                <div>
+                  • <strong>Grey</strong> - Professional neutral
+                </div>
+                <div>
+                  • <strong>Dark Navy</strong> - Classic medical
+                </div>
+                <div>• Royal Blue - Traditional choice</div>
                 <div>• Teal - Modern medical</div>
                 <div>• Hunter Green - Surgical preference</div>
                 <div>• Burgundy - Elegant choice</div>
-                <div>• Black - Modern professional</div>
-                <div>• Light Blue - Traditional medical</div>
-                <div>• Gray - Versatile neutral</div>
                 <div>• Purple - Popular choice</div>
+              </div>
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 font-medium">
+                  🔥 Most Popular: Black, Grey, and Dark Navy are our top-selling colors for medical professionals
+                </p>
               </div>
               <p className="text-xs text-gray-500 mt-3">
                 * Colors may vary slightly from screen display. Contact us for color matching or bulk orders.
