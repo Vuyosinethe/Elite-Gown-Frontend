@@ -8,10 +8,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Heart, Menu, X, Star } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ProductsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+
+  const { user } = useAuth()
 
   const products = [
     {
@@ -176,7 +179,7 @@ export default function ProductsPage() {
               </div>
               <div className="flex items-center space-x-4">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  Cart (0)
+                  {user ? "Cart (0)" : "Cart"}
                 </button>
                 <Image
                   src="/elite-gowns-logo.png"
@@ -191,7 +194,7 @@ export default function ProductsPage() {
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
               <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                Cart (0)
+                {user ? "Cart (0)" : "Cart"}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button

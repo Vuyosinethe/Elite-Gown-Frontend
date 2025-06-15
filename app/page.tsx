@@ -5,12 +5,16 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CreditCard, Smartphone, Building2, Menu, X } from "lucide-react"
+import { CreditCard, Smartphone, Building2, Menu, X, User } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
+import { useAuth } from "@/contexts/auth-context"
+import { useCart } from "@/hooks/use-cart"
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const { user } = useAuth()
+  const { cartCount } = useCart()
 
   return (
     <div className="min-h-screen bg-white">
@@ -47,8 +51,21 @@ export default function HomePage() {
               </div>
               <div className="flex items-center space-x-4">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  Cart (2)
+                  {user ? `Cart (${cartCount})` : "Cart"}
                 </button>
+                {user ? (
+                  <Link
+                    href="/account"
+                    className="flex items-center space-x-2 text-gray-700 hover:text-black transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>{user.firstName}</span>
+                  </Link>
+                ) : (
+                  <Link href="/login" className="text-gray-700 hover:text-black transition-colors">
+                    Sign In
+                  </Link>
+                )}
                 <Image
                   src="/elite-gowns-logo.png"
                   alt="Elite Gowns Logo"
@@ -62,7 +79,7 @@ export default function HomePage() {
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
               <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                Cart (2)
+                {user ? `Cart (${cartCount})` : "Cart"}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button
@@ -113,6 +130,23 @@ export default function HomePage() {
               >
                 Contact
               </Link>
+              {user ? (
+                <Link
+                  href="/account"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Account
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         )}

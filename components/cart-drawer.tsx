@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { X, Minus, Plus, ShoppingCart } from "lucide-react"
+import { X, Minus, Plus, ShoppingCart, User } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { useCart } from "@/hooks/use-cart"
 
 interface CartDrawerProps {
   isOpen: boolean
@@ -12,36 +14,14 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Complete Graduation Set",
-      details: "Size: M, Faculty: Commerce (Red)",
-      price: 1299,
-      quantity: 1,
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      id: 2,
-      name: "Professional Medical Scrubs Set",
-      details: "Size: L, Color: Navy Blue",
-      price: 899,
-      quantity: 1,
-      image: "/placeholder.svg?height=80&width=80",
-    },
-  ])
+  const { user } = useAuth()
+  const router = useRouter()
+  const { cartItems, cartCount, subtotal, vat, total, updateQuantity } = useCart()
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity === 0) {
-      setCartItems(cartItems.filter((item) => item.id !== id))
-    } else {
-      setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
-    }
+  const handleSignInClick = () => {
+    onClose()
+    router.push("/login")
   }
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const vat = subtotal * 0.15
-  const total = subtotal + vat
 
   if (!isOpen) return null
 
@@ -61,7 +41,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
               <div>
                 <h2 className="text-lg font-semibold">Shopping Cart</h2>
-                <p className="text-sm text-gray-600">{cartItems.length} items</p>
+                <p className="text-sm text-gray-600">{user ? `${cartCount} items` : "Sign in required"}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-gray-100">
@@ -69,9 +49,36 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </Button>
           </div>
 
-          {/* Cart Items */}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {cartItems.length === 0 ? (
+            {!user ? (
+              // Not logged in state
+              <div className="text-center py-12">
+                <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view your cart</h3>
+                <p className="text-gray-600 mb-6">
+                  Create an account or sign in to save items to your cart and track your orders.
+                </p>
+                <div className="space-y-3">
+                  <Button className="w-full bg-black hover:bg-gray-800 text-white" onClick={handleSignInClick}>
+                    Sign In
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      onClose()
+                      router.push("/register")
+                    }}
+                  >
+                    Create Account
+                  </Button>
+                </div>
+              </div>
+            ) : cartItems.length === 0 ? (
+              // Empty cart state (logged in)
               <div className="text-center py-12">
                 <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                   <ShoppingCart className="w-8 h-8" />
@@ -83,6 +90,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </Button>
               </div>
             ) : (
+              // Cart with items (logged in)
               <div className="space-y-4">
                 {cartItems.map((item) => (
                   <Card key={item.id} className="border border-gray-200">
@@ -125,8 +133,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             )}
           </div>
 
-          {/* Footer */}
-          {cartItems.length > 0 && (
+          {/* Footer - only show if user is logged in and has items */}
+          {user && cartItems.length > 0 && (
             <div className="border-t p-6 space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
