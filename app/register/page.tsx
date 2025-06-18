@@ -8,69 +8,70 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  })
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
-  const { register, loading } = useAuth()
+  const [error, setError] = useState("")
+  const { signUp, loading } = useAuth()
   const router = useRouter()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+  const validatePassword = (password: string) => {
+    const minLength = 8
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumbers = /\d/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    // Validation
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+    // Validate all fields
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       setError("Please fill in all required fields")
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    // Validate password
+    if (!validatePassword(password)) {
+      setError(
+        "Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters",
+      )
+      return
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
       setError("Passwords do not match")
       return
     }
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long")
-      return
-    }
-
+    // Check terms acceptance
     if (!acceptTerms) {
-      setError("Please accept the terms and conditions")
+      setError("You must accept the terms and conditions")
       return
     }
 
-    const success = await register({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password,
-    })
+    const { error } = await signUp(email, password, firstName, lastName)
 
-    if (success) {
-      router.push("/account")
+    if (error) {
+      setError(error.message || "Registration failed")
     } else {
-      setError("Registration failed. Please try again.")
+      // Registration successful, show verification message or redirect
+      router.push("/login?verified=pending")
     }
   }
 
@@ -84,9 +85,9 @@ export default function RegisterPage() {
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">Create your account</h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Already have an account?{" "}
+          Or{" "}
           <Link href="/login" className="font-medium text-black hover:underline">
-            Sign in here
+            sign in to your account
           </Link>
         </p>
       </div>
@@ -94,27 +95,31 @@ export default function RegisterPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">Join Elite Gowns</CardTitle>
+            <CardTitle className="text-center">Register</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">{error}</div>
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  {error}
+                </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First Name *
+                    First name
                   </label>
                   <div className="mt-1 relative">
                     <input
                       id="firstName"
                       name="firstName"
                       type="text"
+                      autoComplete="given-name"
                       required
-                      value={formData.firstName}
-                      onChange={handleChange}
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
                       className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
                       placeholder="First name"
                     />
@@ -124,16 +129,17 @@ export default function RegisterPage() {
 
                 <div>
                   <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last Name *
+                    Last name
                   </label>
                   <div className="mt-1 relative">
                     <input
                       id="lastName"
                       name="lastName"
                       type="text"
+                      autoComplete="family-name"
                       required
-                      value={formData.lastName}
-                      onChange={handleChange}
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
                       className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
                       placeholder="Last name"
                     />
@@ -144,7 +150,7 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email address *
+                  Email address
                 </label>
                 <div className="mt-1 relative">
                   <input
@@ -153,10 +159,10 @@ export default function RegisterPage() {
                     type="email"
                     autoComplete="email"
                     required
-                    value={formData.email}
-                    onChange={handleChange}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
-                    placeholder="Enter your email"
+                    placeholder="Email address"
                   />
                   <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
                 </div>
@@ -164,17 +170,18 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone Number
+                  Phone number (optional)
                 </label>
                 <div className="mt-1 relative">
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
-                    value={formData.phone}
-                    onChange={handleChange}
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
-                    placeholder="081 234 5678"
+                    placeholder="Phone number"
                   />
                   <Phone className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
                 </div>
@@ -182,16 +189,17 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password *
+                  Password
                 </label>
                 <div className="mt-1 relative">
                   <input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     required
-                    value={formData.password}
-                    onChange={handleChange}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
                     placeholder="Create a password"
                   />
@@ -208,21 +216,24 @@ export default function RegisterPage() {
                     )}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Must be at least 8 characters with uppercase, lowercase, numbers, and special characters.
+                </p>
               </div>
 
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password *
+                  Confirm password
                 </label>
                 <div className="mt-1 relative">
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
                     placeholder="Confirm your password"
                   />
@@ -243,20 +254,20 @@ export default function RegisterPage() {
 
               <div className="flex items-center">
                 <input
-                  id="accept-terms"
-                  name="accept-terms"
+                  id="terms"
+                  name="terms"
                   type="checkbox"
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
                   className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
                 />
-                <label htmlFor="accept-terms" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
                   I agree to the{" "}
-                  <Link href="/terms" className="text-black hover:underline">
-                    Terms and Conditions
+                  <Link href="/terms" className="font-medium text-black hover:underline">
+                    Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" className="text-black hover:underline">
+                  <Link href="/privacy" className="font-medium text-black hover:underline">
                     Privacy Policy
                   </Link>
                 </label>

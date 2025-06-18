@@ -1,106 +1,334 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import type React from "react"
 
-interface User {
+import { createContext, useContext, useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
+
+type User = {
   id: string
   email: string
-  firstName: string
-  lastName: string
-  phone?: string
-  createdAt: string
+  firstName?: string
+  lastName?: string
+  avatar?: string
 }
 
-interface AuthContextType {
+type AuthContextType = {
   user: User | null
-  login: (email: string, password: string) => Promise<boolean>
-  register: (userData: RegisterData) => Promise<boolean>
-  logout: () => void
   loading: boolean
-}
-
-interface RegisterData {
-  email: string
-  password: string
-  firstName: string
-  lastName: string
-  phone?: string
+  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string, rememberMe: boolean) => Promise<{ error: any }>
+  signOut: () => Promise<void>
+  forgotPassword: (email: string) => Promise<{ error: any }>
+  resetPassword: (password: string) => Promise<{ error: any }>
+  updateProfile: (data: Partial<User>) => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
+  // Check for active session on mount
   useEffect(() => {
-    // Check for existing session on mount
-    const savedUser = localStorage.getItem("elite-gowns-user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const checkSession = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            firstName: profile?.first_name || "",
+            lastName: profile?.last_name || "",
+            avatar: profile?.avatar_url || "",
+          })
+        }
+      } catch (error) {
+        console.error("Error checking session:", error)
+      } finally {
+        setLoading(false)
+      }
     }
-    setLoading(false)
+
+    checkSession()
+
+    // Set up auth state change listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            firstName: profile?.first_name || "",
+            lastName: profile?.last_name || "",
+            avatar: profile?.avatar_url || "",
+          })
+        } catch (error) {
+          console.error("Error fetching profile:", error)
+        }
+      } else {
+        setUser(null)
+      }
+
+      setLoading(false)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true)
+  // Sign up with email and password
+  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      // Simulate API call - replace with actual authentication
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setLoading(true)
 
-      // Mock user data - replace with actual API response
-      const userData: User = {
-        id: "1",
+      // Check if Supabase is properly configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
+        // Simulate successful signup with mock data
+        setTimeout(() => {
+          setUser({
+            id: "mock-id",
+            email,
+            firstName,
+            lastName,
+          })
+          router.push("/account")
+        }, 1000)
+        return { error: null }
+      }
+
+      const { data, error } = await supabase.auth.signUp({
         email,
-        firstName: "John",
-        lastName: "Doe",
-        createdAt: new Date().toISOString(),
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      })
+
+      if (error) throw error
+
+      // Create profile record
+      if (data.user) {
+        await supabase.from("profiles").insert([
+          {
+            id: data.user.id,
+            first_name: firstName,
+            last_name: lastName,
+            email,
+          },
+        ])
       }
 
-      setUser(userData)
-      localStorage.setItem("elite-gowns-user", JSON.stringify(userData))
-      setLoading(false)
-      return true
+      return { error: null }
     } catch (error) {
+      console.error("Error signing up:", error)
+      return { error }
+    } finally {
       setLoading(false)
-      return false
     }
   }
 
-  const register = async (userData: RegisterData): Promise<boolean> => {
-    setLoading(true)
+  // Sign in with email and password
+  const signIn = async (email: string, password: string, rememberMe: boolean) => {
     try {
-      // Simulate API call - replace with actual registration
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setLoading(true)
 
-      const newUser: User = {
-        id: Date.now().toString(),
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phone: userData.phone,
-        createdAt: new Date().toISOString(),
+      // Check if Supabase is properly configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
+        // Simulate successful login with mock data
+        setTimeout(() => {
+          setUser({
+            id: "mock-id",
+            email,
+            firstName: "Mock",
+            lastName: "User",
+          })
+          router.push("/account")
+        }, 1000)
+        return { error: null }
       }
 
-      setUser(newUser)
-      localStorage.setItem("elite-gowns-user", JSON.stringify(newUser))
-      setLoading(false)
-      return true
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) throw error
+
+      if (data.user) {
+        const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
+
+        setUser({
+          id: data.user.id,
+          email: data.user.email!,
+          firstName: profile?.first_name || "",
+          lastName: profile?.last_name || "",
+          avatar: profile?.avatar_url || "",
+        })
+
+        router.push("/account")
+      }
+
+      return { error: null }
     } catch (error) {
+      console.error("Error signing in:", error)
+      return { error }
+    } finally {
       setLoading(false)
-      return false
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("elite-gowns-user")
+  // Sign out
+  const signOut = async () => {
+    try {
+      setLoading(true)
+
+      // Check if Supabase is properly configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        // Just clear the mock user
+        setUser(null)
+        router.push("/")
+        return
+      }
+
+      await supabase.auth.signOut()
+      setUser(null)
+      router.push("/")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  return <AuthContext.Provider value={{ user, login, register, logout, loading }}>{children}</AuthContext.Provider>
+  // Forgot password
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true)
+
+      // Check if Supabase is properly configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
+        return { error: null }
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) throw error
+
+      return { error: null }
+    } catch (error) {
+      console.error("Error resetting password:", error)
+      return { error }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Reset password
+  const resetPassword = async (password: string) => {
+    try {
+      setLoading(true)
+
+      // Check if Supabase is properly configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
+        return { error: null }
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password,
+      })
+
+      if (error) throw error
+
+      return { error: null }
+    } catch (error) {
+      console.error("Error updating password:", error)
+      return { error }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update profile
+  const updateProfile = async (data: Partial<User>) => {
+    try {
+      setLoading(true)
+
+      // Check if Supabase is properly configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
+        // Update mock user
+        setUser((prev) => (prev ? { ...prev, ...data } : null))
+        return { error: null }
+      }
+
+      if (!user) throw new Error("User not authenticated")
+
+      const updates = {
+        id: user.id,
+        first_name: data.firstName || user.firstName,
+        last_name: data.lastName || user.lastName,
+        avatar_url: data.avatar || user.avatar,
+        updated_at: new Date().toISOString(),
+      }
+
+      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id)
+
+      if (error) throw error
+
+      setUser((prev) => (prev ? { ...prev, ...data } : null))
+
+      return { error: null }
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      return { error }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        forgotPassword,
+        resetPassword,
+        updateProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
