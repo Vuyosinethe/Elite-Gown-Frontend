@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
-import { User, Package, CreditCard, MapPin, Settings, LogOut, ShoppingBag, Heart } from "lucide-react"
+import { User, Package, CreditCard, MapPin, Settings, LogOut, ShoppingBag, Heart, RefreshCw } from "lucide-react"
 import { SupabaseSetupGuide } from "@/components/supabase-setup-guide"
+import { ProfileDebug } from "@/components/profile-debug"
 
 export default function AccountPage() {
-  const { user, signOut, loading } = useAuth()
+  const { user, signOut, loading, refreshProfile } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("profile")
+  const [refreshing, setRefreshing] = useState(false)
 
   // If loading, show loading state
   if (loading) {
@@ -39,6 +41,12 @@ export default function AccountPage() {
     router.push("/")
   }
 
+  const handleRefreshProfile = async () => {
+    setRefreshing(true)
+    await refreshProfile()
+    setRefreshing(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -53,7 +61,7 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <CardTitle>
-                      {user.firstName} {user.lastName}
+                      {user.firstName || user.lastName ? `${user.firstName} ${user.lastName}` : "User"}
                     </CardTitle>
                     <CardDescription className="text-sm truncate max-w-[180px]">{user.email}</CardDescription>
                   </div>
@@ -150,8 +158,22 @@ export default function AccountPage() {
               <TabsContent value="profile">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Profile Information</CardTitle>
-                    <CardDescription>Manage your personal information</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Profile Information</CardTitle>
+                        <CardDescription>Manage your personal information</CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshProfile}
+                        disabled={refreshing}
+                        className="flex items-center gap-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                        Refresh
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -176,6 +198,11 @@ export default function AccountPage() {
                       <div>
                         <Button variant="outline">Edit Profile</Button>
                       </div>
+                    </div>
+
+                    {/* Debug Component - Remove this in production */}
+                    <div className="mt-8 pt-8 border-t">
+                      <ProfileDebug />
                     </div>
                   </CardContent>
                 </Card>
@@ -233,7 +260,7 @@ export default function AccountPage() {
                     <div className="text-center py-8">
                       <MapPin className="mx-auto h-12 w-12 text-gray-400" />
                       <h3 className="mt-2 text-sm font-medium text-gray-900">No addresses saved</h3>
-                      <p className="mt-1 text-sm text-gray-500">Add addresses for faster checkout.</p>
+                      <p className="mt-1 text-gray-500">Add addresses for faster checkout.</p>
                       <div className="mt-6">
                         <Button variant="outline">Add Address</Button>
                       </div>

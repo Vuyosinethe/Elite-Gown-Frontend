@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -18,23 +18,67 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
-  const { signIn, loading } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { signIn, loading: authLoading, user } = useAuth()
   const router = useRouter()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      router.push("/account")
+    }
+  }, [user, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
+    setIsSubmitting(true)
 
     if (!email || !password) {
       setError("Please fill in all fields")
+      setIsSubmitting(false)
       return
     }
 
-    const { error } = await signIn(email, password, rememberMe)
-    if (error) {
-      setError(error.message || "Login failed")
+    try {
+      const { error } = await signIn(email, password, rememberMe)
+      if (error) {
+        setError(error.message || "Login failed")
+      } else {
+        setSuccess("Login successful! Redirecting...")
+        // Wait a moment then redirect
+        setTimeout(() => {
+          router.push("/account")
+        }, 1000)
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  const isLoading = authLoading || isSubmitting
+
+  // Show loading if auth is still initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    )
+  }
+
+  // Don't show login form if user is already logged in
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">You are already logged in. Redirecting...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -88,7 +132,8 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+                    disabled={isLoading}
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Enter your email"
                   />
                   <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
@@ -108,7 +153,8 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+                    disabled={isLoading}
+                    className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Enter your password"
                   />
                   <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
@@ -116,6 +162,7 @@ export default function LoginPage() {
                     type="button"
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5 text-gray-400" />
@@ -134,7 +181,8 @@ export default function LoginPage() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                    disabled={isLoading}
+                    className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded disabled:opacity-50"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                     Remember me
@@ -148,8 +196,8 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full bg-black hover:bg-gray-800 text-white">
-                {loading ? "Signing in..." : "Sign in"}
+              <Button type="submit" disabled={isLoading} className="w-full bg-black hover:bg-gray-800 text-white">
+                {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
 
@@ -164,7 +212,7 @@ export default function LoginPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button variant="outline" className="w-full" type="button">
+                <Button variant="outline" className="w-full" type="button" disabled={isLoading}>
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
@@ -186,7 +234,7 @@ export default function LoginPage() {
                   <span className="ml-2">Google</span>
                 </Button>
 
-                <Button variant="outline" className="w-full" type="button">
+                <Button variant="outline" className="w-full" type="button" disabled={isLoading}>
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
