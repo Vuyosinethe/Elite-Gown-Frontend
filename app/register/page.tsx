@@ -5,14 +5,18 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
-import { Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, CheckCircle, AlertCircle, Menu, X, ChevronDown } from "lucide-react"
+import { useCart } from "@/hooks/use-cart"
+import CartDrawer from "@/components/cart-drawer"
 
 export default function RegisterPage() {
-  const { signUp, loading } = useAuth()
+  const { signUp, loading, user, signOut } = useAuth()
   const router = useRouter()
+  const { cartCount } = useCart()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -27,6 +31,11 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false)
+  const [isSaleDropdownOpen, setIsSaleDropdownOpen] = useState(false)
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -190,284 +199,838 @@ export default function RegisterPage() {
 
   if (registrationSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+      <>
+        {/* Navigation */}
+        <nav className="border-b border-gray-200 bg-white">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex h-16 items-center justify-between">
+              {/* Logo */}
+              <Link href="/" className="flex items-center gap-2">
+                <Image
+                  src="/elite-gowns-logo.png"
+                  alt="Elite Gowns Logo"
+                  width={30}
+                  height={30}
+                  className="h-6 w-auto"
+                />
+                <div className="group relative">
+                  <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
+                    Elite Gowns
+                  </span>
+                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
+                </div>
+              </Link>
+
+              {/* Desktop Navigation */}
+              <div className="hidden md:block">
+                <div className="ml-10 flex items-baseline space-x-4">
+                  <Link href="/" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+                    Home
+                  </Link>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
+                      className="text-gray-700 hover:text-black flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+                    >
+                      Shop
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    {isShopDropdownOpen && (
+                      <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <Link
+                          href="/graduation-gowns"
+                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Graduation Gowns
+                        </Link>
+                        <Link
+                          href="/medical-scrubs"
+                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Medical Scrubs
+                        </Link>
+                        <Link
+                          href="/embroidered-merchandise"
+                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Embroidered Merchandise
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsSaleDropdownOpen(!isSaleDropdownOpen)}
+                      className="text-gray-700 hover:text-[#39FF14] flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+                    >
+                      Sale
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    {isSaleDropdownOpen && (
+                      <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <Link
+                          href="/graduation-gowns"
+                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                          onClick={() => setIsSaleDropdownOpen(false)}
+                        >
+                          Graduation Gown
+                        </Link>
+                        <Link
+                          href="/medical-scrubs"
+                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                          onClick={() => setIsSaleDropdownOpen(false)}
+                        >
+                          Scrub
+                        </Link>
+                        <Link
+                          href="/embroidered-merchandise"
+                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                          onClick={() => setIsSaleDropdownOpen(false)}
+                        >
+                          Merchandise
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                  <Link
+                    href="/about"
+                    className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    About
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Contact
+                  </Link>
+                </div>
               </div>
-              <CardTitle className="text-2xl font-bold text-green-600">Registration Successful!</CardTitle>
-              <CardDescription>
-                Welcome to Elite Gowns! We've sent a confirmation email to verify your account.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                Please check your email and click the verification link to activate your account.
-              </p>
-              <p className="text-xs text-gray-500">Redirecting to login page in 3 seconds...</p>
-            </CardContent>
-          </Card>
+
+              {/* Mobile menu button */}
+              <div className="md:hidden">
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                  aria-controls="mobile-menu"
+                  aria-expanded="false"
+                >
+                  <span className="sr-only">Open main menu</span>
+                  {isMobileMenuOpen ? (
+                    <X className="block h-6 w-6" aria-hidden="true" />
+                  ) : (
+                    <Menu className="block h-6 w-6" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+
+              {/* Right Side - Cart and User Info */}
+              <div className="hidden md:block">
+                <div className="ml-4 flex items-center md:ml-6">
+                  {/* Cart */}
+                  <Link
+                    href="/cart"
+                    className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    {cartCount > 0 ? `Cart (${cartCount})` : "Cart"}
+                  </Link>
+
+                  {/* User Info */}
+                  <div className="relative ml-3">
+                    <div>
+                      {user ? (
+                        <button
+                          onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                          type="button"
+                          className="flex max-w-xs items-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
+                          id="user-menu-button"
+                          aria-expanded="false"
+                          aria-haspopup="true"
+                        >
+                          <span className="sr-only">Open user menu</span>
+                          <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center overflow-hidden">
+                            <span className="font-medium text-white">{user?.firstName[0].toUpperCase()}</span>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Link href="/login" className="text-gray-700 hover:text-black">
+                            Sign In
+                          </Link>
+                          <Link
+                            href="/register"
+                            className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+                          >
+                            Sign Up
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                    {isUserDropdownOpen && user && (
+                      <div
+                        className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        role="menu"
+                        aria-orientation="vertical"
+                        aria-labelledby="user-menu-button"
+                        tabIndex={-1}
+                      >
+                        <Link
+                          href="/account"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                          tabIndex={-1}
+                          id="user-menu-item-0"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                        >
+                          Your Profile
+                        </Link>
+                        <button
+                          onClick={() => {
+                            signOut()
+                            setIsUserDropdownOpen(false)
+                          }}
+                          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          role="menuitem"
+                          tabIndex={-1}
+                          id="user-menu-item-2"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
+            </div>
+          </div>
+
+          {/* Mobile Menu */}
+          <div className="md:hidden" id="mobile-menu">
+            {isMobileMenuOpen && (
+              <div className="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+                <Link
+                  href="/"
+                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/graduation-gowns"
+                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Graduation Gowns
+                </Link>
+                <Link
+                  href="/medical-scrubs"
+                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Medical Scrubs
+                </Link>
+                <Link
+                  href="/embroidered-merchandise"
+                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Embroidered Merchandise
+                </Link>
+                <Link
+                  href="/about"
+                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  About
+                </Link>
+                <Link
+                  href="/contact"
+                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Contact
+                </Link>
+                {!user && (
+                  <>
+                    <Link
+                      href="/login"
+                      className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="bg-black text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800 transition-colors text-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Cart Drawer */}
+        <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-green-600">Registration Successful!</CardTitle>
+                <CardDescription>
+                  Welcome to Elite Gowns! We've sent a confirmation email to verify your account.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  Please check your email and click the verification link to activate your account.
+                </p>
+                <p className="text-xs text-gray-500">Redirecting to login page in 3 seconds...</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your account</h2>
-          <p className="mt-2 text-center text-sm text-gray-600">Join Elite Gowns today</p>
+    <>
+      {/* Navigation */}
+      <nav className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={30} height={30} className="h-6 w-auto" />
+              <div className="group relative">
+                <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
+                  Elite Gowns
+                </span>
+                <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
+              </div>
+            </Link>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-baseline space-x-4">
+                <Link href="/" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+                  Home
+                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
+                    className="text-gray-700 hover:text-black flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+                  >
+                    Shop
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {isShopDropdownOpen && (
+                    <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <Link
+                        href="/graduation-gowns"
+                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                        onClick={() => setIsShopDropdownOpen(false)}
+                      >
+                        Graduation Gowns
+                      </Link>
+                      <Link
+                        href="/medical-scrubs"
+                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                        onClick={() => setIsShopDropdownOpen(false)}
+                      >
+                        Medical Scrubs
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise"
+                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                        onClick={() => setIsShopDropdownOpen(false)}
+                      >
+                        Embroidered Merchandise
+                      </Link>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsSaleDropdownOpen(!isSaleDropdownOpen)}
+                    className="text-gray-700 hover:text-[#39FF14] flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+                  >
+                    Sale
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {isSaleDropdownOpen && (
+                    <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <Link
+                        href="/graduation-gowns"
+                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                        onClick={() => setIsSaleDropdownOpen(false)}
+                      >
+                        Graduation Gown
+                      </Link>
+                      <Link
+                        href="/medical-scrubs"
+                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                        onClick={() => setIsSaleDropdownOpen(false)}
+                      >
+                        Scrub
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise"
+                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
+                        onClick={() => setIsSaleDropdownOpen(false)}
+                      >
+                        Merchandise
+                      </Link>
+                    </div>
+                  )}
+                </div>
+                <Link href="/about" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+                  About
+                </Link>
+                <Link
+                  href="/contact"
+                  className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Contact
+                </Link>
+              </div>
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                type="button"
+                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                aria-controls="mobile-menu"
+                aria-expanded="false"
+              >
+                <span className="sr-only">Open main menu</span>
+                {isMobileMenuOpen ? (
+                  <X className="block h-6 w-6" aria-hidden="true" />
+                ) : (
+                  <Menu className="block h-6 w-6" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+
+            {/* Right Side - Cart and User Info */}
+            <div className="hidden md:block">
+              <div className="ml-4 flex items-center md:ml-6">
+                {/* Cart */}
+                <Link href="/cart" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+                  {cartCount > 0 ? `Cart (${cartCount})` : "Cart"}
+                </Link>
+
+                {/* User Info */}
+                <div className="relative ml-3">
+                  <div>
+                    {user ? (
+                      <button
+                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                        type="button"
+                        className="flex max-w-xs items-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
+                        id="user-menu-button"
+                        aria-expanded="false"
+                        aria-haspopup="true"
+                      >
+                        <span className="sr-only">Open user menu</span>
+                        <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center overflow-hidden">
+                          <span className="font-medium text-white">{user?.firstName[0].toUpperCase()}</span>
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <Link href="/login" className="text-gray-700 hover:text-black">
+                          Sign In
+                        </Link>
+                        <Link
+                          href="/register"
+                          className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+                        >
+                          Sign Up
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                  {isUserDropdownOpen && user && (
+                    <div
+                      className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                      role="menu"
+                      aria-orientation="vertical"
+                      aria-labelledby="user-menu-button"
+                      tabIndex={-1}
+                    >
+                      <Link
+                        href="/account"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        tabIndex={-1}
+                        id="user-menu-item-0"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                      >
+                        Your Profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          signOut()
+                          setIsUserDropdownOpen(false)
+                        }}
+                        className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        tabIndex={-1}
+                        id="user-menu-item-2"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign up for Elite Gowns</CardTitle>
-            <CardDescription>Enter your information to create an account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {errors.general && (
-                <div className="rounded-md bg-red-50 p-4">
-                  <div className="flex">
-                    <AlertCircle className="h-5 w-5 text-red-400" />
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">Registration Error</h3>
-                      <div className="mt-2 text-sm text-red-700">{errors.general}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
-                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                      errors.firstName ? "border-red-300" : "border-gray-300"
-                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
-                    placeholder="First name"
-                  />
-                  {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
-                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                      errors.lastName ? "border-red-300" : "border-gray-300"
-                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
-                    placeholder="Last name"
-                  />
-                  {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                    errors.email ? "border-red-300" : "border-gray-300"
-                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
-                  placeholder="Email address"
-                />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                    errors.phone ? "border-red-300" : "border-gray-300"
-                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
-                  placeholder="Phone number"
-                />
-                {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <div className="mt-1 relative">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    className={`appearance-none relative block w-full px-3 py-2 pr-10 border ${
-                      errors.password ? "border-red-300" : "border-gray-300"
-                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
-                    placeholder="Password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
+        {/* Mobile Menu */}
+        <div className="md:hidden" id="mobile-menu">
+          {isMobileMenuOpen && (
+            <div className="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+              <Link
+                href="/"
+                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                href="/graduation-gowns"
+                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Graduation Gowns
+              </Link>
+              <Link
+                href="/medical-scrubs"
+                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Medical Scrubs
+              </Link>
+              <Link
+                href="/embroidered-merchandise"
+                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Embroidered Merchandise
+              </Link>
+              <Link
+                href="/about"
+                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                About
+              </Link>
+              <Link
+                href="/contact"
+                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Contact
+              </Link>
+              {!user && (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                </div>
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="bg-black text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800 transition-colors text-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </nav>
 
-                {formData.password && (
-                  <div className="mt-2 text-xs space-y-1">
-                    <div
-                      className={`flex items-center ${passwordValidation.requirements.minLength ? "text-green-600" : "text-red-600"}`}
-                    >
-                      <span className="mr-1">{passwordValidation.requirements.minLength ? "✓" : "✗"}</span>
-                      At least 8 characters
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordValidation.requirements.hasUpper ? "text-green-600" : "text-red-600"}`}
-                    >
-                      <span className="mr-1">{passwordValidation.requirements.hasUpper ? "✓" : "✗"}</span>
-                      One uppercase letter
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordValidation.requirements.hasLower ? "text-green-600" : "text-red-600"}`}
-                    >
-                      <span className="mr-1">{passwordValidation.requirements.hasLower ? "✓" : "✗"}</span>
-                      One lowercase letter
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordValidation.requirements.hasNumber ? "text-green-600" : "text-red-600"}`}
-                    >
-                      <span className="mr-1">{passwordValidation.requirements.hasNumber ? "✓" : "✗"}</span>
-                      One number
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordValidation.requirements.hasSpecial ? "text-green-600" : "text-red-600"}`}
-                    >
-                      <span className="mr-1">{passwordValidation.requirements.hasSpecial ? "✓" : "✗"}</span>
-                      One special character
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your account</h2>
+            <p className="mt-2 text-center text-sm text-gray-600">Join Elite Gowns today</p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sign up for Elite Gowns</CardTitle>
+              <CardDescription>Enter your information to create an account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {errors.general && (
+                  <div className="rounded-md bg-red-50 p-4">
+                    <div className="flex">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">Registration Error</h3>
+                        <div className="mt-2 text-sm text-red-700">{errors.general}</div>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                        errors.firstName ? "border-red-300" : "border-gray-300"
+                      } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
+                      placeholder="First name"
+                    />
+                    {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+                  </div>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password <span className="text-red-500">*</span>
-                </label>
-                <div className="mt-1 relative">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className={`appearance-none relative block w-full px-3 py-2 pr-10 border ${
-                      errors.confirmPassword ? "border-red-300" : "border-gray-300"
-                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
-                    placeholder="Confirm password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange("lastName", e.target.value)}
+                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                        errors.lastName ? "border-red-300" : "border-gray-300"
+                      } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
+                      placeholder="Last name"
+                    />
+                    {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
+                  </div>
                 </div>
-                {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-              </div>
 
-              <div className="flex items-center">
-                <input
-                  id="acceptTerms"
-                  name="acceptTerms"
-                  type="checkbox"
-                  checked={formData.acceptTerms}
-                  onChange={(e) => handleInputChange("acceptTerms", e.target.checked)}
-                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
-                />
-                <label htmlFor="acceptTerms" className="ml-2 block text-sm text-gray-900">
-                  I agree to the{" "}
-                  <Link href="/terms" className="text-black hover:underline">
-                    Terms and Conditions
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-black hover:underline">
-                    Privacy Policy
-                  </Link>
-                  <span className="text-red-500"> *</span>
-                </label>
-              </div>
-              {errors.acceptTerms && <p className="text-sm text-red-600">{errors.acceptTerms}</p>}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                      errors.email ? "border-red-300" : "border-gray-300"
+                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
+                    placeholder="Email address"
+                  />
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
 
-              <div>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || loading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Creating Account..." : "Create Account"}
-                </Button>
-              </div>
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                      errors.phone ? "border-red-300" : "border-gray-300"
+                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
+                    placeholder="Phone number"
+                  />
+                  {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+                </div>
 
-              <div className="text-center">
-                <span className="text-sm text-gray-600">
-                  Already have an account?{" "}
-                  <Link href="/login" className="font-medium text-black hover:underline">
-                    Sign in here
-                  </Link>
-                </span>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="mt-1 relative">
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      required
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      className={`appearance-none relative block w-full px-3 py-2 pr-10 border ${
+                        errors.password ? "border-red-300" : "border-gray-300"
+                      } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
+                      placeholder="Password"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+
+                  {formData.password && (
+                    <div className="mt-2 text-xs space-y-1">
+                      <div
+                        className={`flex items-center ${passwordValidation.requirements.minLength ? "text-green-600" : "text-red-600"}`}
+                      >
+                        <span className="mr-1">{passwordValidation.requirements.minLength ? "✓" : "✗"}</span>
+                        At least 8 characters
+                      </div>
+                      <div
+                        className={`flex items-center ${passwordValidation.requirements.hasUpper ? "text-green-600" : "text-red-600"}`}
+                      >
+                        <span className="mr-1">{passwordValidation.requirements.hasUpper ? "✓" : "✗"}</span>
+                        One uppercase letter
+                      </div>
+                      <div
+                        className={`flex items-center ${passwordValidation.requirements.hasLower ? "text-green-600" : "text-red-600"}`}
+                      >
+                        <span className="mr-1">{passwordValidation.requirements.hasLower ? "✓" : "✗"}</span>
+                        One lowercase letter
+                      </div>
+                      <div
+                        className={`flex items-center ${passwordValidation.requirements.hasNumber ? "text-green-600" : "text-red-600"}`}
+                      >
+                        <span className="mr-1">{passwordValidation.requirements.hasNumber ? "✓" : "✗"}</span>
+                        One number
+                      </div>
+                      <div
+                        className={`flex items-center ${passwordValidation.requirements.hasSpecial ? "text-green-600" : "text-red-600"}`}
+                      >
+                        <span className="mr-1">{passwordValidation.requirements.hasSpecial ? "✓" : "✗"}</span>
+                        One special character
+                      </div>
+                    </div>
+                  )}
+
+                  {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="mt-1 relative">
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                      className={`appearance-none relative block w-full px-3 py-2 pr-10 border ${
+                        errors.confirmPassword ? "border-red-300" : "border-gray-300"
+                      } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm`}
+                      placeholder="Confirm password"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    id="acceptTerms"
+                    name="acceptTerms"
+                    type="checkbox"
+                    checked={formData.acceptTerms}
+                    onChange={(e) => handleInputChange("acceptTerms", e.target.checked)}
+                    className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                  />
+                  <label htmlFor="acceptTerms" className="ml-2 block text-sm text-gray-900">
+                    I agree to the{" "}
+                    <Link href="/terms" className="text-black hover:underline">
+                      Terms and Conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" className="text-black hover:underline">
+                      Privacy Policy
+                    </Link>
+                    <span className="text-red-500"> *</span>
+                  </label>
+                </div>
+                {errors.acceptTerms && <p className="text-sm text-red-600">{errors.acceptTerms}</p>}
+
+                <div>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || loading}
+                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </div>
+
+                <div className="text-center">
+                  <span className="text-sm text-gray-600">
+                    Already have an account?{" "}
+                    <Link href="/login" className="font-medium text-black hover:underline">
+                      Sign in here
+                    </Link>
+                  </span>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
