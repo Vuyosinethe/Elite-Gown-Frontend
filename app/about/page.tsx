@@ -99,7 +99,7 @@ export default function AboutPage() {
                     <span>Sale</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-80 overflow-y-auto">
                     <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
                       Graduation Gowns
                     </div>

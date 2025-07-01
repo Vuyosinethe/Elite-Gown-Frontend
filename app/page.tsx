@@ -82,7 +82,7 @@ export default function HomePage() {
                       </button>
                       {saleOpen && (
                         <div
-                          className="absolute left-full top-0 ml-1 w-56 rounded-md shadow-lg z-50"
+                          className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-80 overflow-y-auto"
                           style={{ backgroundColor: "#00ff00" }}
                         >
                           <div className="py-1">
