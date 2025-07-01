@@ -95,7 +95,7 @@ export default function AboutPage() {
                   </div>
                 </div>
                 <div className="relative group">
-                  <button className="text-[#39FF14] hover:text-[#32E610] transition-colors flex items-center space-x-1">
+                  <button className="text-gray-700 hover:text-[#39FF14] transition-colors flex items-center space-x-1">
                     <span>Sale</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>

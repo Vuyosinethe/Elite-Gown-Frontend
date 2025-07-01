@@ -71,59 +71,10 @@ export default function HomePage() {
                     >
                       Embroidered merchandise
                     </Link>
-                    <div className="relative">
-                      <button
-                        onClick={() => setSaleOpen(!saleOpen)}
-                        className="w-full text-left px-4 py-2 text-sm text-black border border-green-400 hover:bg-gray-50 flex items-center justify-between transition-colors"
-                        style={{ borderColor: "#00ff00" }}
-                      >
-                        Sale
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                      </button>
-                      {saleOpen && (
-                        <div
-                          className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-80 overflow-y-auto"
-                          style={{ backgroundColor: "#00ff00" }}
-                        >
-                          <div className="py-1">
-                            <Link
-                              href="/graduation-gowns?sale=true"
-                              className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
-                              onClick={() => {
-                                setSaleOpen(false)
-                                setShopOpen(false)
-                              }}
-                            >
-                              Graduation gowns on sale
-                            </Link>
-                            <Link
-                              href="/medical-scrubs?sale=true"
-                              className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
-                              onClick={() => {
-                                setSaleOpen(false)
-                                setShopOpen(false)
-                              }}
-                            >
-                              Medical scrubs on sale
-                            </Link>
-                            <Link
-                              href="/embroidered-merchandise?sale=true"
-                              className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
-                              onClick={() => {
-                                setSaleOpen(false)
-                                setShopOpen(false)
-                              }}
-                            >
-                              Merchandise on sale
-                            </Link>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
                 <div className="relative group">
-                  <button className="text-[#39FF14] hover:text-[#32E610] transition-colors flex items-center space-x-1">
+                  <button className="text-gray-700 hover:text-[#39FF14] transition-colors flex items-center space-x-1">
                     <span>Sale</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
