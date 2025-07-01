@@ -5,25 +5,34 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import type { AuthApiError } from "@supabase/supabase-js"
 
 type User = {
   id: string
   email: string
   firstName?: string
   lastName?: string
+  phone?: string
   avatar?: string
 }
 
 type AuthContextType = {
   user: User | null
   loading: boolean
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone: string,
+  ) => Promise<{ error: any }>
   signIn: (email: string, password: string, rememberMe: boolean) => Promise<{ error: any }>
   signOut: () => Promise<void>
   forgotPassword: (email: string) => Promise<{ error: any }>
   resetPassword: (password: string) => Promise<{ error: any }>
   updateProfile: (data: Partial<User>) => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
+  resendConfirmationEmail: (email: string) => Promise<{ error: AuthApiError | null }>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -49,29 +58,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let userData: User
 
       if (profileError || !profile) {
-        console.log("Profile fetch error or no profile:", profileError)
+        console.log("Profile not found, creating from auth metadata:", profileError)
 
-        // Fallback to auth metadata
+        // Create user data from auth metadata
         userData = {
           id: authUser.id,
           email: authUser.email,
           firstName: authUser.user_metadata?.first_name || "User",
           lastName: authUser.user_metadata?.last_name || "",
+          phone: authUser.user_metadata?.phone || "",
           avatar: authUser.user_metadata?.avatar_url || "",
         }
 
-        // Try to create profile if it doesn't exist
+        // Try to create the missing profile
         try {
-          await supabase.from("profiles").upsert({
+          console.log("Creating missing profile for authenticated user")
+          const { error: createError } = await supabase.from("profiles").insert({
             id: authUser.id,
             email: authUser.email,
             first_name: userData.firstName,
             last_name: userData.lastName,
+            phone: userData.phone,
             avatar_url: userData.avatar,
             created_at: new Date().toISOString(),
           })
-        } catch (upsertError) {
-          console.log("Profile upsert failed:", upsertError)
+
+          if (createError) {
+            console.error("Failed to create profile:", createError)
+            // Continue anyway - we have the user data from metadata
+          } else {
+            console.log("Successfully created missing profile")
+          }
+        } catch (createError) {
+          console.error("Exception creating profile:", createError)
+          // Continue anyway - we have the user data from metadata
         }
       } else {
         console.log("Profile data found:", profile)
@@ -81,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: authUser.email,
           firstName: profile.first_name || authUser.user_metadata?.first_name || "User",
           lastName: profile.last_name || authUser.user_metadata?.last_name || "",
+          phone: profile.phone || authUser.user_metadata?.phone || "",
           avatar: profile.avatar_url || authUser.user_metadata?.avatar_url || "",
         }
       }
@@ -90,12 +111,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error loading user profile:", error)
 
-      // Final fallback
+      // Final fallback - use auth data
       setUser({
         id: authUser.id,
         email: authUser.email,
-        firstName: "User",
-        lastName: "",
+        firstName: authUser.user_metadata?.first_name || "User",
+        lastName: authUser.user_metadata?.last_name || "",
+        phone: authUser.user_metadata?.phone || "",
         avatar: "",
       })
     }
@@ -187,9 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Sign up with email and password
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, phone: string) => {
     try {
-      console.log("Starting signup process for:", email, "with names:", firstName, lastName)
+      console.log("Starting signup process for:", email, "with names:", firstName, lastName, "phone:", phone)
 
       // Check if Supabase is properly configured
       if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -200,20 +222,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email,
             firstName,
             lastName,
+            phone,
           })
           router.push("/account")
         }, 1000)
         return { error: null }
       }
 
-      // Create user in Supabase Auth with metadata
+      // Create user in Supabase Auth with metadata and email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/login?verified=true`,
           data: {
             first_name: firstName,
             last_name: lastName,
+            phone: phone,
             full_name: `${firstName} ${lastName}`,
           },
         },
@@ -225,28 +250,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log("Auth signup successful for:", data.user?.email)
-
-      // Ensure profile is created (backup to trigger)
-      if (data.user) {
-        try {
-          const { error: profileError } = await supabase.from("profiles").upsert({
-            id: data.user.id,
-            email,
-            first_name: firstName,
-            last_name: lastName,
-            avatar_url: "",
-            created_at: new Date().toISOString(),
-          })
-
-          if (profileError) {
-            console.error("Profile creation error:", profileError)
-          } else {
-            console.log("Profile created successfully")
-          }
-        } catch (profileError) {
-          console.error("Profile creation exception:", profileError)
-        }
-      }
 
       return { error: null }
     } catch (error) {
@@ -269,12 +272,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email,
             firstName: "Mock",
             lastName: "User",
+            phone: "",
           })
           router.push("/account")
         }, 1000)
         return { error: null }
       }
 
+      // Just attempt the login directly - let Supabase handle the validation
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -282,14 +287,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error("Supabase auth signin error:", error)
+
+        // Check if it's an invalid credentials error
+        if (error.message.includes("Invalid login credentials")) {
+          // For invalid credentials, we should assume it's a wrong password
+          // rather than checking the profiles table, since the user might exist
+          // in auth but not have a profile record yet
+          return { error: { message: "Incorrect email or password. Please try again." } }
+        }
+
+        // For other types of errors (email not confirmed, etc.)
+        if (error.message.includes("Email not confirmed")) {
+          return { error: { message: "Please check your email and click the confirmation link before signing in." } }
+        }
+
+        // For any other auth errors, return the original message
         return { error: { message: error.message } }
       }
 
       console.log("Auth signin successful for:", data.user?.email)
 
       // The auth state change listener will handle loading the profile
-      // and redirecting to the account page
-
       return { error: null }
     } catch (error) {
       console.error("Error signing in:", error)
@@ -307,7 +325,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await supabase.auth.signOut()
-      // The auth state change listener will handle clearing the user
     } catch (error) {
       console.error("Error signing out:", error)
     }
@@ -377,6 +394,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updates = {
         first_name: data.firstName || user.firstName,
         last_name: data.lastName || user.lastName,
+        phone: data.phone || user.phone,
         full_name: `${data.firstName || user.firstName} ${data.lastName || user.lastName}`,
         avatar_url: data.avatar || user.avatar,
         updated_at: new Date().toISOString(),
@@ -395,6 +413,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           first_name: data.firstName,
           last_name: data.lastName,
+          phone: data.phone,
           full_name: `${data.firstName} ${data.lastName}`,
         },
       })
@@ -407,6 +426,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Error updating profile:", error)
       return { error: { message: "Profile update failed. Please try again." } }
     }
+  }
+
+  // Resend confirmation email
+  const resendConfirmationEmail = async (email: string) => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return { error: { message: "Email confirmation unavailable in mock mode." } }
+    }
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    })
+    return { error }
   }
 
   // Don't render children until auth is initialized
@@ -430,6 +461,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         resetPassword,
         updateProfile,
         refreshProfile,
+        resendConfirmationEmail,
       }}
     >
       {children}

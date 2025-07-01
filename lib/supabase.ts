@@ -4,6 +4,13 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+// ────────────────────────────────────────────────────────────────
+//  NEW EXPORT
+//  Export the factory so other modules can do:
+//  import { createClient } from "@/lib/supabase"
+// ────────────────────────────────────────────────────────────────
+export { createClient }
+
 // Create a mock client if environment variables are missing
 const createMockClient = () => {
   console.warn("⚠️ Using mock Supabase client. Set up environment variables for real authentication.")

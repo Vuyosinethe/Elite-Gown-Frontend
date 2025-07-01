@@ -1,205 +1,455 @@
 "use client"
 
-import { useState } from "react"
+import { Popover } from "@/components/ui/popover"
+
+import { Fragment, useState } from "react"
+import { Dialog, Transition } from "@headlessui/react"
+import { X, ChevronDown, User, MenuIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
-import CartDrawer from "@/components/cart-drawer"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useAuth } from "@/contexts/auth-context"
 
-export default function FAQPage() {
+const navigation = {
+  categories: [
+    {
+      id: "women",
+      name: "Women",
+      featured: [
+        {
+          name: "New Arrivals",
+          href: "#",
+          imageSrc: "https://tailwindui.com/img/ecommerce-images/mega-menu-category-01.jpg",
+          imageAlt: "Models sitting back to back, wearing Basic Tee in black and bone.",
+        },
+        {
+          name: "Basic Tees",
+          href: "#",
+          imageSrc: "https://tailwindui.com/img/ecommerce-images/mega-menu-category-02.jpg",
+          imageAlt: "Close up of Basic Tee fall bundle with off-white, ochre, black, and charcoal heather tee.",
+        },
+      ],
+      sections: [
+        {
+          id: "clothing",
+          name: "Clothing",
+          items: [
+            { name: "Tops", href: "#" },
+            { name: "Dresses", href: "#" },
+            { name: "Pants", href: "#" },
+            { name: "Denim", href: "#" },
+            { name: "Sweaters", href: "#" },
+            { name: "T-Shirts", href: "#" },
+            { name: "Jackets", href: "#" },
+            { name: "Activewear", href: "#" },
+            { name: "Browse All Clothing", href: "#" },
+          ],
+        },
+        {
+          id: "accessories",
+          name: "Accessories",
+          items: [
+            { name: "Watches", href: "#" },
+            { name: "Wallets", href: "#" },
+            { name: "Bags", href: "#" },
+            { name: "Sunglasses", href: "#" },
+            { name: "Hats", href: "#" },
+            { name: "Belts", href: "#" },
+          ],
+        },
+        {
+          id: "brands",
+          name: "Brands",
+          items: [
+            { name: "Full Nelson", href: "#" },
+            { name: "My Way", href: "#" },
+            { name: "Re-Arranged", href: "#" },
+            { name: "Counterfeit", href: "#" },
+            { name: "Significant Other", href: "#" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "men",
+      name: "Men",
+      featured: [
+        {
+          name: "New Arrivals",
+          href: "#",
+          imageSrc: "https://tailwindui.com/img/ecommerce-images/mega-menu-03.jpg",
+          imageAlt: "Model wearing minimalist watch with black wristband and white watch face.",
+        },
+        {
+          name: "Basic Tees",
+          href: "#",
+          imageSrc: "https://tailwindui.com/img/ecommerce-images/mega-menu-04.jpg",
+          imageAlt: "Close up of Basic Tee fall bundle with off-white, ochre, black, and charcoal heather tee.",
+        },
+      ],
+      sections: [
+        {
+          id: "clothing",
+          name: "Clothing",
+          items: [
+            { name: "Tops", href: "#" },
+            { name: "Pants", href: "#" },
+            { name: "Shorts", href: "#" },
+            { name: "Denim", href: "#" },
+            { name: "Sweaters", href: "#" },
+            { name: "T-Shirts", href: "#" },
+            { name: "Jackets", href: "#" },
+            { name: "Activewear", href: "#" },
+            { name: "Browse All Clothing", href: "#" },
+          ],
+        },
+        {
+          id: "accessories",
+          name: "Accessories",
+          items: [
+            { name: "Watches", href: "#" },
+            { name: "Wallets", href: "#" },
+            { name: "Bags", href: "#" },
+            { name: "Sunglasses", href: "#" },
+            { name: "Hats", href: "#" },
+            { name: "Belts", href: "#" },
+          ],
+        },
+        {
+          id: "brands",
+          name: "Brands",
+          items: [
+            { name: "Re-Arranged", href: "#" },
+            { name: "Counterfeit", href: "#" },
+            { name: "Full Nelson", href: "#" },
+            { name: "My Way", href: "#" },
+          ],
+        },
+      ],
+    },
+  ],
+  pages: [
+    { name: "Company", href: "#" },
+    { name: "Stores", href: "#" },
+  ],
+}
+
+function classNames(...classes: any) {
+  return classes.filter(Boolean).join(" ")
+}
+
+export default function Example() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-
-  const faqCategories = [
-    {
-      category: "Orders & Shipping",
-      questions: [
-        {
-          question: "How long does shipping take?",
-          answer:
-            "Standard shipping within South Africa takes 3-5 business days. Express shipping (1-2 business days) is available for an additional fee. International shipping times vary by destination, typically 7-14 business days.",
-        },
-        {
-          question: "Do you ship internationally?",
-          answer:
-            "Yes, we ship to most countries worldwide. International shipping costs and delivery times are calculated at checkout based on your location and the weight of your order.",
-        },
-        {
-          question: "Is there free shipping?",
-          answer:
-            "Yes! We offer free standard shipping on all orders over R500 within South Africa. International orders and orders below R500 will have shipping calculated at checkout.",
-        },
-        {
-          question: "How can I track my order?",
-          answer:
-            "Once your order ships, you'll receive a tracking number via email. You can use this number to track your package on our website or directly through the courier's website.",
-        },
-      ],
-    },
-    {
-      category: "Returns & Exchanges",
-      questions: [
-        {
-          question: "What is your return policy?",
-          answer:
-            "We offer a 30-day return policy for unused items in their original packaging. Custom embroidered items cannot be returned unless there is a manufacturing defect.",
-        },
-        {
-          question: "How do I initiate a return?",
-          answer:
-            "To initiate a return, please email us at returns@elitegowns.co.za with your order number and reason for return. We'll provide you with a return authorization and instructions.",
-        },
-        {
-          question: "Do you offer exchanges?",
-          answer:
-            "Yes, we offer exchanges for different sizes or colors within 30 days of purchase. Please contact our customer service team to arrange an exchange.",
-        },
-        {
-          question: "Who pays for return shipping?",
-          answer:
-            "Customers are responsible for return shipping costs unless the return is due to our error (wrong item shipped, defective product, etc.).",
-        },
-      ],
-    },
-    {
-      category: "Graduation Gowns",
-      questions: [
-        {
-          question: "How do I determine the correct size for my graduation gown?",
-          answer:
-            "Please refer to our size guide on the product page. Graduation gowns are sized based on height and chest measurements. If you're between sizes, we recommend sizing up for a more comfortable fit.",
-        },
-        {
-          question: "Can I rent graduation gowns instead of buying?",
-          answer:
-            "Yes, we offer graduation gown rentals at R299 per day. A security deposit is required and will be refunded when the gown is returned in good condition.",
-        },
-        {
-          question: "Do you provide faculty-specific colors and regalia?",
-          answer:
-            "Yes, we offer faculty-specific sashes and hoods for all major South African universities. Please select your faculty when ordering to ensure you receive the correct colors.",
-        },
-        {
-          question: "How should I care for my graduation gown?",
-          answer:
-            "Graduation gowns should be dry cleaned only. Store your gown in the provided garment bag in a cool, dry place. Do not iron directly on the fabric; use a steamer or iron on low heat with a cloth barrier.",
-        },
-      ],
-    },
-    {
-      category: "Medical Scrubs",
-      questions: [
-        {
-          question: "Are your medical scrubs antimicrobial?",
-          answer:
-            "Yes, all our medical scrubs feature antimicrobial treatment that lasts for approximately 50 washes. This helps reduce odor and bacterial growth.",
-        },
-        {
-          question: "How should I wash my medical scrubs?",
-          answer:
-            "Machine wash in warm water (60°C max) with mild detergent. Avoid bleach. Tumble dry on low heat or hang to dry. Iron on medium heat if needed.",
-        },
-        {
-          question: "Do you offer bulk discounts for medical institutions?",
-          answer:
-            "Yes, we offer special pricing for bulk orders from medical schools, hospitals, and clinics. Please contact our sales team at sales@elitegowns.co.za for a custom quote.",
-        },
-        {
-          question: "Can I get custom embroidery on my medical scrubs?",
-          answer:
-            "We can add your name, title, institution logo, or other custom embroidery to your medical scrubs for an additional fee.",
-        },
-      ],
-    },
-    {
-      category: "Custom Embroidery",
-      questions: [
-        {
-          question: "What file formats do you accept for custom logos?",
-          answer:
-            "We accept vector files (.ai, .eps, .pdf) for best results. We can also work with high-resolution .png or .jpg files (300 dpi or higher).",
-        },
-        {
-          question: "What is the minimum order for custom embroidery?",
-          answer:
-            "There is no minimum order quantity for custom embroidery. However, there is a one-time digitization fee for new designs, which is waived for orders of 10+ items.",
-        },
-        {
-          question: "How long does custom embroidery take?",
-          answer:
-            "Standard turnaround time for custom embroidery is 5-7 business days after design approval. Rush orders may be available for an additional fee.",
-        },
-        {
-          question: "Do you offer special rates for Wits student organizations?",
-          answer:
-            "Yes, we offer special pricing for Wits student organizations and social clubs. Please provide proof of affiliation when requesting a quote.",
-        },
-      ],
-    },
-    {
-      category: "Payment & Pricing",
-      questions: [
-        {
-          question: "What payment methods do you accept?",
-          answer:
-            "We accept Visa, MasterCard, EFT (Electronic Funds Transfer), and mobile payment options. All payments are processed securely.",
-        },
-        {
-          question: "Is VAT included in your prices?",
-          answer: "Yes, all prices displayed on our website include 15% VAT.",
-        },
-        {
-          question: "Do you offer payment plans?",
-          answer:
-            "Yes, we offer payment plans for orders over R2,000. Please contact our customer service team to discuss available options.",
-        },
-        {
-          question: "Do you offer discounts for bulk orders?",
-          answer:
-            "Yes, we offer tiered discounts based on order quantity: 10+ items (10% off), 25+ items (15% off), 50+ items (20% off).",
-        },
-      ],
-    },
-  ]
+  const { user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-3 group">
-                <div className="relative">
-                  <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
-                    Elite Gowns
-                  </span>
-                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
-                </div>
-              </Link>
-            </div>
+    <div className="bg-white">
+      {/* Mobile menu */}
+      <Transition.Root show={mobileMenuOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-40 lg:hidden" onClose={setMobileMenuOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="transition-opacity ease-linear duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="transition-opacity ease-linear duration-300"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <div className="flex space-x-6">
-                <Link href="/" className="text-gray-700 hover:text-black transition-colors">
-                  Home
-                </Link>
-                <Link href="/products" className="text-gray-700 hover:text-black transition-colors">
-                  Products
-                </Link>
-                <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
-                  About
-                </Link>
-                <Link href="/contact" className="text-gray-700 hover:text-black transition-colors">
-                  Contact
-                </Link>
+          <div className="fixed inset-0 z-40 flex">
+            <Transition.Child
+              as={Fragment}
+              enter="transition ease-in-out duration-300 transform"
+              enterFrom="-translate-x-full"
+              enterTo="translate-x-0"
+              leave="transition ease-in-out duration-300 transform"
+              leaveFrom="translate-x-0"
+              leaveTo="-translate-x-full"
+            >
+              <Dialog.Panel className="relative flex w-full max-w-xs flex-col overflow-y-auto bg-white pb-12 shadow-xl">
+                <div className="flex px-4 pb-2 pt-5">
+                  <button
+                    type="button"
+                    className="relative -m-2 inline-flex items-center justify-center rounded-md p-2 text-gray-400"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="absolute -inset-0.5" />
+                    <span className="sr-only">Close menu</span>
+                    <X className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
+
+                {/* Links */}
+                <Tab.Group as="div" className="mt-2">
+                  <div className="border-b border-gray-200">
+                    <Tab.List className="-mb-px flex space-x-8 px-4">
+                      {navigation.categories.map((category) => (
+                        <Tab
+                          key={category.name}
+                          className={({ selected }) =>
+                            classNames(
+                              selected ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-900",
+                              "flex-1 whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium",
+                            )
+                          }
+                        >
+                          {category.name}
+                        </Tab>
+                      ))}
+                    </Tab.List>
+                  </div>
+                  <Tab.Panels as={Fragment}>
+                    {navigation.categories.map((category) => (
+                      <Tab.Panel key={category.name} className="space-y-10 px-4 pb-8 pt-10">
+                        <div className="grid grid-cols-2 gap-x-4">
+                          {category.featured.map((item) => (
+                            <div key={item.name} className="group relative text-sm">
+                              <div className="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
+                                <Image
+                                  src={item.imageSrc || "/placeholder.svg"}
+                                  alt={item.imageAlt}
+                                  className="object-cover object-center"
+                                  fill
+                                />
+                              </div>
+                              <Link href={item.href} className="mt-6 block font-medium text-gray-900">
+                                <span className="absolute inset-0 z-10" aria-hidden="true" />
+                                {item.name}
+                              </Link>
+                              <p aria-hidden="true" className="mt-1">
+                                Shop now
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        {category.sections.map((section) => (
+                          <div key={section.name}>
+                            <p id={`${category.id}-${section.id}-heading-mobile`} className="font-medium text-gray-900">
+                              {section.name}
+                            </p>
+                            <ul
+                              role="list"
+                              aria-labelledby={`${category.id}-${section.id}-heading-mobile`}
+                              className="mt-6 flex flex-col space-y-6"
+                            >
+                              {section.items.map((item) => (
+                                <li key={item.name} className="flow-root">
+                                  <Link href={item.href} className="-m-2 block p-2 text-gray-500">
+                                    {item.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </Tab.Panel>
+                    ))}
+                  </Tab.Panels>
+                </Tab.Group>
+
+                <div className="space-y-6 border-t border-gray-200 py-6 px-4">
+                  {navigation.pages.map((page) => (
+                    <div key={page.name} className="flow-root">
+                      <Link href={page.href} className="-m-2 block p-2 text-gray-500">
+                        {page.name}
+                      </Link>
+                    </div>
+                  ))}
+                  <Link
+                    href="/contact"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Contact
+                  </Link>
+                  {user ? (
+                    <Link
+                      href="/account"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      My Account
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-200 py-6 px-4">
+                  <a href="#" className="-m-2 flex items-center p-2">
+                    <Image
+                      src="https://tailwindui.com/img/flags/flag-canada.svg"
+                      alt=""
+                      className="block h-auto w-5 flex-shrink-0"
+                      width={20}
+                      height={20}
+                    />
+                    <span className="ml-3 block text-base font-medium text-gray-500">CAD</span>
+                    <span className="sr-only">, change currency</span>
+                  </a>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+
+      <header className="relative bg-white">
+        <p className="flex h-10 items-center justify-center bg-indigo-600 px-4 text-sm font-medium text-white sm:px-6 lg:px-8">
+          Get free delivery on orders over $100
+        </p>
+
+        <nav aria-label="Top" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="border-b border-gray-200">
+            <div className="flex h-16 items-center">
+              <button
+                type="button"
+                className="rounded-md bg-white p-2 text-gray-400 lg:hidden"
+                onClick={() => setMobileMenuOpen(true)}
+              >
+                <span className="sr-only">Open menu</span>
+                <MenuIcon className="h-6 w-6" aria-hidden="true" />
+              </button>
+
+              {/* Flyout menus */}
+              <div className="hidden lg:ml-8 lg:block lg:self-stretch">
+                <Popover.Group className="flex h-full space-x-8">
+                  {navigation.categories.map((category) => (
+                    <Popover key={category.name} className="flex">
+                      {({ open }) => (
+                        <>
+                          <div className="relative flex">
+                            <Popover.Button
+                              className={classNames(
+                                open
+                                  ? "border-indigo-600 text-indigo-600"
+                                  : "border-transparent text-gray-700 hover:text-gray-800",
+                                "relative z-10 -mb-px flex items-center border-b-2 pt-px text-sm font-medium transition-colors duration-200 ease-out",
+                              )}
+                            >
+                              {category.name}
+                              <ChevronDown className="ml-2 h-5 w-5 text-gray-400" aria-hidden="true" />
+                            </Popover.Button>
+                          </div>
+
+                          <Transition
+                            as={Fragment}
+                            enter="transition ease-out duration-200"
+                            enterFrom="opacity-0"
+                            enterTo="opacity-100"
+                            leave="transition ease-in duration-150"
+                            leaveFrom="opacity-100"
+                            leaveTo="opacity-0"
+                          >
+                            <Popover.Panel className="absolute inset-x-0 top-full text-sm text-gray-500">
+                              {/* Presentational element used to render the bottom shadow, if we put the shadow on the actual panel it pokes out the top, so we use this shorter element */}
+                              <div className="absolute inset-0 top-1/2 bg-white shadow" aria-hidden="true" />
+
+                              <div className="relative bg-white">
+                                <div className="mx-auto max-w-7xl px-8">
+                                  <div className="grid grid-cols-2 gap-y-10 gap-x-8 py-16">
+                                    <div className="col-start-2 grid grid-cols-2 gap-x-8">
+                                      {category.featured.map((item) => (
+                                        <div key={item.name} className="group relative text-base sm:text-sm">
+                                          <div className="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
+                                            <Image
+                                              src={item.imageSrc || "/placeholder.svg"}
+                                              alt={item.imageAlt}
+                                              className="object-cover object-center"
+                                              fill
+                                            />
+                                          </div>
+                                          <Link href={item.href} className="mt-6 block font-medium text-gray-900">
+                                            <span className="absolute inset-0 z-10" aria-hidden="true" />
+                                            {item.name}
+                                          </Link>
+                                          <p aria-hidden="true" className="mt-1">
+                                            Shop now
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="row-start-1 grid grid-cols-3 gap-y-10 gap-x-8 text-sm">
+                                      {category.sections.map((section) => (
+                                        <div key={section.name}>
+                                          <p id={`${section.name}-heading`} className="font-medium text-gray-900">
+                                            {section.name}
+                                          </p>
+                                          <ul
+                                            role="list"
+                                            aria-labelledby={`${section.name}-heading`}
+                                            className="mt-6 space-y-6 sm:mt-4 sm:space-y-4"
+                                          >
+                                            {section.items.map((item) => (
+                                              <li key={item.name} className="flex">
+                                                <Link href={item.href} className="hover:text-gray-800">
+                                                  {item.name}
+                                                </Link>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </Popover.Panel>
+                          </Transition>
+                        </>
+                      )}
+                    </Popover>
+                  ))}
+
+                  {navigation.pages.map((page) => (
+                    <Link
+                      key={page.name}
+                      href={page.href}
+                      className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
+                    >
+                      {page.name}
+                    </Link>
+                  ))}
+                  <Link
+                    key="Contact"
+                    href="/contact"
+                    className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
+                  >
+                    Contact
+                  </Link>
+                </Popover.Group>
               </div>
+
+              {/* Spacer */}
+              <div className="ml-auto" aria-hidden="true" />
+
+              {/* Cart and profile buttons */}
               <div className="flex items-center space-x-4">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  Cart (0)
+                  {user ? "Cart (0)" : "Cart"}
                 </button>
+                {user ? (
+                  <Link
+                    href="/account"
+                    className="flex items-center space-x-2 text-gray-700 hover:text-black transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>{user.firstName}</span>
+                  </Link>
+                ) : (
+                  <Link href="/login" className="text-gray-700 hover:text-black transition-colors">
+                    Sign In
+                  </Link>
+                )}
                 <Image
                   src="/elite-gowns-logo.png"
                   alt="Elite Gowns Logo"
@@ -209,115 +459,127 @@ export default function FAQPage() {
                 />
               </div>
             </div>
-
-            {/* Mobile Navigation Button */}
-            <div className="flex items-center space-x-4 md:hidden">
-              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                Cart (0)
-              </button>
-              <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
-              <button
-                type="button"
-                className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" aria-hidden="true" />
-                ) : (
-                  <Menu className="h-6 w-6" aria-hidden="true" />
-                )}
-              </button>
-            </div>
           </div>
-        </div>
+        </nav>
+      </header>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link
-                href="/"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link
-                href="/products"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Products
-              </Link>
-              <Link
-                href="/about"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                About
-              </Link>
-              <Link
-                href="/contact"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Contact
-              </Link>
-            </div>
+      {/* Mobile Menu */}
+      <div className="bg-white">
+        <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
+          {/* Mobile Cart and profile buttons */}
+          <div className="flex items-center space-x-4 md:hidden">
+            <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+              {user ? "Cart (0)" : "Cart"}
+            </button>
+            <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
+            <button
+              type="button"
+              className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <MenuIcon className="h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
           </div>
-        )}
-      </nav>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-black mb-4">Frequently Asked Questions</h1>
-          <p className="text-xl text-gray-600">
-            Find answers to common questions about our products, services, and policies
-          </p>
-        </div>
-
-        {/* FAQ Categories */}
-        <div className="space-y-12">
-          {faqCategories.map((category, index) => (
-            <div key={index}>
-              <h2 className="text-2xl font-bold text-black mb-6 border-b pb-2">{category.category}</h2>
-              <Accordion type="single" collapsible className="space-y-4">
-                {category.questions.map((faq, faqIndex) => (
-                  <AccordionItem key={faqIndex} value={`${index}-${faqIndex}`} className="border rounded-lg">
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 text-left font-medium">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-4 pt-2 text-gray-600">{faq.answer}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
-          ))}
-        </div>
-
-        {/* Contact Section */}
-        <div className="mt-16 bg-gray-50 p-8 rounded-lg text-center">
-          <h2 className="text-2xl font-bold text-black mb-4">Still Have Questions?</h2>
-          <p className="text-gray-600 mb-6">
-            Our customer service team is here to help. Contact us and we'll get back to you as soon as possible.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/contact">
-              <button className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-md">Contact Us</button>
-            </Link>
-            <a href="mailto:info@elitegowns.co.za">
-              <button className="bg-white border border-gray-300 hover:bg-gray-50 text-black px-6 py-3 rounded-md">
-                Email Us
-              </button>
-            </a>
-          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">FAQ</h2>
         </div>
       </div>
 
-      {/* Cart Drawer */}
-      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      {/* Cart */}
+      <Transition.Root show={cartOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={setCartOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-in-out duration-500"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in-out duration-500"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-25 transition-opacity" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                <Transition.Child
+                  as={Fragment}
+                  enter="transform transition ease-in-out duration-500 sm:duration-700"
+                  enterFrom="translate-x-full"
+                  enterTo="translate-x-0"
+                  leave="transform transition ease-in-out duration-500 sm:duration-700"
+                  leaveFrom="translate-x-0"
+                  leaveTo="translate-x-full"
+                >
+                  <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
+                    <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                      <div className="flex-shrink-0 border-b border-gray-200 py-6 px-4">
+                        <div className="flex items-start justify-between">
+                          <Dialog.Title className="text-lg font-medium text-gray-900">Shopping cart</Dialog.Title>
+                          <div className="ml-3 flex h-7 items-center">
+                            <button
+                              type="button"
+                              className="relative -m-2 p-2 text-gray-400 hover:text-gray-500"
+                              onClick={() => setCartOpen(false)}
+                            >
+                              <span className="absolute -inset-0.5" />
+                              <span className="sr-only">Close panel</span>
+                              <X className="h-6 w-6" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto py-6 px-4 sm:px-6">
+                        <div className="flow-root">
+                          <ul role="list" className="-my-6 divide-y divide-gray-200">
+                            {[]}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200 py-6 px-4 sm:px-6">
+                        <div className="flex justify-between text-base font-medium text-gray-900">
+                          <p>Subtotal</p>
+                          <p>$0.00</p>
+                        </div>
+                        <p className="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
+                        <div className="mt-6">
+                          <Link
+                            href="/checkout"
+                            className="flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700"
+                          >
+                            Checkout
+                          </Link>
+                        </div>
+                        <div className="mt-6 flex justify-center text-center text-sm text-gray-500">
+                          <p>
+                            or
+                            <button
+                              type="button"
+                              className="font-medium hover:text-gray-800"
+                              onClick={() => setCartOpen(false)}
+                            >
+                              Continue Shopping
+                              <span aria-hidden="true"> &rarr;</span>
+                            </button>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      </Transition.Root>
     </div>
   )
 }
+
+import { Tab } from "@headlessui/react"

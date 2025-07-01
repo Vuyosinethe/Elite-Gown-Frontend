@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CreditCard, Smartphone, Building2, Menu, X, User } from "lucide-react"
+import { CreditCard, Smartphone, Building2, Menu, X, User, ChevronDown } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/hooks/use-cart"
@@ -39,9 +39,44 @@ export default function HomePage() {
                 <Link href="/" className="text-gray-700 hover:text-black transition-colors">
                   Home
                 </Link>
-                <Link href="/products" className="text-gray-700 hover:text-black transition-colors">
-                  Products
-                </Link>
+                <div className="relative group">
+                  <button className="text-gray-700 hover:text-black transition-colors flex items-center space-x-1">
+                    <span>Shop</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <Link
+                      href="/graduation-gowns"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      GRADUATION GOWNS
+                    </Link>
+                    <Link
+                      href="/medical-scrubs"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      MEDICAL SCRUBS
+                    </Link>
+                    <Link
+                      href="/medical-scrubs"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      LAB COATS AND JACKETS
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      EMBROIDERED MERCHANDISE
+                    </Link>
+                    <Link
+                      href="/products"
+                      className="block px-4 py-2 text-sm text-red-600 font-bold hover:bg-gray-50 hover:text-red-700 transition-colors"
+                    >
+                      SALE
+                    </Link>
+                  </div>
+                </div>
                 <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                   About
                 </Link>
@@ -114,7 +149,7 @@ export default function HomePage() {
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Products
+                Shop
               </Link>
               <Link
                 href="/about"
