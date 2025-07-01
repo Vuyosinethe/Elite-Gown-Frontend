@@ -9,7 +9,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
-import { Eye, EyeOff, CheckCircle, AlertCircle, Menu, X, ChevronDown } from "lucide-react"
+import { Eye, EyeOff, CheckCircle, AlertCircle, Menu, X, ChevronDown, User } from "lucide-react"
 import { useCart } from "@/hooks/use-cart"
 import CartDrawer from "@/components/cart-drawer"
 
@@ -201,281 +201,302 @@ export default function RegisterPage() {
     return (
       <>
         {/* Navigation */}
-        <nav className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between">
-              {/* Logo */}
-              <Link href="/" className="flex items-center gap-2">
-                <Image
-                  src="/elite-gowns-logo.png"
-                  alt="Elite Gowns Logo"
-                  width={30}
-                  height={30}
-                  className="h-6 w-auto"
-                />
-                <div className="group relative">
-                  <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
-                    Elite Gowns
-                  </span>
-                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
-                </div>
-              </Link>
+        <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <Link href="/" className="flex items-center space-x-3 group">
+                  <div className="relative">
+                    <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
+                      Elite Gowns
+                    </span>
+                    <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
+                  </div>
+                </Link>
+              </div>
 
               {/* Desktop Navigation */}
-              <div className="hidden md:block">
-                <div className="ml-10 flex items-baseline space-x-4">
-                  <Link href="/" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+              <div className="hidden md:flex items-center space-x-8">
+                <div className="flex space-x-6">
+                  <Link href="/" className="text-gray-700 hover:text-black transition-colors">
                     Home
                   </Link>
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
-                      className="text-gray-700 hover:text-black flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
-                    >
-                      Shop
-                      <ChevronDown className="h-4 w-4" />
+                  <div className="relative group">
+                    <button className="text-gray-700 hover:text-black transition-colors flex items-center space-x-1">
+                      <span>Shop</span>
+                      <ChevronDown className="w-4 h-4" />
                     </button>
-                    {isShopDropdownOpen && (
-                      <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <Link
-                          href="/graduation-gowns"
-                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                          onClick={() => setIsShopDropdownOpen(false)}
-                        >
-                          Graduation Gowns
-                        </Link>
-                        <Link
-                          href="/medical-scrubs"
-                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                          onClick={() => setIsShopDropdownOpen(false)}
-                        >
-                          Medical Scrubs
-                        </Link>
-                        <Link
-                          href="/embroidered-merchandise"
-                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                          onClick={() => setIsShopDropdownOpen(false)}
-                        >
-                          Embroidered Merchandise
-                        </Link>
-                      </div>
-                    )}
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <Link
+                        href="/graduation-gowns"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Graduation gowns
+                      </Link>
+                      <Link
+                        href="/medical-scrubs"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Medical scrubs
+                      </Link>
+                      <Link
+                        href="/medical-scrubs"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Lab coats and jackets
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Embroidered merchandise
+                      </Link>
+                    </div>
                   </div>
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsSaleDropdownOpen(!isSaleDropdownOpen)}
-                      className="text-gray-700 hover:text-[#39FF14] flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
-                    >
-                      Sale
-                      <ChevronDown className="h-4 w-4" />
+                  <div className="relative group">
+                    <button className="text-gray-700 hover:text-[#39FF14] transition-colors flex items-center space-x-1">
+                      <span>Sale</span>
+                      <ChevronDown className="w-4 h-4" />
                     </button>
-                    {isSaleDropdownOpen && (
-                      <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <Link
-                          href="/graduation-gowns"
-                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                          onClick={() => setIsSaleDropdownOpen(false)}
-                        >
-                          Graduation Gown
-                        </Link>
-                        <Link
-                          href="/medical-scrubs"
-                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                          onClick={() => setIsSaleDropdownOpen(false)}
-                        >
-                          Scrub
-                        </Link>
-                        <Link
-                          href="/embroidered-merchandise"
-                          className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                          onClick={() => setIsSaleDropdownOpen(false)}
-                        >
-                          Merchandise
-                        </Link>
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-80 overflow-y-auto">
+                      <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
+                        Graduation Gowns
                       </div>
-                    )}
+                      <Link
+                        href="/graduation-gowns?sale=true"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        All Graduation Gowns
+                      </Link>
+                      <Link
+                        href="/graduation-gowns?sale=true&type=bachelor"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Bachelor Gowns
+                      </Link>
+                      <Link
+                        href="/graduation-gowns?sale=true&type=master"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Master Gowns
+                      </Link>
+                      <Link
+                        href="/graduation-gowns?sale=true&type=doctoral"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Doctoral Gowns
+                      </Link>
+
+                      <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
+                        Medical Scrubs
+                      </div>
+                      <Link
+                        href="/medical-scrubs?sale=true"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        All Medical Scrubs
+                      </Link>
+                      <Link
+                        href="/medical-scrubs?sale=true&type=tops"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Scrub Tops Only
+                      </Link>
+                      <Link
+                        href="/medical-scrubs?sale=true&type=pants"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Scrub Pants Only
+                      </Link>
+                      <Link
+                        href="/medical-scrubs?sale=true&type=sets"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Scrub Sets
+                      </Link>
+
+                      <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
+                        Merchandise
+                      </div>
+                      <Link
+                        href="/embroidered-merchandise?sale=true"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        All Merchandise
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise?sale=true&type=polo"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Polo Shirts
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise?sale=true&type=tshirts"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        T-Shirts
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise?sale=true&type=hoodies"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      >
+                        Hoodies
+                      </Link>
+                    </div>
                   </div>
-                  <Link
-                    href="/about"
-                    className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
-                  >
+                  <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                     About
                   </Link>
-                  <Link
-                    href="/contact"
-                    className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
-                  >
+                  <Link href="/contact" className="text-gray-700 hover:text-black transition-colors">
                     Contact
                   </Link>
                 </div>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setIsCartOpen(true)}
+                    className="text-gray-700 hover:text-black transition-colors"
+                  >
+                    {user ? `Cart (${cartCount})` : "Cart"}
+                  </button>
+                  {user ? (
+                    <Link
+                      href="/account"
+                      className="flex items-center space-x-2 text-gray-700 hover:text-black transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>{user.firstName}</span>
+                    </Link>
+                  ) : (
+                    <Link href="/login" className="text-gray-700 hover:text-black transition-colors">
+                      Sign In
+                    </Link>
+                  )}
+                  <Image
+                    src="/elite-gowns-logo.png"
+                    alt="Elite Gowns Logo"
+                    width={60}
+                    height={60}
+                    className="h-12 w-12"
+                  />
+                </div>
               </div>
 
-              {/* Mobile menu button */}
-              <div className="md:hidden">
+              {/* Mobile Navigation Button */}
+              <div className="flex items-center space-x-4 md:hidden">
                 <button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
-                  aria-controls="mobile-menu"
-                  aria-expanded="false"
+                  onClick={() => setIsCartOpen(true)}
+                  className="text-gray-700 hover:text-black transition-colors"
                 >
-                  <span className="sr-only">Open main menu</span>
+                  {user ? `Cart (${cartCount})` : "Cart"}
+                </button>
+                <Image
+                  src="/elite-gowns-logo.png"
+                  alt="Elite Gowns Logo"
+                  width={48}
+                  height={48}
+                  className="h-10 w-10"
+                />
+                <button
+                  type="button"
+                  className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label="Toggle menu"
+                >
                   {isMobileMenuOpen ? (
-                    <X className="block h-6 w-6" aria-hidden="true" />
+                    <X className="h-6 w-6" aria-hidden="true" />
                   ) : (
-                    <Menu className="block h-6 w-6" aria-hidden="true" />
+                    <Menu className="h-6 w-6" aria-hidden="true" />
                   )}
                 </button>
               </div>
-
-              {/* Right Side - Cart and User Info */}
-              <div className="hidden md:block">
-                <div className="ml-4 flex items-center md:ml-6">
-                  {/* Cart */}
-                  <Link
-                    href="/cart"
-                    className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    {cartCount > 0 ? `Cart (${cartCount})` : "Cart"}
-                  </Link>
-
-                  {/* User Info */}
-                  <div className="relative ml-3">
-                    <div>
-                      {user ? (
-                        <button
-                          onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                          type="button"
-                          className="flex max-w-xs items-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
-                          id="user-menu-button"
-                          aria-expanded="false"
-                          aria-haspopup="true"
-                        >
-                          <span className="sr-only">Open user menu</span>
-                          <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center overflow-hidden">
-                            <span className="font-medium text-white">{user?.firstName[0].toUpperCase()}</span>
-                          </div>
-                        </button>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <Link href="/login" className="text-gray-700 hover:text-black">
-                            Sign In
-                          </Link>
-                          <Link
-                            href="/register"
-                            className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
-                          >
-                            Sign Up
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                    {isUserDropdownOpen && user && (
-                      <div
-                        className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                        role="menu"
-                        aria-orientation="vertical"
-                        aria-labelledby="user-menu-button"
-                        tabIndex={-1}
-                      >
-                        <Link
-                          href="/account"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          role="menuitem"
-                          tabIndex={-1}
-                          id="user-menu-item-0"
-                          onClick={() => setIsUserDropdownOpen(false)}
-                        >
-                          Your Profile
-                        </Link>
-                        <button
-                          onClick={() => {
-                            signOut()
-                            setIsUserDropdownOpen(false)
-                          }}
-                          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          role="menuitem"
-                          tabIndex={-1}
-                          id="user-menu-item-2"
-                        >
-                          Sign out
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
             </div>
           </div>
 
           {/* Mobile Menu */}
-          <div className="md:hidden" id="mobile-menu">
-            {isMobileMenuOpen && (
-              <div className="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+          {isMobileMenuOpen && (
+            <div className="md:hidden bg-white border-t border-gray-200">
+              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                 <Link
                   href="/"
-                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Home
                 </Link>
                 <Link
-                  href="/graduation-gowns"
-                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  href="/products"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Graduation Gowns
+                  Shop
                 </Link>
                 <Link
-                  href="/medical-scrubs"
-                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  href="/products?sale=true"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-[#39FF14] hover:bg-gray-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Medical Scrubs
+                  Sale
                 </Link>
-                <Link
-                  href="/embroidered-merchandise"
-                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Embroidered Merchandise
-                </Link>
+                <div className="px-3 py-2">
+                  <span className="text-base font-medium text-red-600">Sale</span>
+                  <div className="ml-4 mt-2 space-y-1">
+                    <Link
+                      href="/graduation-gowns?sale=true"
+                      className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Graduation gowns on sale
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true"
+                      className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Medical scrubs on sale
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true"
+                      className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Merchandise on sale
+                    </Link>
+                  </div>
+                </div>
                 <Link
                   href="/about"
-                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   About
                 </Link>
                 <Link
                   href="/contact"
-                  className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Contact
                 </Link>
-                {!user && (
-                  <>
-                    <Link
-                      href="/login"
-                      className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="bg-black text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800 transition-colors text-center"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Sign Up
-                    </Link>
-                  </>
+                {user ? (
+                  <Link
+                    href="/account"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    My Account
+                  </Link>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign In
+                  </Link>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </nav>
 
         {/* Cart Drawer */}
@@ -509,269 +530,293 @@ export default function RegisterPage() {
   return (
     <>
       {/* Navigation */}
-      <nav className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={30} height={30} className="h-6 w-auto" />
-              <div className="group relative">
-                <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
-                  Elite Gowns
-                </span>
-                <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
-              </div>
-            </Link>
+      <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center space-x-3 group">
+                <div className="relative">
+                  <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
+                    Elite Gowns
+                  </span>
+                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
+                </div>
+              </Link>
+            </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <Link href="/" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+            <div className="hidden md:flex items-center space-x-8">
+              <div className="flex space-x-6">
+                <Link href="/" className="text-gray-700 hover:text-black transition-colors">
                   Home
                 </Link>
-                <div className="relative">
-                  <button
-                    onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
-                    className="text-gray-700 hover:text-black flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
-                  >
-                    Shop
-                    <ChevronDown className="h-4 w-4" />
+                <div className="relative group">
+                  <button className="text-gray-700 hover:text-black transition-colors flex items-center space-x-1">
+                    <span>Shop</span>
+                    <ChevronDown className="w-4 h-4" />
                   </button>
-                  {isShopDropdownOpen && (
-                    <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                      <Link
-                        href="/graduation-gowns"
-                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                        onClick={() => setIsShopDropdownOpen(false)}
-                      >
-                        Graduation Gowns
-                      </Link>
-                      <Link
-                        href="/medical-scrubs"
-                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                        onClick={() => setIsShopDropdownOpen(false)}
-                      >
-                        Medical Scrubs
-                      </Link>
-                      <Link
-                        href="/embroidered-merchandise"
-                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                        onClick={() => setIsShopDropdownOpen(false)}
-                      >
-                        Embroidered Merchandise
-                      </Link>
-                    </div>
-                  )}
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <Link
+                      href="/graduation-gowns"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Graduation gowns
+                    </Link>
+                    <Link
+                      href="/medical-scrubs"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Medical scrubs
+                    </Link>
+                    <Link
+                      href="/medical-scrubs"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Lab coats and jackets
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Embroidered merchandise
+                    </Link>
+                  </div>
                 </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setIsSaleDropdownOpen(!isSaleDropdownOpen)}
-                    className="text-gray-700 hover:text-[#39FF14] flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
-                  >
-                    Sale
-                    <ChevronDown className="h-4 w-4" />
+                <div className="relative group">
+                  <button className="text-gray-700 hover:text-[#39FF14] transition-colors flex items-center space-x-1">
+                    <span>Sale</span>
+                    <ChevronDown className="w-4 h-4" />
                   </button>
-                  {isSaleDropdownOpen && (
-                    <div className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                      <Link
-                        href="/graduation-gowns"
-                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                        onClick={() => setIsSaleDropdownOpen(false)}
-                      >
-                        Graduation Gown
-                      </Link>
-                      <Link
-                        href="/medical-scrubs"
-                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                        onClick={() => setIsSaleDropdownOpen(false)}
-                      >
-                        Scrub
-                      </Link>
-                      <Link
-                        href="/embroidered-merchandise"
-                        className="text-gray-700 hover:text-black block px-4 py-2 text-sm"
-                        onClick={() => setIsSaleDropdownOpen(false)}
-                      >
-                        Merchandise
-                      </Link>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-80 overflow-y-auto">
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
+                      Graduation Gowns
                     </div>
-                  )}
+                    <Link
+                      href="/graduation-gowns?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      All Graduation Gowns
+                    </Link>
+                    <Link
+                      href="/graduation-gowns?sale=true&type=bachelor"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Bachelor Gowns
+                    </Link>
+                    <Link
+                      href="/graduation-gowns?sale=true&type=master"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Master Gowns
+                    </Link>
+                    <Link
+                      href="/graduation-gowns?sale=true&type=doctoral"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Doctoral Gowns
+                    </Link>
+
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
+                      Medical Scrubs
+                    </div>
+                    <Link
+                      href="/medical-scrubs?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      All Medical Scrubs
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true&type=tops"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Scrub Tops Only
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true&type=pants"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Scrub Pants Only
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true&type=sets"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Scrub Sets
+                    </Link>
+
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
+                      Merchandise
+                    </div>
+                    <Link
+                      href="/embroidered-merchandise?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      All Merchandise
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true&type=polo"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Polo Shirts
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true&type=tshirts"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      T-Shirts
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true&type=hoodies"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Hoodies
+                    </Link>
+                  </div>
                 </div>
-                <Link href="/about" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
+                <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                   About
                 </Link>
-                <Link
-                  href="/contact"
-                  className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium"
-                >
+                <Link href="/contact" className="text-gray-700 hover:text-black transition-colors">
                   Contact
                 </Link>
               </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="text-gray-700 hover:text-black transition-colors"
+                >
+                  {user ? `Cart (${cartCount})` : "Cart"}
+                </button>
+                {user ? (
+                  <Link
+                    href="/account"
+                    className="flex items-center space-x-2 text-gray-700 hover:text-black transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>{user.firstName}</span>
+                  </Link>
+                ) : (
+                  <Link href="/login" className="text-gray-700 hover:text-black transition-colors">
+                    Sign In
+                  </Link>
+                )}
+                <Image
+                  src="/elite-gowns-logo.png"
+                  alt="Elite Gowns Logo"
+                  width={60}
+                  height={60}
+                  className="h-12 w-12"
+                />
+              </div>
             </div>
 
-            {/* Mobile menu button */}
-            <div className="md:hidden">
+            {/* Mobile Navigation Button */}
+            <div className="flex items-center space-x-4 md:hidden">
+              <button onClick={() => setIsCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+                {user ? `Cart (${cartCount})` : "Cart"}
+              </button>
+              <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 type="button"
-                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
-                aria-controls="mobile-menu"
-                aria-expanded="false"
+                className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
               >
-                <span className="sr-only">Open main menu</span>
                 {isMobileMenuOpen ? (
-                  <X className="block h-6 w-6" aria-hidden="true" />
+                  <X className="h-6 w-6" aria-hidden="true" />
                 ) : (
-                  <Menu className="block h-6 w-6" aria-hidden="true" />
+                  <Menu className="h-6 w-6" aria-hidden="true" />
                 )}
               </button>
             </div>
-
-            {/* Right Side - Cart and User Info */}
-            <div className="hidden md:block">
-              <div className="ml-4 flex items-center md:ml-6">
-                {/* Cart */}
-                <Link href="/cart" className="text-gray-700 hover:text-black px-3 py-2 rounded-md text-sm font-medium">
-                  {cartCount > 0 ? `Cart (${cartCount})` : "Cart"}
-                </Link>
-
-                {/* User Info */}
-                <div className="relative ml-3">
-                  <div>
-                    {user ? (
-                      <button
-                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                        type="button"
-                        className="flex max-w-xs items-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
-                        id="user-menu-button"
-                        aria-expanded="false"
-                        aria-haspopup="true"
-                      >
-                        <span className="sr-only">Open user menu</span>
-                        <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center overflow-hidden">
-                          <span className="font-medium text-white">{user?.firstName[0].toUpperCase()}</span>
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <Link href="/login" className="text-gray-700 hover:text-black">
-                          Sign In
-                        </Link>
-                        <Link
-                          href="/register"
-                          className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
-                        >
-                          Sign Up
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                  {isUserDropdownOpen && user && (
-                    <div
-                      className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                      role="menu"
-                      aria-orientation="vertical"
-                      aria-labelledby="user-menu-button"
-                      tabIndex={-1}
-                    >
-                      <Link
-                        href="/account"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        role="menuitem"
-                        tabIndex={-1}
-                        id="user-menu-item-0"
-                        onClick={() => setIsUserDropdownOpen(false)}
-                      >
-                        Your Profile
-                      </Link>
-                      <button
-                        onClick={() => {
-                          signOut()
-                          setIsUserDropdownOpen(false)
-                        }}
-                        className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        role="menuitem"
-                        tabIndex={-1}
-                        id="user-menu-item-2"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
           </div>
         </div>
 
         {/* Mobile Menu */}
-        <div className="md:hidden" id="mobile-menu">
-          {isMobileMenuOpen && (
-            <div className="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <Link
                 href="/"
-                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
-                href="/graduation-gowns"
-                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                href="/products"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Graduation Gowns
+                Shop
               </Link>
               <Link
-                href="/medical-scrubs"
-                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                href="/products?sale=true"
+                className="block px-3 py-2 rounded-md text-base font-medium text-[#39FF14] hover:bg-gray-50"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Medical Scrubs
+                Sale
               </Link>
-              <Link
-                href="/embroidered-merchandise"
-                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Embroidered Merchandise
-              </Link>
+              <div className="px-3 py-2">
+                <span className="text-base font-medium text-red-600">Sale</span>
+                <div className="ml-4 mt-2 space-y-1">
+                  <Link
+                    href="/graduation-gowns?sale=true"
+                    className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Graduation gowns on sale
+                  </Link>
+                  <Link
+                    href="/medical-scrubs?sale=true"
+                    className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Medical scrubs on sale
+                  </Link>
+                  <Link
+                    href="/embroidered-merchandise?sale=true"
+                    className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Merchandise on sale
+                  </Link>
+                </div>
+              </div>
               <Link
                 href="/about"
-                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 About
               </Link>
               <Link
                 href="/contact"
-                className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Contact
               </Link>
-              {!user && (
-                <>
-                  <Link
-                    href="/login"
-                    className="text-gray-700 hover:bg-gray-100 hover:text-black block px-3 py-2 rounded-md text-base font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="bg-black text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800 transition-colors text-center"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Sign Up
-                  </Link>
-                </>
+              {user ? (
+                <Link
+                  href="/account"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Account
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </nav>
 
       {/* Cart Drawer */}
