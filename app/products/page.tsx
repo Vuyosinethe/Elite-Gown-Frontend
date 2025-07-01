@@ -197,11 +197,31 @@ export default function ProductsPage() {
                     >
                       EMBROIDERED MERCHANDISE
                     </Link>
+                  </div>
+                </div>
+                <div className="relative group">
+                  <button className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-1">
+                    <span>Sale</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <Link
-                      href="/products"
-                      className="block px-4 py-2 text-sm text-red-600 font-bold hover:bg-gray-50 hover:text-red-700 transition-colors"
+                      href="/graduation-gowns?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      SALE
+                      GRADUATION GOWNS ON SALE
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      MEDICAL SCRUBS ON SALE
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      MERCHANDISE ON SALE
                     </Link>
                   </div>
                 </div>
@@ -279,6 +299,32 @@ export default function ProductsPage() {
               >
                 Shop
               </Link>
+              <div className="px-3 py-2">
+                <span className="text-base font-medium text-red-600">Sale</span>
+                <div className="ml-4 mt-2 space-y-1">
+                  <Link
+                    href="/graduation-gowns?sale=true"
+                    className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Graduation Gowns on Sale
+                  </Link>
+                  <Link
+                    href="/medical-scrubs?sale=true"
+                    className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Medical Scrubs on Sale
+                  </Link>
+                  <Link
+                    href="/embroidered-merchandise?sale=true"
+                    className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Merchandise on Sale
+                  </Link>
+                </div>
+              </div>
               <Link
                 href="/about"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"

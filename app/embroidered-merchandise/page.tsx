@@ -59,11 +59,31 @@ export default function EmbroideredMerchandisePage() {
                     >
                       EMBROIDERED MERCHANDISE
                     </Link>
+                  </div>
+                </div>
+                <div className="relative group">
+                  <button className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-1">
+                    <span>Sale</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <Link
-                      href="/products"
-                      className="block px-4 py-2 text-sm text-red-600 font-bold hover:bg-gray-50 hover:text-red-700 transition-colors"
+                      href="/graduation-gowns?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      SALE
+                      GRADUATION GOWNS ON SALE
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      MEDICAL SCRUBS ON SALE
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      MERCHANDISE ON SALE
                     </Link>
                   </div>
                 </div>
@@ -93,6 +113,30 @@ export default function EmbroideredMerchandisePage() {
                 </Link>
               )}
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={60} height={60} className="h-12 w-12" />
+              <div className="flex items-center space-x-4 md:hidden">
+                <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+                  {user ? "Cart (0)" : "Cart"}
+                </button>
+                <Image
+                  src="/elite-gowns-logo.png"
+                  alt="Elite Gowns Logo"
+                  width={48}
+                  height={48}
+                  className="h-10 w-10"
+                />
+                <button
+                  type="button"
+                  className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label="Toggle menu"
+                >
+                  {mobileMenuOpen ? (
+                    <X className="h-6 w-6" aria-hidden="true" />
+                  ) : (
+                    <Menu className="h-6 w-6" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -116,6 +160,32 @@ export default function EmbroideredMerchandisePage() {
             >
               Shop
             </Link>
+            <div className="px-3 py-2">
+              <span className="text-base font-medium text-red-600">Sale</span>
+              <div className="ml-4 mt-2 space-y-1">
+                <Link
+                  href="/graduation-gowns?sale=true"
+                  className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Graduation Gowns on Sale
+                </Link>
+                <Link
+                  href="/medical-scrubs?sale=true"
+                  className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Medical Scrubs on Sale
+                </Link>
+                <Link
+                  href="/embroidered-merchandise?sale=true"
+                  className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Merchandise on Sale
+                </Link>
+              </div>
+            </div>
             <Link
               href="/about"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
@@ -214,202 +284,190 @@ export default function EmbroideredMerchandisePage() {
                 Custom Design
               </Badge>
               <h1 className="text-3xl font-bold text-black mb-2">Custom Embroidered Merchandise</h1>
-              <p className="text-xl text-gray-600">
-                Professional embroidery services for Wits social clubs and organizations
-              </p>
+              <p className="text-xl text-gray-600">Professional embroidery services for clubs and organizations</p>
             </div>
 
-            <div className="text-3xl font-bold text-black">From R 299.00</div>
+            <div className="text-3xl font-bold text-black">From R 199.00</div>
 
-            {/* Service Features */}
+            {/* Product Options */}
             <Card>
               <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-4">Our Services Include:</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-black rounded-full"></div>
-                    <span>Custom logo digitization and setup</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-black rounded-full"></div>
-                    <span>High-quality thread embroidery</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-black rounded-full"></div>
-                    <span>Multiple garment options available</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-black rounded-full"></div>
-                    <span>Bulk order discounts</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-black rounded-full"></div>
-                    <span>Fast turnaround (5-7 business days)</span>
-                  </li>
-                </ul>
+                <h3 className="font-bold text-lg mb-4">Available Items:</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:border-black cursor-pointer">
+                    <div className="text-2xl mb-2">👕</div>
+                    <div className="font-semibold">Polo Shirts</div>
+                    <div className="text-sm text-gray-600">From R299</div>
+                  </div>
+                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:border-black cursor-pointer">
+                    <div className="text-2xl mb-2">👔</div>
+                    <div className="font-semibold">Hoodies</div>
+                    <div className="text-sm text-gray-600">From R499</div>
+                  </div>
+                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:border-black cursor-pointer">
+                    <div className="text-2xl mb-2">🧢</div>
+                    <div className="font-semibold">Caps</div>
+                    <div className="text-sm text-gray-600">From R199</div>
+                  </div>
+                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:border-black cursor-pointer">
+                    <div className="text-2xl mb-2">🧥</div>
+                    <div className="font-semibold">Jackets</div>
+                    <div className="text-sm text-gray-600">From R699</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Garment Selection */}
+            {/* Embroidery Options */}
             <div>
-              <h3 className="font-semibold mb-3">Select Garment Type</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="h-auto p-4 hover:bg-black hover:text-white bg-transparent">
-                  <div className="text-center">
-                    <div className="font-semibold">Polo Shirt</div>
-                    <div className="text-sm text-gray-500">From R299</div>
+              <h3 className="font-semibold mb-3">Embroidery Services</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div>
+                    <div className="font-medium">Logo Embroidery</div>
+                    <div className="text-sm text-gray-600">Your organization's logo</div>
                   </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-4 hover:bg-black hover:text-white bg-transparent">
-                  <div className="text-center">
-                    <div className="font-semibold">Hoodie</div>
-                    <div className="text-sm text-gray-500">From R499</div>
+                  <div className="text-sm font-semibold">+R50</div>
+                </div>
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div>
+                    <div className="font-medium">Text Embroidery</div>
+                    <div className="text-sm text-gray-600">Names, titles, or custom text</div>
                   </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-4 hover:bg-black hover:text-white bg-transparent">
-                  <div className="text-center">
-                    <div className="font-semibold">Cap/Hat</div>
-                    <div className="text-sm text-gray-500">From R199</div>
+                  <div className="text-sm font-semibold">+R30</div>
+                </div>
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div>
+                    <div className="font-medium">Multi-Color Design</div>
+                    <div className="text-sm text-gray-600">Complex designs with multiple colors</div>
                   </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-4 hover:bg-black hover:text-white bg-transparent">
-                  <div className="text-center">
-                    <div className="font-semibold">Jacket</div>
-                    <div className="text-sm text-gray-500">From R699</div>
-                  </div>
-                </Button>
+                  <div className="text-sm font-semibold">+R100</div>
+                </div>
               </div>
             </div>
 
-            {/* Logo Upload */}
+            {/* Upload Design */}
             <div>
-              <h3 className="font-semibold mb-3">Upload Your Logo/Design</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 cursor-pointer">
-                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-                <p className="text-sm text-gray-500">PNG, JPG, SVG up to 10MB</p>
+              <h3 className="font-semibold mb-3">Upload Your Design</h3>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-black transition-colors cursor-pointer">
+                <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 mb-2">Drag and drop your logo or design file here</p>
+                <p className="text-sm text-gray-500">Supported formats: PNG, JPG, SVG, AI, EPS</p>
+                <Button variant="outline" className="mt-4 bg-transparent">
+                  Choose File
+                </Button>
               </div>
             </div>
 
             {/* Quantity */}
             <div>
-              <h3 className="font-semibold mb-3">Quantity</h3>
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="sm">
-                  -
-                </Button>
-                <span className="text-xl font-semibold px-4">1</span>
-                <Button variant="outline" size="sm">
-                  +
-                </Button>
-                <span className="text-sm text-gray-600 ml-4">
-                  Bulk discounts: 10+ items (10% off), 25+ items (15% off)
-                </span>
+              <h3 className="font-semibold mb-3">Minimum Order Quantity</h3>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 font-medium">Bulk Pricing Available</p>
+                <p className="text-yellow-700 text-sm mt-1">
+                  • 1-9 items: Standard pricing
+                  <br />• 10-24 items: 10% discount
+                  <br />• 25+ items: 15% discount
+                  <br />• 50+ items: Contact for special pricing
+                </p>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">Get Custom Quote</Button>
+              <Link href="/contact">
+                <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">Get Custom Quote</Button>
+              </Link>
               <Button variant="outline" className="w-full py-3 text-lg bg-transparent">
                 <Heart className="w-5 h-5 mr-2" />
-                Save Design
+                Save for Later
               </Button>
             </div>
 
             {/* Additional Info */}
             <div className="text-sm text-gray-600 space-y-2">
               <p>• Free design consultation included</p>
-              <p>• 5-7 business day turnaround</p>
-              <p>• Minimum order: 1 piece</p>
-              <p>• Special rates for Wits student organizations</p>
+              <p>• 7-14 day production time</p>
+              <p>• Free delivery for orders over R1000</p>
+              <p>• Satisfaction guarantee</p>
             </div>
           </div>
         </div>
 
-        {/* Popular Wits Organizations */}
+        {/* Process Section */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold text-black mb-8 text-center">Popular Wits Social Clubs & Organizations</h2>
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[
-              "Wits Debating Society",
-              "Golden Key Society",
-              "Student Representative Council",
-              "Wits Drama Society",
-              "Commerce Students Council",
-              "Engineering Students Council",
-              "Medical Students Council",
-              "Wits Choir",
-              "Dance Society",
-              "Photography Society",
-              "Entrepreneurship Society",
-              "International Students Association",
-            ].map((club) => (
-              <Card key={club} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4 text-center">
-                  <h3 className="font-semibold text-sm">{club}</h3>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Process Steps */}
-        <div className="mt-16 bg-gray-50 p-8 rounded-lg">
-          <h2 className="text-2xl font-bold text-black mb-8 text-center">How It Works</h2>
-          <div className="grid md:grid-cols-4 gap-6">
+          <h2 className="text-3xl font-bold text-black mb-8 text-center">Our Custom Embroidery Process</h2>
+          <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                 1
               </div>
-              <h3 className="font-semibold mb-2">Choose Garment</h3>
-              <p className="text-sm text-gray-600">Select from our range of quality garments</p>
+              <h3 className="font-bold mb-2">Submit Design</h3>
+              <p className="text-gray-600 text-sm">
+                Upload your logo or design, or work with our team to create something new
+              </p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                 2
               </div>
-              <h3 className="font-semibold mb-2">Upload Design</h3>
-              <p className="text-sm text-gray-600">Send us your logo or let us create one</p>
+              <h3 className="font-bold mb-2">Get Quote</h3>
+              <p className="text-gray-600 text-sm">
+                Receive a detailed quote with pricing, timeline, and design preview
+              </p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                 3
               </div>
-              <h3 className="font-semibold mb-2">Get Quote</h3>
-              <p className="text-sm text-gray-600">Receive detailed pricing and timeline</p>
+              <h3 className="font-bold mb-2">Production</h3>
+              <p className="text-gray-600 text-sm">
+                Our skilled team creates your custom embroidered merchandise with precision
+              </p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                 4
               </div>
-              <h3 className="font-semibold mb-2">Receive Order</h3>
-              <p className="text-sm text-gray-600">Professional embroidery delivered to you</p>
+              <h3 className="font-bold mb-2">Delivery</h3>
+              <p className="text-gray-600 text-sm">Quality checked and delivered to your specified location</p>
             </div>
+          </div>
+        </div>
+
+        {/* Popular Clients */}
+        <div className="mt-16 bg-gray-50 p-12 rounded-lg">
+          <h2 className="text-3xl font-bold text-black mb-8 text-center">Trusted by Wits Organizations</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
+                <h3 className="font-bold text-lg">Wits Debate Society</h3>
+                <p className="text-gray-600 text-sm">Custom blazers with embroidered crests</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
+                <h3 className="font-bold text-lg">Medical Students Association</h3>
+                <p className="text-gray-600 text-sm">Polo shirts with medical symbols</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
+                <h3 className="font-bold text-lg">Engineering Society</h3>
+                <p className="text-gray-600 text-sm">Hoodies with faculty logos</p>
+              </div>
+            </div>
+          </div>
+          <div className="text-center mt-8">
+            <Link href="/contact">
+              <Button className="bg-black hover:bg-gray-800 text-white px-8 py-3">Join Our Satisfied Clients</Button>
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Cart Drawer */}
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-      <div className="flex items-center space-x-4 md:hidden">
-        <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-          {user ? "Cart (0)" : "Cart"}
-        </button>
-        <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
-        <button
-          type="button"
-          className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? (
-            <X className="h-6 w-6" aria-hidden="true" />
-          ) : (
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          )}
-        </button>
-      </div>
     </div>
   )
 }
