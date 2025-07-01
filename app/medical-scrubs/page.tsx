@@ -5,10 +5,11 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Heart, Stethoscope, ChevronDown, Menu, X, User } from "lucide-react"
+import { ShoppingCart, Heart, Stethoscope, ChevronDown, Menu, X, User, Check, Info, Ruler } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
 import Layout from "@/components/layout"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function MedicalScrubsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -16,6 +17,11 @@ export default function MedicalScrubsPage() {
   const { user } = useAuth()
   const [shopOpen, setShopOpen] = useState(false)
   const [saleOpen, setSaleOpen] = useState(false)
+  const [selectedSize, setSelectedSize] = useState("M")
+  const [selectedColor, setSelectedColor] = useState("Navy Blue")
+
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
+  const colors = ["Navy Blue", "Ceil Blue", "Black", "Wine", "Hunter Green"]
 
   return (
     <Layout>
@@ -429,6 +435,75 @@ export default function MedicalScrubsPage() {
 
               <div className="text-3xl font-bold text-black">R 899.00</div>
 
+              {/* What's Included Section */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">What's Included:</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                    <span>1 x Professional Scrub Top</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                    <span>1 x Professional Scrub Pants</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                    <span>Free Embroidery (Name & Institution)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                    <span>Care Instructions</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Size Selection */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Size:</h3>
+                <div className="flex flex-wrap gap-3">
+                  {sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-4 py-2 border rounded-md ${
+                        selectedSize === size
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <Ruler className="w-4 h-4 mr-1" />
+                  <Link href="/size-guide" className="underline hover:text-black">
+                    View Size Guide
+                  </Link>
+                </div>
+              </div>
+
+              {/* Color Selection */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Color:</h3>
+                <div className="flex flex-wrap gap-3">
+                  {colors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`px-4 py-2 border rounded-md ${
+                        selectedColor === color
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Actions */}
               <div className="space-y-3">
                 <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">
@@ -440,6 +515,244 @@ export default function MedicalScrubsPage() {
                   Add to Wishlist
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* Product Description and Size Guide Tabs */}
+          <div className="mt-16">
+            <Tabs defaultValue="description" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
+                <TabsTrigger value="description">Product Description</TabsTrigger>
+                <TabsTrigger value="size-guide">Size Guide</TabsTrigger>
+              </TabsList>
+
+              {/* Product Description Tab */}
+              <TabsContent value="description" className="space-y-6">
+                <div className="prose max-w-none">
+                  <h3 className="text-2xl font-bold mb-4">Professional Medical Scrubs</h3>
+                  <p className="mb-4">
+                    Our premium medical scrubs are designed for healthcare professionals who demand comfort, durability,
+                    and a professional appearance. Made from high-quality antimicrobial fabric, these scrubs help reduce
+                    the spread of bacteria while keeping you comfortable during long shifts.
+                  </p>
+
+                  <h4 className="text-xl font-semibold mb-3">Key Features:</h4>
+                  <ul className="space-y-2 mb-4">
+                    <li className="flex items-start">
+                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                      <span>
+                        <strong>Antimicrobial Fabric:</strong> Helps reduce the spread of bacteria and maintains
+                        freshness throughout your shift
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                      <span>
+                        <strong>Moisture-Wicking Technology:</strong> Keeps you dry and comfortable even during the most
+                        demanding shifts
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                      <span>
+                        <strong>Multiple Utility Pockets:</strong> Convenient storage for medical tools, pens, phones,
+                        and other essentials
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                      <span>
+                        <strong>Wrinkle-Resistant:</strong> Maintains a professional appearance throughout your workday
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                      <span>
+                        <strong>Durable Construction:</strong> Reinforced stitching at stress points ensures
+                        long-lasting wear
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                      <span>
+                        <strong>Customizable:</strong> Free embroidery of your name and institution included
+                      </span>
+                    </li>
+                  </ul>
+
+                  <h4 className="text-xl font-semibold mb-3">Material & Care:</h4>
+                  <p className="mb-4">
+                    Our scrubs are made from a premium blend of 65% polyester and 35% cotton, providing the perfect
+                    balance of comfort and durability. The fabric is specially treated with antimicrobial properties to
+                    maintain freshness throughout your shift.
+                  </p>
+                  <p className="mb-4">
+                    <strong>Care Instructions:</strong> Machine wash cold with like colors. Tumble dry low. Do not
+                    bleach. Remove promptly from dryer to minimize wrinkles.
+                  </p>
+
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex items-start mt-6">
+                    <Info className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                    <p className="text-sm text-gray-700">
+                      <strong>Note:</strong> Please allow 3-5 business days for embroidery processing before shipping.
+                      Custom embroidered items cannot be returned unless there is a manufacturing defect.
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Size Guide Tab */}
+              <TabsContent value="size-guide">
+                <div className="space-y-8">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left font-semibold text-gray-900">Size</th>
+                          <th className="px-6 py-4 text-left font-semibold text-gray-900">Chest (cm)</th>
+                          <th className="px-6 py-4 text-left font-semibold text-gray-900">Waist (cm)</th>
+                          <th className="px-6 py-4 text-left font-semibold text-gray-900">Hip (cm)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-white">
+                          <td className="px-6 py-4 font-semibold text-gray-900">XS</td>
+                          <td className="px-6 py-4 text-gray-600">81-86</td>
+                          <td className="px-6 py-4 text-gray-600">66-71</td>
+                          <td className="px-6 py-4 text-gray-600">89-94</td>
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 font-semibold text-gray-900">S</td>
+                          <td className="px-6 py-4 text-gray-600">86-91</td>
+                          <td className="px-6 py-4 text-gray-600">71-76</td>
+                          <td className="px-6 py-4 text-gray-600">94-99</td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="px-6 py-4 font-semibold text-gray-900">M</td>
+                          <td className="px-6 py-4 text-gray-600">91-97</td>
+                          <td className="px-6 py-4 text-gray-600">76-81</td>
+                          <td className="px-6 py-4 text-gray-600">99-104</td>
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 font-semibold text-gray-900">L</td>
+                          <td className="px-6 py-4 text-gray-600">97-102</td>
+                          <td className="px-6 py-4 text-gray-600">81-86</td>
+                          <td className="px-6 py-4 text-gray-600">104-109</td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="px-6 py-4 font-semibold text-gray-900">XL</td>
+                          <td className="px-6 py-4 text-gray-600">102-107</td>
+                          <td className="px-6 py-4 text-gray-600">86-91</td>
+                          <td className="px-6 py-4 text-gray-600">109-114</td>
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 font-semibold text-gray-900">XXL</td>
+                          <td className="px-6 py-4 text-gray-600">107-112</td>
+                          <td className="px-6 py-4 text-gray-600">91-97</td>
+                          <td className="px-6 py-4 text-gray-600">114-119</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div>
+                      <h4 className="text-lg font-semibold mb-3">How to Measure</h4>
+                      <ul className="space-y-3">
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>
+                            <strong>Chest:</strong> Measure around the fullest part of your chest, keeping the tape
+                            measure level and snug but not tight.
+                          </span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>
+                            <strong>Waist:</strong> Measure around your natural waistline, which is typically the
+                            narrowest part of your torso.
+                          </span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>
+                            <strong>Hip:</strong> Measure around the fullest part of your hips, typically 8-10 inches
+                            below your waist.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="text-lg font-semibold mb-3">Fitting Tips</h4>
+                      <ul className="space-y-3">
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>Scrubs should allow for comfortable movement throughout your shift.</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>If you're between sizes, we recommend sizing up for a more comfortable fit.</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>Consider the clothing you'll wear underneath your scrubs when selecting a size.</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-black rounded-full mt-2"></div>
+                          <span>
+                            Our scrubs are designed with a modern fit that is professional without being too baggy.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                    <h4 className="text-lg font-semibold mb-3">Still Not Sure About Your Size?</h4>
+                    <p className="mb-4">
+                      Our customer service team is here to help you find the perfect fit. Contact us with your
+                      measurements, and we'll recommend the best size for you.
+                    </p>
+                    <Link href="/contact">
+                      <Button variant="outline" className="bg-transparent">
+                        Contact Customer Service
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Related Products */}
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold mb-6">You May Also Like</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square relative">
+                    <Image
+                      src={`/placeholder.svg?height=300&width=300`}
+                      alt={`Related product ${i}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900">
+                      Medical Scrub {i === 1 ? "Top" : i === 2 ? "Pants" : i === 3 ? "Lab Coat" : "Set"}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-2">Professional medical wear</p>
+                    <p className="font-bold text-black">
+                      R {i === 1 || i === 2 ? "499.00" : i === 3 ? "799.00" : "899.00"}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
