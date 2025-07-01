@@ -16,7 +16,6 @@ export default function MedicalScrubsPage() {
   const [cartOpen, setCartOpen] = useState(false)
   const { user } = useAuth()
   const [shopOpen, setShopOpen] = useState(false)
-  const [saleOpen, setSaleOpen] = useState(false)
   const [selectedSize, setSelectedSize] = useState("M")
   const [selectedColor, setSelectedColor] = useState("Navy Blue")
 
@@ -77,55 +76,6 @@ export default function MedicalScrubsPage() {
                       >
                         Embroidered merchandise
                       </Link>
-                      <div className="relative">
-                        <button
-                          onClick={() => setSaleOpen(!saleOpen)}
-                          className="w-full text-left px-4 py-2 text-sm text-black border border-green-400 hover:bg-gray-50 flex items-center justify-between transition-colors"
-                          style={{ borderColor: "#00ff00" }}
-                        >
-                          Sale
-                          <ChevronDown className="ml-1 h-4 w-4" />
-                        </button>
-                        {saleOpen && (
-                          <div
-                            className="absolute left-full top-0 ml-1 w-56 rounded-md shadow-lg z-50"
-                            style={{ backgroundColor: "#00ff00" }}
-                          >
-                            <div className="py-1">
-                              <Link
-                                href="/graduation-gowns?sale=true"
-                                className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
-                                onClick={() => {
-                                  setSaleOpen(false)
-                                  setShopOpen(false)
-                                }}
-                              >
-                                Graduation gowns on sale
-                              </Link>
-                              <Link
-                                href="/medical-scrubs?sale=true"
-                                className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
-                                onClick={() => {
-                                  setSaleOpen(false)
-                                  setShopOpen(false)
-                                }}
-                              >
-                                Medical scrubs on sale
-                              </Link>
-                              <Link
-                                href="/embroidered-merchandise?sale=true"
-                                className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
-                                onClick={() => {
-                                  setSaleOpen(false)
-                                  setShopOpen(false)
-                                }}
-                              >
-                                Merchandise on sale
-                              </Link>
-                            </div>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
                   <div className="relative group">
