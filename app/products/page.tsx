@@ -9,12 +9,31 @@ import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Heart, Menu, X, Star, ChevronDown, User } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
+import { useCart } from "@/hooks/use-cart"
+import { useWishlist } from "@/hooks/use-wishlist"
 
 export default function ProductsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
 
   const { user } = useAuth()
+  const router = useRouter()
+  const {
+    cartItems,
+    cartCount,
+    subtotal,
+    vat,
+    total,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    addPendingCartItem,
+  } = useCart()
+
+  const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
+    useWishlist()
 
   const products = [
     {
@@ -143,6 +162,46 @@ export default function ProductsPage() {
 
   const filteredProducts =
     selectedCategory === "All" ? products : products.filter((product) => product.category === selectedCategory)
+
+  const handleAddToCart = (product: any) => {
+    try {
+      addToCart({
+        id: product.id,
+        name: product.name,
+        details: `Category: ${product.category}`,
+        price: product.price,
+        image: product.image,
+      })
+    } catch (error: any) {
+      if (error.message === "REDIRECT_TO_LOGIN") {
+        // Store current page for redirect after login
+        localStorage.setItem("redirectAfterLogin", window.location.pathname)
+        router.push("/login")
+      }
+    }
+  }
+
+  const handleAddToWishlist = (product: any) => {
+    try {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        image: product.image,
+        description: product.description,
+        rating: product.rating,
+        reviews: product.reviews,
+        link: product.link,
+      })
+    } catch (error: any) {
+      if (error.message === "REDIRECT_TO_LOGIN") {
+        // Store current page for redirect after login
+        localStorage.setItem("redirectAfterLogin", window.location.pathname)
+        router.push("/login")
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -302,7 +361,7 @@ export default function ProductsPage() {
               </div>
               <div className="flex items-center space-x-4">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? "Cart (0)" : "Cart"}
+                  {user ? `Cart (${cartCount})` : "Cart"}
                 </button>
                 {user ? (
                   <Link
@@ -330,7 +389,7 @@ export default function ProductsPage() {
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
               <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                {user ? "Cart (0)" : "Cart"}
+                {user ? `Cart (${cartCount})` : "Cart"}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button
@@ -517,12 +576,23 @@ export default function ProductsPage() {
                       <Button className="w-full bg-black hover:bg-gray-800 text-white">View Details</Button>
                     </Link>
                     <div className="flex space-x-2">
-                      <Button variant="outline" className="flex-1 hover:bg-black hover:text-white bg-transparent">
+                      <Button
+                        variant="outline"
+                        className="flex-1 hover:bg-black hover:text-white bg-transparent"
+                        onClick={() => handleAddToCart(product)}
+                      >
                         <ShoppingCart className="w-4 h-4 mr-2" />
                         Add to Cart
                       </Button>
-                      <Button variant="outline" size="sm" className="hover:bg-gray-100 bg-transparent">
-                        <Heart className="w-4 h-4" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`hover:bg-gray-100 bg-transparent ${
+                          isInWishlist(product.id) ? "text-red-500 border-red-500" : ""
+                        }`}
+                        onClick={() => handleAddToWishlist(product)}
+                      >
+                        <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
                       </Button>
                     </div>
                   </div>

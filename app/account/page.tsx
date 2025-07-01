@@ -8,15 +8,29 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
-import { User, Package, CreditCard, MapPin, Settings, LogOut, ShoppingBag, Heart, RefreshCw } from "lucide-react"
+import {
+  User,
+  Package,
+  CreditCard,
+  MapPin,
+  Settings,
+  LogOut,
+  ShoppingBag,
+  Heart,
+  RefreshCw,
+  Star,
+  Trash2,
+} from "lucide-react"
 import { SupabaseSetupGuide } from "@/components/supabase-setup-guide"
 import { ProfileDebug } from "@/components/profile-debug"
+import { useWishlist } from "@/hooks/use-wishlist"
 
 export default function AccountPage() {
   const { user, signOut, loading, refreshProfile } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("profile")
   const [refreshing, setRefreshing] = useState(false)
+  const { wishlistItems, removeFromWishlist, clearWishlist } = useWishlist()
 
   // If loading, show loading state
   if (loading) {
@@ -94,7 +108,7 @@ export default function AccountPage() {
                     }`}
                   >
                     <Heart className="mr-3 h-4 w-4" />
-                    Saved Items
+                    Saved Items ({wishlistItems.length})
                   </button>
                   <button
                     onClick={() => setActiveTab("addresses")}
@@ -168,7 +182,7 @@ export default function AccountPage() {
                         size="sm"
                         onClick={handleRefreshProfile}
                         disabled={refreshing}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 bg-transparent"
                       >
                         <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                         Refresh
@@ -232,20 +246,95 @@ export default function AccountPage() {
               <TabsContent value="saved">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Saved Items</CardTitle>
-                    <CardDescription>Products you've saved for later</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Saved Items</CardTitle>
+                        <CardDescription>
+                          Products you've saved for later ({wishlistItems.length} items)
+                        </CardDescription>
+                      </div>
+                      {wishlistItems.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearWishlist}
+                          className="text-red-600 hover:text-red-700 bg-transparent"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Clear All
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-8">
-                      <Heart className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No saved items</h3>
-                      <p className="mt-1 text-sm text-gray-500">Items you save will appear here.</p>
-                      <div className="mt-6">
-                        <Link href="/products">
-                          <Button>Browse Products</Button>
-                        </Link>
+                    {wishlistItems.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Heart className="mx-auto h-12 w-12 text-gray-400" />
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">No saved items</h3>
+                        <p className="mt-1 text-sm text-gray-500">Items you save will appear here.</p>
+                        <div className="mt-6">
+                          <Link href="/products">
+                            <Button>Browse Products</Button>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {wishlistItems.map((item) => (
+                          <Card key={item.id} className="group hover:shadow-md transition-shadow">
+                            <CardContent className="p-0">
+                              <div className="relative">
+                                <div className="aspect-square relative overflow-hidden rounded-t-lg">
+                                  <Image
+                                    src={item.image || "/placeholder.svg"}
+                                    alt={item.name}
+                                    fill
+                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => removeFromWishlist(item.id)}
+                                  className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </button>
+                              </div>
+                              <div className="p-4">
+                                <div className="text-sm text-gray-500 mb-1">{item.category}</div>
+                                <h3 className="font-semibold text-gray-900 mb-2">{item.name}</h3>
+                                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
+
+                                {/* Rating */}
+                                <div className="flex items-center space-x-2 mb-3">
+                                  <div className="flex items-center">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={`w-3 h-3 ${
+                                          i < Math.floor(item.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-xs text-gray-600">
+                                    {item.rating} ({item.reviews} reviews)
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                  <span className="text-lg font-bold text-black">R {item.price.toLocaleString()}</span>
+                                  <Link href={item.link}>
+                                    <Button size="sm" className="bg-black hover:bg-gray-800 text-white">
+                                      View Details
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -298,7 +387,7 @@ export default function AccountPage() {
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-sm font-medium text-gray-700">Password</h3>
-                        <Button variant="outline" size="sm" className="mt-2">
+                        <Button variant="outline" size="sm" className="mt-2 bg-transparent">
                           Change Password
                         </Button>
                       </div>
@@ -335,7 +424,7 @@ export default function AccountPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
+                          className="mt-2 text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
                         >
                           Delete Account
                         </Button>

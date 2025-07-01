@@ -10,6 +10,9 @@ import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
 import Layout from "@/components/layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter } from "next/navigation"
+import { useCart } from "@/hooks/use-cart"
+import { useWishlist } from "@/hooks/use-wishlist"
 
 export default function MedicalScrubsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -21,6 +24,75 @@ export default function MedicalScrubsPage() {
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
   const colors = ["Navy Blue", "Ceil Blue", "Black", "Wine", "Hunter Green"]
+
+  const router = useRouter()
+  const {
+    cartItems,
+    cartCount,
+    subtotal,
+    vat,
+    total,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    addPendingCartItem,
+  } = useCart()
+
+  const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
+    useWishlist()
+
+  const product = {
+    id: 2,
+    name: "Complete Scrub Set",
+    category: "Medical Scrubs",
+    price: 899,
+    image: "/placeholder.svg?height=600&width=600",
+    description: "Antimicrobial, moisture-wicking fabric with multiple utility pockets",
+    rating: 4.8,
+    reviews: 89,
+    link: "/medical-scrubs",
+  }
+
+  const handleAddToCart = () => {
+    try {
+      addToCart({
+        id: 2,
+        name: "Complete Scrub Set",
+        details: `Size: ${selectedSize}, Color: ${selectedColor}`,
+        price: 899,
+        image: "/placeholder.svg?height=80&width=80",
+      })
+    } catch (error: any) {
+      if (error.message === "REDIRECT_TO_LOGIN") {
+        // Store current page for redirect after login
+        localStorage.setItem("redirectAfterLogin", window.location.pathname)
+        router.push("/login")
+      }
+    }
+  }
+
+  const handleAddToWishlist = () => {
+    try {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        image: product.image,
+        description: product.description,
+        rating: product.rating,
+        reviews: product.reviews,
+        link: product.link,
+      })
+    } catch (error: any) {
+      if (error.message === "REDIRECT_TO_LOGIN") {
+        // Store current page for redirect after login
+        localStorage.setItem("redirectAfterLogin", window.location.pathname)
+        router.push("/login")
+      }
+    }
+  }
 
   return (
     <Layout>
@@ -181,7 +253,7 @@ export default function MedicalScrubsPage() {
                     onClick={() => setCartOpen(true)}
                     className="text-gray-700 hover:text-black transition-colors"
                   >
-                    {user ? "Cart (0)" : "Cart"}
+                    {user ? `Cart (${cartCount})` : "Cart"}
                   </button>
                   {user ? (
                     <Link
@@ -209,7 +281,7 @@ export default function MedicalScrubsPage() {
               {/* Mobile Navigation Button */}
               <div className="flex items-center space-x-4 md:hidden">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? "Cart (0)" : "Cart"}
+                  {user ? `Cart (${cartCount})` : "Cart"}
                 </button>
                 <Image
                   src="/elite-gowns-logo.png"
@@ -456,13 +528,19 @@ export default function MedicalScrubsPage() {
 
               {/* Actions */}
               <div className="space-y-3">
-                <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">
+                <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg" onClick={handleAddToCart}>
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   Add to Cart
                 </Button>
-                <Button variant="outline" className="w-full py-3 text-lg bg-transparent">
-                  <Heart className="w-5 h-5 mr-2" />
-                  Add to Wishlist
+                <Button
+                  variant="outline"
+                  className={`w-full py-3 text-lg bg-transparent ${
+                    isInWishlist(product.id) ? "text-red-500 border-red-500" : ""
+                  }`}
+                  onClick={handleAddToWishlist}
+                >
+                  <Heart className={`w-5 h-5 mr-2 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
+                  {isInWishlist(product.id) ? "Added to Wishlist" : "Add to Wishlist"}
                 </Button>
               </div>
             </div>

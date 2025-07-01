@@ -12,12 +12,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { Eye, EyeOff, CheckCircle, AlertCircle, Menu, X, User, ChevronDown } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 import { useCart } from "@/hooks/use-cart"
+import { useWishlist } from "@/hooks/use-wishlist"
 
 export default function LoginPage() {
   const { signIn, loading, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { cartCount } = useCart()
+  const { cartCount, addPendingCartItem } = useCart()
+  const { addPendingWishlistItem } = useWishlist()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -71,8 +73,17 @@ export default function LoginPage() {
           setError("Login failed. Please try again.")
         }
       } else {
-        // Success - redirect will be handled by auth context
-        router.push("/account")
+        // Success - handle redirect and pending items
+        addPendingCartItem()
+        addPendingWishlistItem()
+
+        const redirectUrl = localStorage.getItem("redirectAfterLogin")
+        if (redirectUrl) {
+          localStorage.removeItem("redirectAfterLogin")
+          router.push(redirectUrl)
+        } else {
+          router.push("/account")
+        }
       }
     } catch (error) {
       console.error("Login error:", error)

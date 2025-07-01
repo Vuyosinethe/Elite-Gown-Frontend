@@ -58,7 +58,12 @@ export function useCart() {
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     if (!user) {
-      throw new Error("User must be logged in to add items to cart")
+      // Store the current page URL for redirect after login
+      if (typeof window !== "undefined") {
+        localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search)
+        localStorage.setItem("pendingCartItem", JSON.stringify(item))
+      }
+      throw new Error("REDIRECT_TO_LOGIN")
     }
 
     setCartItems((prev) => {
@@ -93,6 +98,21 @@ export function useCart() {
     localStorage.removeItem(`elite-gowns-cart-${user.id}`)
   }
 
+  const addPendingCartItem = () => {
+    if (typeof window !== "undefined") {
+      const pendingItem = localStorage.getItem("pendingCartItem")
+      if (pendingItem && user) {
+        try {
+          const item = JSON.parse(pendingItem)
+          addToCart(item)
+          localStorage.removeItem("pendingCartItem")
+        } catch (error) {
+          console.error("Error adding pending cart item:", error)
+        }
+      }
+    }
+  }
+
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const vat = subtotal * 0.15
@@ -108,6 +128,7 @@ export function useCart() {
     updateQuantity,
     removeFromCart,
     clearCart,
+    addPendingCartItem,
     isAuthenticated: !!user,
   }
 }
