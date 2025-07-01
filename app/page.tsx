@@ -15,6 +15,8 @@ export default function HomePage() {
   const [cartOpen, setCartOpen] = useState(false)
   const { user } = useAuth()
   const { cartCount } = useCart()
+  const [shopOpen, setShopOpen] = useState(false)
+  const [saleOpen, setSaleOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-white">
@@ -69,37 +71,145 @@ export default function HomePage() {
                     >
                       Embroidered merchandise
                     </Link>
-                    <Link
-                      href="/products?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Sale
-                    </Link>
+                    <div className="relative">
+                      <button
+                        onClick={() => setSaleOpen(!saleOpen)}
+                        className="w-full text-left px-4 py-2 text-sm text-black border border-green-400 hover:bg-gray-50 flex items-center justify-between transition-colors"
+                        style={{ borderColor: "#00ff00" }}
+                      >
+                        Sale
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </button>
+                      {saleOpen && (
+                        <div
+                          className="absolute left-full top-0 ml-1 w-56 rounded-md shadow-lg z-50"
+                          style={{ backgroundColor: "#00ff00" }}
+                        >
+                          <div className="py-1">
+                            <Link
+                              href="/graduation-gowns?sale=true"
+                              className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
+                              onClick={() => {
+                                setSaleOpen(false)
+                                setShopOpen(false)
+                              }}
+                            >
+                              Graduation gowns on sale
+                            </Link>
+                            <Link
+                              href="/medical-scrubs?sale=true"
+                              className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
+                              onClick={() => {
+                                setSaleOpen(false)
+                                setShopOpen(false)
+                              }}
+                            >
+                              Medical scrubs on sale
+                            </Link>
+                            <Link
+                              href="/embroidered-merchandise?sale=true"
+                              className="block px-4 py-2 text-sm text-black hover:bg-green-300 transition-colors"
+                              onClick={() => {
+                                setSaleOpen(false)
+                                setShopOpen(false)
+                              }}
+                            >
+                              Merchandise on sale
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="relative group">
-                  <button className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-1">
+                  <button className="text-[#39FF14] hover:text-[#32E610] transition-colors flex items-center space-x-1">
                     <span>Sale</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
                   <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
+                      Graduation Gowns
+                    </div>
                     <Link
                       href="/graduation-gowns?sale=true"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      Graduation gowns on sale
+                      All Graduation Gowns
                     </Link>
+                    <Link
+                      href="/graduation-gowns?sale=true&type=bachelor"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Bachelor Gowns
+                    </Link>
+                    <Link
+                      href="/graduation-gowns?sale=true&type=master"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Master Gowns
+                    </Link>
+                    <Link
+                      href="/graduation-gowns?sale=true&type=doctoral"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Doctoral Gowns
+                    </Link>
+
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
+                      Medical Scrubs
+                    </div>
                     <Link
                       href="/medical-scrubs?sale=true"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      Medical scrubs on sale
+                      All Medical Scrubs
                     </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true&type=tops"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Scrub Tops Only
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true&type=pants"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Scrub Pants Only
+                    </Link>
+                    <Link
+                      href="/medical-scrubs?sale=true&type=sets"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Scrub Sets
+                    </Link>
+
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
+                      Merchandise
+                    </div>
                     <Link
                       href="/embroidered-merchandise?sale=true"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      Merchandise on sale
+                      All Merchandise
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true&type=polo"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Polo Shirts
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true&type=tshirts"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      T-Shirts
+                    </Link>
+                    <Link
+                      href="/embroidered-merchandise?sale=true&type=hoodies"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Hoodies
                     </Link>
                   </div>
                 </div>
@@ -176,6 +286,13 @@ export default function HomePage() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Shop
+              </Link>
+              <Link
+                href="/products?sale=true"
+                className="block px-3 py-2 rounded-md text-base font-medium text-[#39FF14] hover:bg-gray-50"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sale
               </Link>
               <div className="px-3 py-2">
                 <span className="text-base font-medium text-red-600">Sale</span>

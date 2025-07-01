@@ -199,38 +199,19 @@ export default function ProductsPage() {
                     </Link>
                     <Link
                       href="/products?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      className="block px-4 py-2 text-sm text-black hover:bg-gray-50 hover:text-black transition-colors"
+                      style={{ borderColor: "#00ff00", border: "1px solid #00ff00" }}
                     >
                       Sale
                     </Link>
                   </div>
                 </div>
-                <div className="relative group">
-                  <button className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-1">
-                    <span>Sale</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                    <Link
-                      href="/graduation-gowns?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Graduation gowns on sale
-                    </Link>
-                    <Link
-                      href="/medical-scrubs?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Medical scrubs on sale
-                    </Link>
-                    <Link
-                      href="/embroidered-merchandise?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Merchandise on sale
-                    </Link>
-                  </div>
-                </div>
+                <Link
+                  href="/products?sale=true"
+                  className="text-[#39FF14] hover:text-[#32E610] px-3 py-2 text-sm font-medium"
+                >
+                  Sale
+                </Link>
                 <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                   About
                 </Link>
@@ -239,7 +220,7 @@ export default function ProductsPage() {
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
-                <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+                <button onClick={() => cartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
                   {user ? "Cart (0)" : "Cart"}
                 </button>
                 {user ? (
@@ -267,14 +248,14 @@ export default function ProductsPage() {
 
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
-              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+              <button onClick={() => cartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
                 {user ? "Cart (0)" : "Cart"}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button
                 type="button"
                 className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={() => mobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? (
@@ -294,16 +275,23 @@ export default function ProductsPage() {
               <Link
                 href="/"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 href="/products"
                 className="block px-3 py-2 rounded-md text-base font-medium text-black bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 Shop
+              </Link>
+              <Link
+                href="/products?sale=true"
+                className="block px-3 py-2 rounded-md text-base font-medium text-[#39FF14] hover:bg-gray-50"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sale
               </Link>
               <div className="px-3 py-2">
                 <span className="text-base font-medium text-red-600">Sale</span>
@@ -311,21 +299,21 @@ export default function ProductsPage() {
                   <Link
                     href="/graduation-gowns?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => mobileMenuOpen(false)}
                   >
                     Graduation gowns on sale
                   </Link>
                   <Link
                     href="/medical-scrubs?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => mobileMenuOpen(false)}
                   >
                     Medical scrubs on sale
                   </Link>
                   <Link
                     href="/embroidered-merchandise?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => mobileMenuOpen(false)}
                   >
                     Merchandise on sale
                   </Link>
@@ -334,14 +322,14 @@ export default function ProductsPage() {
               <Link
                 href="/about"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 About
               </Link>
               <Link
                 href="/contact"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 Contact
               </Link>
@@ -349,7 +337,7 @@ export default function ProductsPage() {
                 <Link
                   href="/account"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => mobileMenuOpen(false)}
                 >
                   My Account
                 </Link>
@@ -357,7 +345,7 @@ export default function ProductsPage() {
                 <Link
                   href="/login"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => mobileMenuOpen(false)}
                 >
                   Sign In
                 </Link>
