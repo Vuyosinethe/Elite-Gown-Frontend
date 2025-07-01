@@ -48,25 +48,31 @@ export default function GraduationGownsPage() {
                       href="/graduation-gowns"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      GRADUATION GOWNS
+                      Graduation gowns
                     </Link>
                     <Link
                       href="/medical-scrubs"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      MEDICAL SCRUBS
+                      Medical scrubs
                     </Link>
                     <Link
                       href="/medical-scrubs"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      LAB COATS AND JACKETS
+                      Lab coats and jackets
                     </Link>
                     <Link
                       href="/embroidered-merchandise"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      EMBROIDERED MERCHANDISE
+                      Embroidered merchandise
+                    </Link>
+                    <Link
+                      href="/products?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Sale
                     </Link>
                   </div>
                 </div>
@@ -80,19 +86,19 @@ export default function GraduationGownsPage() {
                       href="/graduation-gowns?sale=true"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      GRADUATION GOWNS ON SALE
+                      Graduation gowns on sale
                     </Link>
                     <Link
                       href="/medical-scrubs?sale=true"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      MEDICAL SCRUBS ON SALE
+                      Medical scrubs on sale
                     </Link>
                     <Link
                       href="/embroidered-merchandise?sale=true"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      MERCHANDISE ON SALE
+                      Merchandise on sale
                     </Link>
                   </div>
                 </div>
@@ -178,21 +184,21 @@ export default function GraduationGownsPage() {
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Graduation Gowns on Sale
+                    Graduation gowns on sale
                   </Link>
                   <Link
                     href="/medical-scrubs?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Medical Scrubs on Sale
+                    Medical scrubs on sale
                   </Link>
                   <Link
                     href="/embroidered-merchandise?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Merchandise on Sale
+                    Merchandise on sale
                   </Link>
                 </div>
               </div>

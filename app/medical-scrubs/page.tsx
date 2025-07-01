@@ -16,26 +16,27 @@ export default function MedicalScrubsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* ---------------- NAVIGATION ---------------- */}
+      {/* Navigation */}
       <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* logo ---------------- */}
-            <Link href="/" className="flex items-center space-x-3 group">
-              <span className="relative text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
-                Elite Gowns
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300" />
-              </span>
-            </Link>
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center space-x-3 group">
+                <div className="relative">
+                  <span className="text-2xl font-bold bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 bg-clip-text text-transparent tracking-wide">
+                    Elite Gowns
+                  </span>
+                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 group-hover:w-full transition-all duration-300"></div>
+                </div>
+              </Link>
+            </div>
 
-            {/* desktop links -------------- */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
               <div className="flex space-x-6">
                 <Link href="/" className="text-gray-700 hover:text-black transition-colors">
                   Home
                 </Link>
-
-                {/* ----- SHOP DROPDOWN ----- */}
                 <div className="relative group">
                   <button className="text-gray-700 hover:text-black transition-colors flex items-center space-x-1">
                     <span>Shop</span>
@@ -44,32 +45,36 @@ export default function MedicalScrubsPage() {
                   <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <Link
                       href="/graduation-gowns"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      GRADUATION GOWNS
+                      Graduation gowns
                     </Link>
                     <Link
                       href="/medical-scrubs"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      MEDICAL SCRUBS
+                      Medical scrubs
                     </Link>
                     <Link
                       href="/medical-scrubs"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      LAB COATS & JACKETS
+                      Lab coats and jackets
                     </Link>
                     <Link
                       href="/embroidered-merchandise"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      EMBROIDERED MERCHANDISE
+                      Embroidered merchandise
+                    </Link>
+                    <Link
+                      href="/products?sale=true"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      Sale
                     </Link>
                   </div>
                 </div>
-
-                {/* ----- SALE DROPDOWN ----- */}
                 <div className="relative group">
                   <button className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-1">
                     <span>Sale</span>
@@ -78,25 +83,24 @@ export default function MedicalScrubsPage() {
                   <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <Link
                       href="/graduation-gowns?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      GRADUATION GOWNS ON SALE
+                      Graduation gowns on sale
                     </Link>
                     <Link
                       href="/medical-scrubs?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      MEDICAL SCRUBS ON SALE
+                      Medical scrubs on sale
                     </Link>
                     <Link
                       href="/embroidered-merchandise?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      MERCHANDISE ON SALE
+                      Merchandise on sale
                     </Link>
                   </div>
                 </div>
-
                 <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                   About
                 </Link>
@@ -104,19 +108,20 @@ export default function MedicalScrubsPage() {
                   Contact
                 </Link>
               </div>
-
-              {/* right-hand controls */}
               <div className="flex items-center space-x-4">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
                   {user ? "Cart (0)" : "Cart"}
                 </button>
                 {user ? (
-                  <Link href="/account" className="flex items-center space-x-2 text-gray-700 hover:text-black">
+                  <Link
+                    href="/account"
+                    className="flex items-center space-x-2 text-gray-700 hover:text-black transition-colors"
+                  >
                     <User className="w-4 h-4" />
                     <span>{user.firstName}</span>
                   </Link>
                 ) : (
-                  <Link href="/login" className="text-gray-700 hover:text-black">
+                  <Link href="/login" className="text-gray-700 hover:text-black transition-colors">
                     Sign In
                   </Link>
                 )}
@@ -130,7 +135,7 @@ export default function MedicalScrubsPage() {
               </div>
             </div>
 
-            {/* mobile hamburger ------------- */}
+            {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
               <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
                 {user ? "Cart (0)" : "Cart"}
@@ -148,7 +153,7 @@ export default function MedicalScrubsPage() {
           </div>
         </div>
 
-        {/* ------------- MOBILE MENU ------------- */}
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-200">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
@@ -166,8 +171,6 @@ export default function MedicalScrubsPage() {
               >
                 Shop
               </Link>
-
-              {/* mobile sale sub-links */}
               <div className="px-3 py-2">
                 <span className="text-base font-medium text-red-600">Sale</span>
                 <div className="ml-4 mt-2 space-y-1">
@@ -176,25 +179,24 @@ export default function MedicalScrubsPage() {
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Graduation Gowns on Sale
+                    Graduation gowns on sale
                   </Link>
                   <Link
                     href="/medical-scrubs?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Medical Scrubs on Sale
+                    Medical scrubs on sale
                   </Link>
                   <Link
                     href="/embroidered-merchandise?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Merchandise on Sale
+                    Merchandise on sale
                   </Link>
                 </div>
               </div>
-
               <Link
                 href="/about"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
@@ -231,7 +233,7 @@ export default function MedicalScrubsPage() {
         )}
       </nav>
 
-      {/* ---------------- PAGE HERO ---------------- */}
+      {/* Page Hero */}
       <header className="text-center py-16 px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold text-black mb-4">Professional Medical Scrubs</h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -239,10 +241,10 @@ export default function MedicalScrubsPage() {
         </p>
       </header>
 
-      {/* --------- PRODUCT SECTION (static example) --------- */}
+      {/* Product Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="grid lg:grid-cols-2 gap-12">
-          {/* images */}
+          {/* Images */}
           <div className="space-y-4">
             <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
               <Image
@@ -271,7 +273,7 @@ export default function MedicalScrubsPage() {
             </div>
           </div>
 
-          {/* details */}
+          {/* Details */}
           <div className="space-y-6">
             <div>
               <Badge className="mb-2 bg-blue-600 text-white inline-flex items-center">
@@ -286,7 +288,7 @@ export default function MedicalScrubsPage() {
 
             <div className="text-3xl font-bold text-black">R 899.00</div>
 
-            {/* actions */}
+            {/* Actions */}
             <div className="space-y-3">
               <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">
                 <ShoppingCart className="w-5 h-5 mr-2" />
@@ -301,7 +303,7 @@ export default function MedicalScrubsPage() {
         </div>
       </div>
 
-      {/* ---------- CART DRAWER ---------- */}
+      {/* Cart Drawer */}
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   )
