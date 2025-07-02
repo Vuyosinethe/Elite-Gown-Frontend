@@ -22,7 +22,7 @@ export default function MedicalScrubsPage() {
   const [selectedSize, setSelectedSize] = useState("M")
   const [selectedColor, setSelectedColor] = useState("Navy Blue")
 
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
+  const sizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL"]
   const colors = ["Navy Blue", "Ceil Blue", "Black", "Wine", "Hunter Green"]
 
   const router = useRouter()
@@ -644,36 +644,42 @@ export default function MedicalScrubsPage() {
                       </thead>
                       <tbody>
                         <tr className="bg-white">
+                          <td className="px-6 py-4 font-semibold text-gray-900">XXS</td>
+                          <td className="px-6 py-4 text-gray-600">76-81</td>
+                          <td className="px-6 py-4 text-gray-600">61-66</td>
+                          <td className="px-6 py-4 text-gray-600">84-89</td>
+                        </tr>
+                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">XS</td>
                           <td className="px-6 py-4 text-gray-600">81-86</td>
                           <td className="px-6 py-4 text-gray-600">66-71</td>
                           <td className="px-6 py-4 text-gray-600">89-94</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-white">
                           <td className="px-6 py-4 font-semibold text-gray-900">S</td>
                           <td className="px-6 py-4 text-gray-600">86-91</td>
                           <td className="px-6 py-4 text-gray-600">71-76</td>
                           <td className="px-6 py-4 text-gray-600">94-99</td>
                         </tr>
-                        <tr className="bg-white">
+                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">M</td>
                           <td className="px-6 py-4 text-gray-600">91-97</td>
                           <td className="px-6 py-4 text-gray-600">76-81</td>
                           <td className="px-6 py-4 text-gray-600">99-104</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-white">
                           <td className="px-6 py-4 font-semibold text-gray-900">L</td>
                           <td className="px-6 py-4 text-gray-600">97-102</td>
                           <td className="px-6 py-4 text-gray-600">81-86</td>
                           <td className="px-6 py-4 text-gray-600">104-109</td>
                         </tr>
-                        <tr className="bg-white">
+                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">XL</td>
                           <td className="px-6 py-4 text-gray-600">102-107</td>
                           <td className="px-6 py-4 text-gray-600">86-91</td>
                           <td className="px-6 py-4 text-gray-600">109-114</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-white">
                           <td className="px-6 py-4 font-semibold text-gray-900">XXL</td>
                           <td className="px-6 py-4 text-gray-600">107-112</td>
                           <td className="px-6 py-4 text-gray-600">91-97</td>
@@ -772,7 +778,13 @@ export default function MedicalScrubsPage() {
                   </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-900">
-                      Medical Scrub {i === 1 ? "Top" : i === 2 ? "Pants" : i === 3 ? "Lab Coat" : "Set"}
+                      {i === 1
+                        ? "Medical Scrub Top"
+                        : i === 2
+                          ? "Medical Scrub Pants"
+                          : i === 3
+                            ? "Medical Lab Coat"
+                            : "Medical Scrub Set"}
                     </h3>
                     <p className="text-gray-600 text-sm mb-2">Professional medical wear</p>
                     <p className="font-bold text-black">

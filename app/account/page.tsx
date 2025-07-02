@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Star,
   Trash2,
+  Loader2,
 } from "lucide-react"
 import { SupabaseSetupGuide } from "@/components/supabase-setup-guide"
 import { ProfileDebug } from "@/components/profile-debug"
@@ -30,7 +31,7 @@ export default function AccountPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("profile")
   const [refreshing, setRefreshing] = useState(false)
-  const { wishlistItems, removeFromWishlist, clearWishlist } = useWishlist()
+  const { wishlistItems, loading: wishlistLoading, removeFromWishlist, clearWishlist, refreshWishlist } = useWishlist()
 
   // If loading, show loading state
   if (loading) {
@@ -59,6 +60,16 @@ export default function AccountPage() {
     setRefreshing(true)
     await refreshProfile()
     setRefreshing(false)
+  }
+
+  const handleClearWishlist = async () => {
+    if (window.confirm("Are you sure you want to remove all saved items?")) {
+      await clearWishlist()
+    }
+  }
+
+  const handleRemoveFromWishlist = async (itemId: number) => {
+    await removeFromWishlist(itemId)
   }
 
   return (
@@ -253,21 +264,38 @@ export default function AccountPage() {
                           Products you've saved for later ({wishlistItems.length} items)
                         </CardDescription>
                       </div>
-                      {wishlistItems.length > 0 && (
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={clearWishlist}
-                          className="text-red-600 hover:text-red-700 bg-transparent"
+                          onClick={refreshWishlist}
+                          disabled={wishlistLoading}
+                          className="bg-transparent"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Clear All
+                          <RefreshCw className={`w-4 h-4 mr-2 ${wishlistLoading ? "animate-spin" : ""}`} />
+                          Refresh
                         </Button>
-                      )}
+                        {wishlistItems.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleClearWishlist}
+                            className="text-red-600 hover:text-red-700 bg-transparent"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Clear All
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {wishlistItems.length === 0 ? (
+                    {wishlistLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                        <span className="ml-2 text-gray-600">Loading saved items...</span>
+                      </div>
+                    ) : wishlistItems.length === 0 ? (
                       <div className="text-center py-8">
                         <Heart className="mx-auto h-12 w-12 text-gray-400" />
                         <h3 className="mt-2 text-sm font-medium text-gray-900">No saved items</h3>
@@ -293,7 +321,7 @@ export default function AccountPage() {
                                   />
                                 </div>
                                 <button
-                                  onClick={() => removeFromWishlist(item.id)}
+                                  onClick={() => handleRemoveFromWishlist(item.id)}
                                   className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4 text-red-500" />
