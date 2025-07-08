@@ -1,11 +1,12 @@
 "use client"
-import { useForm } from "react-hook-form"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
 import { CheckCircle, AlertCircle, Menu, X, User, ChevronDown, Eye, EyeOff } from "lucide-react"
@@ -14,13 +15,7 @@ import { useCart } from "@/hooks/use-cart"
 import { useWishlist } from "@/hooks/use-wishlist"
 import Layout from "@/components/layout"
 
-interface FormValues {
-  email: string
-  password: string
-}
-
 export default function LoginPage() {
-  const { register, handleSubmit } = useForm<FormValues>()
   const { signIn, loading: authLoading, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -28,10 +23,12 @@ export default function LoginPage() {
   const { addPendingWishlistItem } = useWishlist()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false) // Declare loading variable
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
   // Check for URL parameters
   useEffect(() => {
@@ -50,12 +47,38 @@ export default function LoginPage() {
     }
   }, [user, authLoading, router, searchParams])
 
-  const onSubmit = async (data: FormValues) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setSuccess("")
+    setLoading(true)
+
     try {
-      setLoading(true)
-      await signIn(data.email, data.password)
-    } catch (e: any) {
-      setError(e.message)
+      const { error } = await signIn(email, password)
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please check your credentials and try again.")
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Please check your email and click the confirmation link before signing in.")
+        } else {
+          setError(error.message || "Login failed")
+        }
+      } else {
+        // Success - handle redirect and pending items
+        addPendingCartItem()
+        addPendingWishlistItem()
+
+        const redirectUrl = localStorage.getItem("redirectAfterLogin")
+        if (redirectUrl) {
+          localStorage.removeItem("redirectAfterLogin")
+          router.push(redirectUrl)
+        } else {
+          router.push("/account")
+        }
+      }
+    } catch (err) {
+      setError("Login failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -396,18 +419,19 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                       Email Address
                     </label>
-                    <Input
+                    <input
                       id="email"
                       name="email"
                       type="email"
                       autoComplete="email"
                       required
-                      {...register("email")}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm"
                       placeholder="Email address"
                     />
@@ -418,13 +442,14 @@ export default function LoginPage() {
                       Password
                     </label>
                     <div className="mt-1 relative">
-                      <Input
+                      <input
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
                         autoComplete="current-password"
                         required
-                        {...register("password")}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
                       />
                       <button
