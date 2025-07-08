@@ -1,46 +1,54 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
 
 export interface WishlistItem {
-  id: number
+  id?: number
+  user_id?: string
+  product_id?: string
+  product_name?: string
+  product_price?: number
+  product_image?: string
   name: string
-  category: string
+  description: string
   price: number
   image: string
-  description: string
+  category: string
+  link: string
   rating: number
   reviews: number
-  link: string
+  created_at?: string
 }
 
 export function useWishlist() {
-  const { user } = useAuth()
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const router = useRouter()
 
-  // Get auth token for API calls
   const getAuthToken = async () => {
-    if (!user) return null
     const {
       data: { session },
     } = await supabase.auth.getSession()
-    return session?.access_token || null
+    return session?.access_token
   }
 
-  // Load wishlist from backend when user logs in
-  const loadWishlist = async () => {
+  const fetchWishlist = async () => {
     if (!user) {
       setWishlistItems([])
+      setLoading(false)
       return
     }
 
-    setLoading(true)
     try {
+      setLoading(true)
       const token = await getAuthToken()
+
       if (!token) {
+        console.log("No auth token available")
         setWishlistItems([])
         return
       }
@@ -48,134 +56,153 @@ export function useWishlist() {
       const response = await fetch("/api/wishlist", {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        // Transform backend data to match frontend interface
-        const transformedItems = data.items.map((item: any) => ({
-          id: item.product_id,
-          name: item.name,
-          category: item.category,
-          price: item.price,
-          image: item.image,
-          description: item.description,
-          rating: item.rating,
-          reviews: item.reviews,
-          link: item.link,
-        }))
-        setWishlistItems(transformedItems)
-      } else {
-        console.error("Failed to load wishlist:", response.statusText)
-        setWishlistItems([])
+      if (!response.ok) {
+        throw new Error("Failed to fetch wishlist")
       }
+
+      const data = await response.json()
+      // Extract items array from response
+      setWishlistItems(Array.isArray(data.items) ? data.items : [])
     } catch (error) {
-      console.error("Error loading wishlist:", error)
+      console.error("Failed to load wishlist:", error)
       setWishlistItems([])
     } finally {
       setLoading(false)
     }
   }
 
-  // Load wishlist when user changes
-  useEffect(() => {
-    loadWishlist()
-  }, [user])
-
-  const addToWishlist = async (item: WishlistItem) => {
+  const addToWishlist = async (item: any) => {
+    // If user is not logged in, redirect to login
     if (!user) {
-      // Store the item they wanted to add for after login
-      localStorage.setItem("pendingWishlistItem", JSON.stringify(item))
-      throw new Error("REDIRECT_TO_LOGIN")
+      router.push("/login")
+      return false
     }
 
     try {
       const token = await getAuthToken()
+
       if (!token) {
-        throw new Error("REDIRECT_TO_LOGIN")
+        router.push("/login")
+        return false
+      }
+
+      // Prepare the item data for the API
+      const wishlistData = {
+        product_id: item.id?.toString() || item.product_id?.toString() || Math.random().toString(),
+        product_name: item.name || item.product_name || "Unnamed Product",
+        product_price: item.price || item.product_price || 0,
+        product_image: item.image || item.product_image || "/placeholder.svg",
+        name: item.name || item.product_name || "Unnamed Product",
+        description: item.description || "No description available",
+        price: item.price || item.product_price || 0,
+        image: item.image || item.product_image || "/placeholder.svg",
+        category: item.category || "Uncategorized",
+        link: item.link || "#",
+        rating: item.rating || 0,
+        reviews: item.reviews || 0,
       }
 
       const response = await fetch("/api/wishlist", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(item),
+        body: JSON.stringify(wishlistData),
       })
 
-      if (response.ok) {
-        // Add item to local state
-        setWishlistItems((prev) => [...prev, item])
-      } else if (response.status === 409) {
-        // Item already in wishlist - do nothing
-        return
-      } else {
-        console.error("Failed to add to wishlist:", response.statusText)
+      if (!response.ok) {
+        throw new Error("Failed to add to wishlist")
       }
+
+      await fetchWishlist() // Refresh the list
+      return true
     } catch (error) {
-      console.error("Error adding to wishlist:", error)
+      console.error("Failed to add to wishlist:", error)
+      return false
     }
   }
 
-  const removeFromWishlist = async (itemId: number) => {
-    if (!user) return
+  const removeFromWishlist = async (itemId: number | string) => {
+    if (!user) {
+      return false
+    }
 
     try {
       const token = await getAuthToken()
-      if (!token) return
+
+      if (!token) {
+        return false
+      }
 
       const response = await fetch(`/api/wishlist/${itemId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
       })
 
-      if (response.ok) {
-        // Remove item from local state
-        setWishlistItems((prev) => prev.filter((item) => item.id !== itemId))
-      } else {
-        console.error("Failed to remove from wishlist:", response.statusText)
+      if (!response.ok) {
+        throw new Error("Failed to remove from wishlist")
       }
+
+      await fetchWishlist() // Refresh the list
+      return true
     } catch (error) {
-      console.error("Error removing from wishlist:", error)
+      console.error("Failed to remove from wishlist:", error)
+      return false
     }
   }
 
-  const isInWishlist = (itemId: number) => {
-    return wishlistItems.some((item) => item.id === itemId)
+  // Check if an item is already in the wishlist
+  const isInWishlist = (productId: string | number) => {
+    return wishlistItems.some(
+      (item) =>
+        item.id?.toString() === productId?.toString() ||
+        item.product_id?.toString() === productId?.toString() ||
+        item.name === productId,
+    )
   }
 
   const clearWishlist = async () => {
-    if (!user) return
+    if (!user) {
+      return false
+    }
 
     try {
       const token = await getAuthToken()
-      if (!token) return
+
+      if (!token) {
+        return false
+      }
 
       const response = await fetch("/api/wishlist", {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
       })
 
-      if (response.ok) {
-        // Clear local state
-        setWishlistItems([])
-      } else {
-        console.error("Failed to clear wishlist:", response.statusText)
+      if (!response.ok) {
+        throw new Error("Failed to clear wishlist")
       }
+
+      setWishlistItems([])
+      return true
     } catch (error) {
-      console.error("Error clearing wishlist:", error)
+      console.error("Failed to clear wishlist:", error)
+      return false
     }
   }
 
+  const refreshWishlist = async () => {
+    await fetchWishlist()
+  }
+
+  // Add pending wishlist item after login
   const addPendingWishlistItem = async () => {
     if (!user) return
 
@@ -192,15 +219,19 @@ export function useWishlist() {
     }
   }
 
+  useEffect(() => {
+    fetchWishlist()
+  }, [user])
+
   return {
     wishlistItems,
     wishlistCount: wishlistItems.length,
     loading,
     addToWishlist,
     removeFromWishlist,
-    isInWishlist,
     clearWishlist,
+    refreshWishlist,
+    isInWishlist,
     addPendingWishlistItem,
-    refreshWishlist: loadWishlist,
   }
 }

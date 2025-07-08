@@ -72,25 +72,22 @@ export default function MedicalScrubsPage() {
     }
   }
 
-  const handleAddToWishlist = () => {
-    try {
-      addToWishlist({
-        id: product.id,
-        name: product.name,
-        category: product.category,
-        price: product.price,
-        image: product.image,
-        description: product.description,
-        rating: product.rating,
-        reviews: product.reviews,
-        link: product.link,
-      })
-    } catch (error: any) {
-      if (error.message === "REDIRECT_TO_LOGIN") {
-        // Store current page for redirect after login
-        localStorage.setItem("redirectAfterLogin", window.location.pathname)
-        router.push("/login")
-      }
+  const handleAddToWishlist = async () => {
+    const success = await addToWishlist({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+      description: product.description,
+      rating: product.rating,
+      reviews: product.reviews,
+      link: product.link,
+    })
+
+    if (!success && !user) {
+      // Store the item they wanted to add for after login
+      localStorage.setItem("pendingWishlistItem", JSON.stringify(product))
     }
   }
 
