@@ -258,3 +258,6 @@ export function useAuth() {
   }
   return context
 }
+
+// Re-export the context so “import { AuthContext } …” works.
+export { AuthContext }

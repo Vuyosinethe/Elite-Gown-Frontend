@@ -490,17 +490,6 @@ export default function AccountPage() {
                     </div>
                   </div>
                 )}
-                {!isEditing && (
-                  <div className="pt-6 border-t border-gray-200">
-                    <Button
-                      variant="outline"
-                      onClick={handleSignOut}
-                      className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                    >
-                      Sign Out
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
