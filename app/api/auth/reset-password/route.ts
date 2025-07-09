@@ -46,19 +46,24 @@ export async function POST(request: NextRequest) {
         console.error("Error setting session:", sessionError)
         return NextResponse.json({ error: "Invalid or expired reset link" }, { status: 400 })
       }
+
+      // Update the user's password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password,
+      })
+
+      if (updateError) {
+        console.error("Error updating password:", updateError)
+        return NextResponse.json({ error: "Failed to update password. Please try again." }, { status: 500 })
+      }
+
+      // Sign out the user after password update to force fresh login
+      await supabase.auth.signOut()
+
+      return NextResponse.json({ message: "Password updated successfully" })
+    } else {
+      return NextResponse.json({ error: "Invalid or expired reset link" }, { status: 400 })
     }
-
-    // Update the user's password
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: password,
-    })
-
-    if (updateError) {
-      console.error("Error updating password:", updateError)
-      return NextResponse.json({ error: "Failed to update password. Please try again." }, { status: 500 })
-    }
-
-    return NextResponse.json({ message: "Password updated successfully" })
   } catch (error) {
     console.error("Reset password error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
