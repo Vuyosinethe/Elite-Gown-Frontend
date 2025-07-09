@@ -64,6 +64,7 @@ export default function LoginPage() {
         } else {
           setError(error.message || "Login failed")
         }
+        setLoading(false) // Add this line
       } else {
         // Success - handle redirect and pending items
         addPendingCartItem()
@@ -76,9 +77,11 @@ export default function LoginPage() {
         } else {
           router.push("/account")
         }
+        // Don't set loading to false here since we're redirecting
       }
     } catch (err) {
       setError("Login failed. Please try again.")
+      setLoading(false) // Add this line
     } finally {
       setLoading(false)
     }

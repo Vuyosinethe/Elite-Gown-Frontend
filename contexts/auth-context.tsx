@@ -45,15 +45,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession()
-      if (session) {
-        setSession(session)
-        await loadUserWithProfile(session.user)
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (session) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        } else {
+          setUser(null)
+          setProfile(null)
+        }
+      } catch (error) {
+        console.error("Error getting initial session:", error)
+        setUser(null)
+        setProfile(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     getInitialSession()
@@ -71,7 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null)
       }
 
-      setLoading(false)
+      // Don't set loading to false here for auth state changes
+      // Only set it to false during initial load
     })
 
     return () => subscription.unsubscribe()
@@ -82,7 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch profile from database
       const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
 
-      if (error) {
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 is "not found" error
         console.error("Error fetching profile:", error)
         // Use auth user data as fallback
         setUser({
@@ -97,18 +110,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Set profile data
-      setProfile(profileData)
+      if (profileData) {
+        // Set profile data
+        setProfile(profileData)
 
-      // Create user object with profile data
-      setUser({
-        id: authUser.id,
-        email: authUser.email || profileData.email || "",
-        firstName: profileData.first_name || authUser.user_metadata?.first_name || "",
-        lastName: profileData.last_name || authUser.user_metadata?.last_name || "",
-        phone: profileData.phone || authUser.user_metadata?.phone || "",
-        avatar: profileData.avatar_url || authUser.user_metadata?.avatar_url || "",
-      })
+        // Create user object with profile data
+        setUser({
+          id: authUser.id,
+          email: authUser.email || profileData.email || "",
+          firstName: profileData.first_name || authUser.user_metadata?.first_name || "",
+          lastName: profileData.last_name || authUser.user_metadata?.last_name || "",
+          phone: profileData.phone || authUser.user_metadata?.phone || "",
+          avatar: profileData.avatar_url || authUser.user_metadata?.avatar_url || "",
+        })
+      } else {
+        // No profile found, use auth user data
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          firstName: authUser.user_metadata?.first_name || "",
+          lastName: authUser.user_metadata?.last_name || "",
+          phone: authUser.user_metadata?.phone || "",
+          avatar: authUser.user_metadata?.avatar_url || "",
+        })
+        setProfile(null)
+      }
     } catch (error) {
       console.error("Error loading user profile:", error)
       // Fallback to auth user data
