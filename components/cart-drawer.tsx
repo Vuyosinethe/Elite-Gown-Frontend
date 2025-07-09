@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { X, Minus, Plus, ShoppingCart, User } from "lucide-react"
+import { X, Minus, Plus, ShoppingCart, User, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/hooks/use-cart"
 
@@ -16,11 +16,25 @@ interface CartDrawerProps {
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { user } = useAuth()
   const router = useRouter()
-  const { cartItems, cartCount, subtotal, vat, total, updateQuantity } = useCart()
+  const { cartItems, cartCount, subtotal, vat, total, updateQuantity, removeFromCart, clearCart, loading } = useCart()
 
   const handleSignInClick = () => {
     onClose()
     router.push("/login")
+  }
+
+  const handleUpdateQuantity = async (itemId: number, newQuantity: number) => {
+    await updateQuantity(itemId, newQuantity)
+  }
+
+  const handleRemoveItem = async (itemId: number) => {
+    await removeFromCart(itemId)
+  }
+
+  const handleClearCart = async () => {
+    if (window.confirm("Are you sure you want to clear your cart?")) {
+      await clearCart()
+    }
   }
 
   if (!isOpen) return null
@@ -41,17 +55,28 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
               <div>
                 <h2 className="text-lg font-semibold">Shopping Cart</h2>
-                <p className="text-sm text-gray-600">{user ? `${cartCount} items` : "Sign in required"}</p>
+                <p className="text-sm text-gray-600">{loading ? "Loading..." : `${cartCount} items`}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-gray-100">
-              <X className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              {cartItems.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-red-600 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-gray-100">
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {!user ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
+              </div>
+            ) : !user ? (
               // Not logged in state
               <div className="text-center py-12">
                 <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
@@ -67,7 +92,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-transparent"
                     onClick={() => {
                       onClose()
                       router.push("/register")
@@ -90,25 +115,42 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </Button>
               </div>
             ) : (
-              // Cart with items (logged in)
+              // Cart with items
               <div className="space-y-4">
                 {cartItems.map((item) => (
                   <Card key={item.id} className="border border-gray-200">
                     <CardContent className="p-4">
                       <div className="flex items-start space-x-4">
                         <div className="w-16 h-16 relative overflow-hidden rounded-lg bg-gray-100 flex-shrink-0">
-                          <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+                          <Image
+                            src={item.product_image || "/placeholder.svg"}
+                            alt={item.product_name}
+                            fill
+                            className="object-cover"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 text-sm leading-tight">{item.name}</h3>
-                          <p className="text-xs text-gray-600 mt-1">{item.details}</p>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-900 text-sm leading-tight">{item.product_name}</h3>
+                              <p className="text-xs text-gray-600 mt-1">{item.product_details}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 p-1"
+                              onClick={() => handleRemoveItem(item.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                           <div className="flex items-center justify-between mt-3">
                             <div className="flex items-center space-x-2">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-7 h-7 p-0"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                className="w-7 h-7 p-0 bg-transparent"
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                               >
                                 <Minus className="w-3 h-3" />
                               </Button>
@@ -116,13 +158,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-7 h-7 p-0"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="w-7 h-7 p-0 bg-transparent"
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                               >
                                 <Plus className="w-3 h-3" />
                               </Button>
                             </div>
-                            <p className="font-semibold text-sm">R {(item.price * item.quantity).toLocaleString()}</p>
+                            <p className="font-semibold text-sm">R {((item.price * item.quantity) / 100).toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -133,17 +175,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             )}
           </div>
 
-          {/* Footer - only show if user is logged in and has items */}
-          {user && cartItems.length > 0 && (
+          {/* Footer - only show if has items */}
+          {cartItems.length > 0 && !loading && (
             <div className="border-t p-6 space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>R {subtotal.toLocaleString()}</span>
+                  <span>R {(subtotal / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>VAT (15%)</span>
-                  <span>R {vat.toFixed(2)}</span>
+                  <span>R {(vat / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Shipping</span>
@@ -152,7 +194,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>R {total.toFixed(2)}</span>
+                    <span>R {(total / 100).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

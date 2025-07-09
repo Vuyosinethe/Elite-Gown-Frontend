@@ -6,8 +6,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Heart } from "lucide-react"
+import { ShoppingCart, Heart, Check } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useCart } from "@/hooks/use-cart"
 import Layout from "@/components/layout"
 
 export default function GraduationGownsPage() {
@@ -16,6 +17,42 @@ export default function GraduationGownsPage() {
   const { user } = useAuth()
   const [shopOpen, setShopOpen] = useState(false)
   const [saleOpen, setSaleOpen] = useState(false)
+  const [selectedSize, setSelectedSize] = useState("")
+  const [selectedFaculty, setSelectedFaculty] = useState("")
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [addedToCart, setAddedToCart] = useState(false)
+
+  const { addToCart } = useCart()
+
+  const handleAddToCart = async () => {
+    if (!selectedSize || !selectedFaculty) {
+      alert("Please select both size and faculty color")
+      return
+    }
+
+    setAddingToCart(true)
+    try {
+      const result = await addToCart({
+        id: 1,
+        name: "Complete Graduation Set",
+        details: `Size: ${selectedSize}, Faculty: ${selectedFaculty}`,
+        price: 129900, // Price in cents
+        image: "/placeholder.svg?height=80&width=80",
+      })
+
+      if (result.success) {
+        setAddedToCart(true)
+        setTimeout(() => setAddedToCart(false), 2000) // Reset after 2 seconds
+      } else {
+        alert("Failed to add item to cart: " + (result.error || "Unknown error"))
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      alert("Failed to add item to cart")
+    } finally {
+      setAddingToCart(false)
+    }
+  }
 
   return (
     <Layout>
@@ -99,7 +136,14 @@ export default function GraduationGownsPage() {
               <h3 className="font-semibold mb-3">Size</h3>
               <div className="grid grid-cols-4 gap-2">
                 {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
-                  <Button key={size} variant="outline" className="hover:bg-black hover:text-white bg-transparent">
+                  <Button
+                    key={size}
+                    variant="outline"
+                    className={`hover:bg-black hover:text-white bg-transparent ${
+                      selectedSize === size ? "bg-black text-white" : ""
+                    }`}
+                    onClick={() => setSelectedSize(size)}
+                  >
                     {size}
                   </Button>
                 ))}
@@ -109,22 +153,46 @@ export default function GraduationGownsPage() {
             {/* Faculty Color */}
             <div>
               <h3 className="font-semibold mb-3">Faculty Sash Color</h3>
-              <select className="w-full p-3 border border-gray-300 rounded-lg">
-                <option>Select your faculty</option>
-                <option>Commerce - Red</option>
-                <option>Engineering - Orange</option>
-                <option>Medicine - Green</option>
-                <option>Law - Purple</option>
-                <option>Arts - White</option>
-                <option>Science - Yellow</option>
+              <select
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                value={selectedFaculty}
+                onChange={(e) => setSelectedFaculty(e.target.value)}
+              >
+                <option value="">Select your faculty</option>
+                <option value="Commerce - Red">Commerce - Red</option>
+                <option value="Engineering - Orange">Engineering - Orange</option>
+                <option value="Medicine - Green">Medicine - Green</option>
+                <option value="Law - Purple">Law - Purple</option>
+                <option value="Arts - White">Arts - White</option>
+                <option value="Science - Yellow">Science - Yellow</option>
               </select>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart
+              <Button
+                className={`w-full py-3 text-lg transition-all duration-200 ${
+                  addedToCart ? "bg-green-600 hover:bg-green-700 text-white" : "bg-black hover:bg-gray-800 text-white"
+                }`}
+                onClick={handleAddToCart}
+                disabled={addingToCart || !selectedSize || !selectedFaculty}
+              >
+                {addingToCart ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : addedToCart ? (
+                  <>
+                    <Check className="w-5 h-5 mr-2" />
+                    Added to Cart!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Add to Cart
+                  </>
+                )}
               </Button>
               <Button variant="outline" className="w-full py-3 text-lg bg-transparent">
                 <Heart className="w-5 h-5 mr-2" />
