@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialized] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (mounted) {
           setLoading(false)
+          setInitialized(true)
         }
       }
     }
@@ -91,13 +93,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setProfile(null)
       }
+
+      if (!initialized) {
+        setLoading(false)
+        setInitialized(true)
+      }
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [initialized])
 
   const loadUserWithProfile = async (authUser: User) => {
     try {

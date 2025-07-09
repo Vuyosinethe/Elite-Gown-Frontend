@@ -7,14 +7,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
+import { CheckCircle, AlertCircle, Menu, X, User, ChevronDown, Eye, EyeOff } from "lucide-react"
+import CartDrawer from "@/components/cart-drawer"
 import { useCart } from "@/hooks/use-cart"
 import { useWishlist } from "@/hooks/use-wishlist"
-import { ChevronDown, User, X, Menu } from "lucide-react"
 import Layout from "@/components/layout"
-import CartDrawer from "@/components/cart-drawer"
 
 export default function LoginPage() {
   const { signIn, loading: authLoading, user } = useAuth()
@@ -29,15 +27,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [message, setMessage] = useState("")
+  const [success, setSuccess] = useState("")
+  const [formReady, setFormReady] = useState(false)
+
+  // Initialize form state
+  useEffect(() => {
+    // Small delay to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      setFormReady(true)
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Check for URL parameters
   useEffect(() => {
     const verified = searchParams.get("verified")
-    const urlMessage = searchParams.get("message")
+    const messageParam = searchParams.get("message")
 
-    if (verified === "true" && urlMessage) {
-      setMessage(decodeURIComponent(urlMessage))
+    if (verified === "true") {
+      setSuccess("Your email has been verified! You can now sign in.")
+    } else if (messageParam) {
+      setSuccess(decodeURIComponent(messageParam))
     }
 
     // Redirect if already logged in
@@ -48,8 +59,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formReady) return
+
     setError("")
-    setMessage("")
+    setSuccess("")
     setLoading(true)
 
     try {
@@ -63,7 +77,6 @@ export default function LoginPage() {
         } else {
           setError(error.message || "Login failed")
         }
-        setLoading(false) // Add this line
       } else {
         // Success - handle redirect and pending items
         addPendingCartItem()
@@ -76,15 +89,15 @@ export default function LoginPage() {
         } else {
           router.push("/account")
         }
-        // Don't set loading to false here since we're redirecting
       }
     } catch (err) {
       setError("Login failed. Please try again.")
-      setLoading(false) // Add this line
     } finally {
       setLoading(false)
     }
   }
+
+  const isButtonDisabled = loading || authLoading || !formReady || !email.trim() || !password.trim()
 
   return (
     <Layout>
@@ -398,12 +411,12 @@ export default function LoginPage() {
                 <CardDescription>Enter your email and password to access your account</CardDescription>
               </CardHeader>
               <CardContent>
-                {message && (
+                {success && (
                   <div className="mb-4 rounded-md bg-green-50 p-4">
                     <div className="flex">
-                      <span className="h-5 w-5 text-green-400">✓</span>
+                      <CheckCircle className="h-5 w-5 text-green-400" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-green-800">{message}</p>
+                        <p className="text-sm font-medium text-green-800">{success}</p>
                       </div>
                     </div>
                   </div>
@@ -412,7 +425,7 @@ export default function LoginPage() {
                 {error && (
                   <div className="mb-4 rounded-md bg-red-50 p-4">
                     <div className="flex">
-                      <span className="h-5 w-5 text-red-400">⚠</span>
+                      <AlertCircle className="h-5 w-5 text-red-400" />
                       <div className="ml-3">
                         <h3 className="text-sm font-medium text-red-800">Sign In Error</h3>
                         <div className="mt-2 text-sm text-red-700">{error}</div>
@@ -422,9 +435,11 @@ export default function LoginPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                      Email Address
+                    </label>
+                    <input
                       id="email"
                       name="email"
                       type="email"
@@ -437,10 +452,12 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                      Password
+                    </label>
                     <div className="mt-1 relative">
-                      <Input
+                      <input
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
@@ -456,9 +473,9 @@ export default function LoginPage() {
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <span className="h-4 w-4 text-gray-400">👁️</span>
+                          <EyeOff className="h-4 w-4 text-gray-400" />
                         ) : (
-                          <span className="h-4 w-4 text-gray-400">👁️‍🗨️</span>
+                          <Eye className="h-4 w-4 text-gray-400" />
                         )}
                       </button>
                     </div>
@@ -475,7 +492,7 @@ export default function LoginPage() {
                   <div>
                     <Button
                       type="submit"
-                      disabled={loading || authLoading}
+                      disabled={isButtonDisabled}
                       className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? "Signing in..." : "Sign in"}
