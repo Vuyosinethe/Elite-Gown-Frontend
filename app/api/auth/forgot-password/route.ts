@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import crypto from "crypto"
 
 // Helper function to safely create Supabase client
 function getSupabaseClient(useServiceRole = false) {
@@ -22,7 +21,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 })
     }
 
-    // Get Supabase client with anon key
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 })
+    }
+
+    // Get Supabase client
     let supabase
     try {
       supabase = getSupabaseClient(false)
@@ -31,68 +36,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Authentication service unavailable" }, { status: 500 })
     }
 
-    // Check if user exists using regular supabase client
-    const { data: existingUser, error: userCheckError } = await supabase
-      .from("profiles")
-      .select("id, email")
-      .eq("email", email)
-      .single()
-
-    if (userCheckError || !existingUser) {
-      return NextResponse.json({ error: "No account found with this email address." }, { status: 404 })
-    }
-
-    // Generate secure token
-    const token = crypto.randomBytes(32).toString("hex")
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
-
-    // Try to store token in database (handle table not existing)
+    // Check if user exists
     try {
-      const { error: tokenError } = await supabase.from("password_reset_tokens").insert({
-        user_id: existingUser.id,
-        token,
-        expires_at: expiresAt.toISOString(),
-      })
+      const { data: userData, error: userError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .single()
 
-      if (tokenError) {
-        console.error("Error storing reset token:", tokenError)
-        // If table doesn't exist, use Supabase's built-in reset
-        return await sendSupabaseReset(email, supabase)
+      if (userError && userError.code !== "PGRST116") {
+        console.error("Error checking user:", userError)
       }
     } catch (error) {
-      console.error("Password reset table error:", error)
-      // Fallback to Supabase's built-in reset
-      return await sendSupabaseReset(email, supabase)
+      console.log("Profile check failed, continuing with reset attempt")
     }
 
-    // Send custom reset email with our token
-    const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password?token=${token}`
+    // Use Supabase's built-in password reset
+    const resetUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://elitegown.vercel.app"
 
-    // For now, use Supabase's built-in reset since custom email might not be configured
-    return await sendSupabaseReset(email, supabase)
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${resetUrl}/reset-password`,
+    })
+
+    if (resetError) {
+      console.error("Error sending reset email:", resetError)
+
+      // Don't reveal if email exists or not for security
+      if (resetError.message.includes("User not found")) {
+        return NextResponse.json({ error: "No account found with this email address" }, { status: 400 })
+      }
+
+      return NextResponse.json({ error: "Failed to send reset email. Please try again." }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      message: "If an account with this email exists, you will receive a password reset link shortly.",
+    })
   } catch (error) {
     console.error("Forgot password error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
-
-// Fallback to Supabase's built-in password reset
-async function sendSupabaseReset(email: string, supabase: any) {
-  try {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/reset-password`,
-    })
-
-    if (error) {
-      console.error("Supabase reset error:", error)
-      return NextResponse.json({ error: "Failed to send reset email" }, { status: 500 })
-    }
-
-    return NextResponse.json({ message: "Password reset email sent successfully" })
-  } catch (error) {
-    console.error("Supabase reset fallback error:", error)
-    return NextResponse.json({ error: "Failed to send reset email" }, { status: 500 })
   }
 }

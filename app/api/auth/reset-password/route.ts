@@ -15,15 +15,15 @@ function getSupabaseClient(useServiceRole = false) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, password } = await request.json()
+    const { password, access_token, refresh_token } = await request.json()
 
-    if (!token || !password) {
-      return NextResponse.json({ error: "Token and password are required" }, { status: 400 })
+    if (!password) {
+      return NextResponse.json({ error: "Password is required" }, { status: 400 })
     }
 
     // Password validation
-    if (password.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters long" }, { status: 400 })
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters long" }, { status: 400 })
     }
 
     // Get Supabase client
@@ -35,52 +35,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Authentication service unavailable" }, { status: 500 })
     }
 
-    // Try to verify token in our custom table
-    try {
-      const { data: tokenData, error: tokenError } = await supabase
-        .from("password_reset_tokens")
-        .select("user_id, used")
-        .eq("token", token)
-        .gt("expires_at", new Date().toISOString())
-        .single()
-
-      if (!tokenError && tokenData && !tokenData.used) {
-        // Token is valid in our system, update password
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: password,
-        })
-
-        if (updateError) {
-          console.error("Error updating password:", updateError)
-          return NextResponse.json({ error: "Failed to update password" }, { status: 500 })
-        }
-
-        // Mark token as used
-        await supabase.from("password_reset_tokens").update({ used: true }).eq("token", token)
-
-        return NextResponse.json({ message: "Password updated successfully" })
-      }
-    } catch (error) {
-      console.error("Error verifying custom token:", error)
-      // Continue to try Supabase's built-in reset
-    }
-
-    // If custom token verification failed, try Supabase's built-in reset
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
+    // If we have tokens from the URL, set the session first
+    if (access_token && refresh_token) {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
       })
 
-      if (updateError) {
-        console.error("Error updating password with Supabase:", updateError)
-        return NextResponse.json({ error: "Failed to update password" }, { status: 500 })
+      if (sessionError) {
+        console.error("Error setting session:", sessionError)
+        return NextResponse.json({ error: "Invalid or expired reset link" }, { status: 400 })
       }
-
-      return NextResponse.json({ message: "Password updated successfully" })
-    } catch (error) {
-      console.error("Error in Supabase password update:", error)
-      return NextResponse.json({ error: "Failed to update password" }, { status: 500 })
     }
+
+    // Update the user's password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: password,
+    })
+
+    if (updateError) {
+      console.error("Error updating password:", updateError)
+      return NextResponse.json({ error: "Failed to update password. Please try again." }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: "Password updated successfully" })
   } catch (error) {
     console.error("Reset password error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
