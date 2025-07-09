@@ -1,9 +1,7 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -16,18 +14,24 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
-  const { resetPassword } = useAuth()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
-      const { error } = await resetPassword(email)
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
 
-      if (error) {
-        setError(error.message || "Failed to send reset email")
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Failed to send reset email")
       } else {
         setSuccess(true)
       }
