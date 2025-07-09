@@ -1,19 +1,20 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
-import { CheckCircle, AlertCircle, Menu, X, User, ChevronDown, Eye, EyeOff } from "lucide-react"
-import CartDrawer from "@/components/cart-drawer"
 import { useCart } from "@/hooks/use-cart"
 import { useWishlist } from "@/hooks/use-wishlist"
+import { ChevronDown, User, X, Menu } from "lucide-react"
 import Layout from "@/components/layout"
+import CartDrawer from "@/components/cart-drawer"
 
 export default function LoginPage() {
   const { signIn, loading: authLoading, user } = useAuth()
@@ -28,17 +29,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
+  const [message, setMessage] = useState("")
 
   // Check for URL parameters
   useEffect(() => {
     const verified = searchParams.get("verified")
-    const messageParam = searchParams.get("message")
+    const urlMessage = searchParams.get("message")
 
-    if (verified === "true") {
-      setSuccess("Your email has been verified! You can now sign in.")
-    } else if (messageParam) {
-      setSuccess(messageParam) // Updated to use setSuccess instead of setMessage
+    if (verified === "true" && urlMessage) {
+      setMessage(decodeURIComponent(urlMessage))
     }
 
     // Redirect if already logged in
@@ -50,7 +49,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setSuccess("")
+    setMessage("")
     setLoading(true)
 
     try {
@@ -399,12 +398,12 @@ export default function LoginPage() {
                 <CardDescription>Enter your email and password to access your account</CardDescription>
               </CardHeader>
               <CardContent>
-                {success && (
+                {message && (
                   <div className="mb-4 rounded-md bg-green-50 p-4">
                     <div className="flex">
-                      <CheckCircle className="h-5 w-5 text-green-400" />
+                      <span className="h-5 w-5 text-green-400">✓</span>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-green-800">{success}</p>
+                        <p className="text-sm font-medium text-green-800">{message}</p>
                       </div>
                     </div>
                   </div>
@@ -413,7 +412,7 @@ export default function LoginPage() {
                 {error && (
                   <div className="mb-4 rounded-md bg-red-50 p-4">
                     <div className="flex">
-                      <AlertCircle className="h-5 w-5 text-red-400" />
+                      <span className="h-5 w-5 text-red-400">⚠</span>
                       <div className="ml-3">
                         <h3 className="text-sm font-medium text-red-800">Sign In Error</h3>
                         <div className="mt-2 text-sm text-red-700">{error}</div>
@@ -423,11 +422,9 @@ export default function LoginPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email Address
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
                       id="email"
                       name="email"
                       type="email"
@@ -440,12 +437,10 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                      Password
-                    </label>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
                     <div className="mt-1 relative">
-                      <input
+                      <Input
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
@@ -461,9 +456,9 @@ export default function LoginPage() {
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-4 w-4 text-gray-400" />
+                          <span className="h-4 w-4 text-gray-400">👁️</span>
                         ) : (
-                          <Eye className="h-4 w-4 text-gray-400" />
+                          <span className="h-4 w-4 text-gray-400">👁️‍🗨️</span>
                         )}
                       </button>
                     </div>

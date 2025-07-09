@@ -43,6 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    let mounted = true
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -50,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { session },
           error,
         } = await supabase.auth.getSession()
+
+        if (!mounted) return
 
         if (session) {
           setSession(session)
@@ -60,10 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("Error getting initial session:", error)
-        setUser(null)
-        setProfile(null)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+        }
       } finally {
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     }
 
@@ -73,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
       setSession(session)
 
       if (session?.user) {
@@ -81,12 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setProfile(null)
       }
-
-      // Don't set loading to false here for auth state changes
-      // Only set it to false during initial load
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const loadUserWithProfile = async (authUser: User) => {
@@ -285,5 +295,5 @@ export function useAuth() {
   return context
 }
 
-// Re-export the context so “import { AuthContext } …” works.
+// Re-export the context so "import { AuthContext } …" works.
 export { AuthContext }
