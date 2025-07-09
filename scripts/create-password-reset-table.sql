@@ -1,25 +1,22 @@
 -- Create password reset tokens table
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   token TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  used BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  used BOOLEAN DEFAULT FALSE
 );
 
--- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at);
+-- Add indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON public.password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON public.password_reset_tokens(token);
 
--- Enable RLS
-ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
+-- Add RLS policies
+ALTER TABLE public.password_reset_tokens ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow users to access their own tokens
-CREATE POLICY "Users can access their own reset tokens" ON password_reset_tokens
-  FOR ALL USING (auth.uid() = user_id);
-
--- Create policy for service role to manage all tokens
-CREATE POLICY "Service role can manage all reset tokens" ON password_reset_tokens
-  FOR ALL USING (auth.role() = 'service_role');
+-- Only allow service role to access this table
+CREATE POLICY "Service role can manage password reset tokens" 
+  ON public.password_reset_tokens 
+  USING (true)
+  WITH CHECK (auth.role() = 'service_role');
