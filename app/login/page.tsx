@@ -1,18 +1,20 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
-import { CheckCircle, AlertCircle, Menu, X, User, ChevronDown, Eye, EyeOff } from "lucide-react"
-import CartDrawer from "@/components/cart-drawer"
 import { useCart } from "@/hooks/use-cart"
 import { useWishlist } from "@/hooks/use-wishlist"
+import { ChevronDown, User, X, Menu, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react"
 import Layout from "@/components/layout"
+import CartDrawer from "@/components/cart-drawer"
 
 export default function LoginPage() {
   const { signIn, loading: authLoading, user } = useAuth()
@@ -27,47 +29,67 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [formReady, setFormReady] = useState(false)
+  const [message, setMessage] = useState("")
+  const [formInitialized, setFormInitialized] = useState(false)
+  const mountedRef = useRef(true)
 
-  // Initialize form state
+  // Initialize form state properly on mount and navigation
   useEffect(() => {
-    // Small delay to ensure component is fully mounted
-    const timer = setTimeout(() => {
-      setFormReady(true)
+    mountedRef.current = true
+
+    // Reset form state
+    setEmail("")
+    setPassword("")
+    setShowPassword(false)
+    setLoading(false)
+    setError("")
+    setMessage("")
+
+    // Initialize form after a brief delay to ensure proper mounting
+    const initTimer = setTimeout(() => {
+      if (mountedRef.current) {
+        setFormInitialized(true)
+      }
     }, 100)
 
-    return () => clearTimeout(timer)
-  }, [])
-
-  // Check for URL parameters
-  useEffect(() => {
-    const verified = searchParams.get("verified")
-    const messageParam = searchParams.get("message")
-
-    if (verified === "true") {
-      setSuccess("Your email has been verified! You can now sign in.")
-    } else if (messageParam) {
-      setSuccess(decodeURIComponent(messageParam))
+    return () => {
+      mountedRef.current = false
+      clearTimeout(initTimer)
     }
+  }, []) // Only run on mount
 
-    // Redirect if already logged in
-    if (user && !authLoading) {
+  // Handle URL parameters
+  useEffect(() => {
+    if (!formInitialized) return
+
+    const verified = searchParams.get("verified")
+    const urlMessage = searchParams.get("message")
+
+    if (verified === "true" && urlMessage) {
+      setMessage(decodeURIComponent(urlMessage))
+    }
+  }, [searchParams, formInitialized])
+
+  // Handle user redirect
+  useEffect(() => {
+    if (user && !authLoading && formInitialized) {
       router.push("/account")
     }
-  }, [user, authLoading, router, searchParams])
+  }, [user, authLoading, router, formInitialized])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formReady) return
+    if (!formInitialized || loading) return
 
     setError("")
-    setSuccess("")
+    setMessage("")
     setLoading(true)
 
     try {
       const { error } = await signIn(email, password)
+
+      if (!mountedRef.current) return
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
@@ -77,6 +99,7 @@ export default function LoginPage() {
         } else {
           setError(error.message || "Login failed")
         }
+        setLoading(false)
       } else {
         // Success - handle redirect and pending items
         addPendingCartItem()
@@ -91,13 +114,15 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      setError("Login failed. Please try again.")
-    } finally {
-      setLoading(false)
+      if (mountedRef.current) {
+        setError("Login failed. Please try again.")
+        setLoading(false)
+      }
     }
   }
 
-  const isButtonDisabled = loading || authLoading || !formReady || !email.trim() || !password.trim()
+  // Determine if button should be disabled
+  const isButtonDisabled = !formInitialized || loading || authLoading || !email.trim() || !password.trim()
 
   return (
     <Layout>
@@ -411,12 +436,12 @@ export default function LoginPage() {
                 <CardDescription>Enter your email and password to access your account</CardDescription>
               </CardHeader>
               <CardContent>
-                {success && (
+                {message && (
                   <div className="mb-4 rounded-md bg-green-50 p-4">
                     <div className="flex">
                       <CheckCircle className="h-5 w-5 text-green-400" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-green-800">{success}</p>
+                        <p className="text-sm font-medium text-green-800">{message}</p>
                       </div>
                     </div>
                   </div>
@@ -435,11 +460,9 @@ export default function LoginPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email Address
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
                       id="email"
                       name="email"
                       type="email"
@@ -449,15 +472,14 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm"
                       placeholder="Email address"
+                      disabled={!formInitialized}
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                      Password
-                    </label>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
                     <div className="mt-1 relative">
-                      <input
+                      <Input
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
@@ -466,11 +488,13 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
+                        disabled={!formInitialized}
                       />
                       <button
                         type="button"
                         className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={!formInitialized}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4 text-gray-400" />

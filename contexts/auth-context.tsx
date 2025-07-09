@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import type { User, Session } from "@supabase/supabase-js"
 import { supabase, type Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
@@ -43,70 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    let mounted = true
-
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-
-        if (!mounted) return
-
-        if (session) {
-          setSession(session)
-          await loadUserWithProfile(session.user)
-        } else {
-          setUser(null)
-          setProfile(null)
-        }
-      } catch (error) {
-        console.error("Error getting initial session:", error)
-        if (mounted) {
-          setUser(null)
-          setProfile(null)
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false)
-          setInitialized(true)
-        }
-      }
-    }
-
-    getInitialSession()
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
-
-      setSession(session)
-
-      if (session?.user) {
-        await loadUserWithProfile(session.user)
-      } else {
-        setUser(null)
-        setProfile(null)
-      }
-
-      if (!initialized) {
-        setLoading(false)
-        setInitialized(true)
-      }
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [initialized])
-
-  const loadUserWithProfile = async (authUser: User) => {
+  // Memoized function to load user with profile
+  const loadUserWithProfile = useCallback(async (authUser: User) => {
     try {
       // Fetch profile from database
       const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
@@ -165,7 +103,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       setProfile(null)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    let initializationTimeout: NodeJS.Timeout
+
+    // Get initial session with timeout fallback
+    const getInitialSession = async () => {
+      try {
+        // Set a timeout to prevent infinite loading
+        initializationTimeout = setTimeout(() => {
+          if (mounted && !initialized) {
+            console.warn("Auth initialization timeout, proceeding without session")
+            setLoading(false)
+            setInitialized(true)
+          }
+        }, 5000) // 5 second timeout
+
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (!mounted) return
+
+        // Clear timeout since we got a response
+        clearTimeout(initializationTimeout)
+
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        } else {
+          setUser(null)
+          setProfile(null)
+          setSession(null)
+        }
+      } catch (error) {
+        console.error("Error getting initial session:", error)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setSession(null)
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+          setInitialized(true)
+        }
+      }
+    }
+
+    getInitialSession()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
+      console.log("Auth state change:", event, session?.user?.id)
+
+      // Handle different auth events
+      if (event === "SIGNED_OUT") {
+        setUser(null)
+        setProfile(null)
+        setSession(null)
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        }
+      } else if (event === "USER_UPDATED") {
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        }
+      }
+
+      // Ensure loading is false after any auth event
+      if (!initialized) {
+        setLoading(false)
+        setInitialized(true)
+      }
+    })
+
+    return () => {
+      mounted = false
+      if (initializationTimeout) {
+        clearTimeout(initializationTimeout)
+      }
+      subscription.unsubscribe()
+    }
+  }, [loadUserWithProfile, initialized])
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
@@ -203,8 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      // Redirect to account page after successful login
-      router.push("/account")
+      // Don't manually redirect here, let the auth state change handle it
       return { error: null }
     } catch (error) {
       return { error }
@@ -217,6 +246,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error("Error signing out:", error)
       }
+      // Clear local state immediately
+      setUser(null)
+      setProfile(null)
+      setSession(null)
       router.push("/")
     } catch (error) {
       console.error("Error signing out:", error)
