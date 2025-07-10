@@ -107,34 +107,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
-    let initializationTimeout: NodeJS.Timeout
 
-    // Get initial session with timeout fallback
+    // Get initial session immediately without timeout
     const getInitialSession = async () => {
       try {
-        // Set a timeout to prevent infinite loading
-        initializationTimeout = setTimeout(() => {
-          if (mounted && !initialized) {
-            console.warn("Auth initialization timeout, proceeding without session")
-            setLoading(false)
-            setInitialized(true)
-          }
-        }, 5000) // 5 second timeout
-
+        console.log("Getting initial session...")
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession()
 
+        console.log("Initial session result:", { session: !!session, error })
+
         if (!mounted) return
 
-        // Clear timeout since we got a response
-        clearTimeout(initializationTimeout)
-
         if (session?.user) {
+          console.log("Found valid session, loading user profile...")
           setSession(session)
           await loadUserWithProfile(session.user)
         } else {
+          console.log("No valid session found")
           setUser(null)
           setProfile(null)
           setSession(null)
@@ -148,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted) {
+          console.log("Auth initialization complete")
           setLoading(false)
           setInitialized(true)
         }
@@ -190,9 +183,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false
-      if (initializationTimeout) {
-        clearTimeout(initializationTimeout)
-      }
       subscription.unsubscribe()
     }
   }, [loadUserWithProfile, initialized])
@@ -224,18 +214,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Attempting sign in for:", email)
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log("Sign in result:", { user: !!data?.user, error })
+
       if (error) {
+        console.error("Sign in error:", error)
         return { error }
       }
 
-      // Don't manually redirect here, let the auth state change handle it
-      return { error: null }
+      if (data?.user) {
+        console.log("Sign in successful, user:", data.user.id)
+        // The auth state change listener will handle the redirect
+        return { error: null }
+      }
+
+      return { error: new Error("Unknown sign in error") }
     } catch (error) {
+      console.error("Sign in exception:", error)
       return { error }
     }
   }

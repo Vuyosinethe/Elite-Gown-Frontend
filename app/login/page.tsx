@@ -45,16 +45,11 @@ export default function LoginPage() {
     setError("")
     setMessage("")
 
-    // Initialize form after a brief delay to ensure proper mounting
-    const initTimer = setTimeout(() => {
-      if (mountedRef.current) {
-        setFormInitialized(true)
-      }
-    }, 100)
+    // Initialize form immediately
+    setFormInitialized(true)
 
     return () => {
       mountedRef.current = false
-      clearTimeout(initTimer)
     }
   }, []) // Only run on mount
 
@@ -70,9 +65,10 @@ export default function LoginPage() {
     }
   }, [searchParams, formInitialized])
 
-  // Handle user redirect
+  // Handle user redirect - only redirect if user is authenticated and not loading
   useEffect(() => {
     if (user && !authLoading && formInitialized) {
+      console.log("User is authenticated, redirecting to account...")
       router.push("/account")
     }
   }, [user, authLoading, router, formInitialized])
@@ -80,8 +76,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formInitialized || loading) return
+    if (!formInitialized || loading || authLoading) {
+      console.log("Form not ready for submission")
+      return
+    }
 
+    console.log("Starting login process...")
     setError("")
     setMessage("")
     setLoading(true)
@@ -89,33 +89,54 @@ export default function LoginPage() {
     try {
       const { error } = await signIn(email, password)
 
-      if (!mountedRef.current) return
+      if (!mountedRef.current) {
+        console.log("Component unmounted, aborting login")
+        return
+      }
 
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setError("Invalid email or password. Please check your credentials and try again.")
-        } else if (error.message.includes("Email not confirmed")) {
-          setError("Please check your email and click the confirmation link before signing in.")
-        } else {
-          setError(error.message || "Login failed")
+        console.error("Login failed:", error)
+
+        let errorMessage = "Login failed. Please try again."
+
+        if (error.message?.includes("Invalid login credentials")) {
+          errorMessage = "Invalid email or password. Please check your credentials and try again."
+        } else if (error.message?.includes("Email not confirmed")) {
+          errorMessage = "Please check your email and click the confirmation link before signing in."
+        } else if (error.message) {
+          errorMessage = error.message
         }
+
+        setError(errorMessage)
         setLoading(false)
       } else {
-        // Success - handle redirect and pending items
-        addPendingCartItem()
-        addPendingWishlistItem()
+        console.log("Login successful, handling post-login actions...")
 
+        // Success - handle pending items
+        try {
+          addPendingCartItem()
+          addPendingWishlistItem()
+        } catch (err) {
+          console.warn("Error adding pending items:", err)
+        }
+
+        // Handle redirect
         const redirectUrl = localStorage.getItem("redirectAfterLogin")
         if (redirectUrl) {
           localStorage.removeItem("redirectAfterLogin")
+          console.log("Redirecting to stored URL:", redirectUrl)
           router.push(redirectUrl)
         } else {
+          console.log("Redirecting to account page")
           router.push("/account")
         }
+
+        // Don't set loading to false here since we're redirecting
       }
     } catch (err) {
+      console.error("Login exception:", err)
       if (mountedRef.current) {
-        setError("Login failed. Please try again.")
+        setError("An unexpected error occurred. Please try again.")
         setLoading(false)
       }
     }
@@ -472,7 +493,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm"
                       placeholder="Email address"
-                      disabled={!formInitialized}
+                      disabled={!formInitialized || loading}
                     />
                   </div>
 
@@ -488,13 +509,13 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
-                        disabled={!formInitialized}
+                        disabled={!formInitialized || loading}
                       />
                       <button
                         type="button"
                         className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         onClick={() => setShowPassword(!showPassword)}
-                        disabled={!formInitialized}
+                        disabled={!formInitialized || loading}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4 text-gray-400" />
