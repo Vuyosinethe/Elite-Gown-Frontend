@@ -4,14 +4,12 @@ import { supabase } from "@/lib/supabase"
 export async function GET(request: Request) {
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser()
 
-  if (authError || !user) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Check if the user is an admin
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
@@ -24,8 +22,7 @@ export async function GET(request: Request) {
 
   const { data: users, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, created_at")
-    .order("created_at", { ascending: false })
+    .select("id, email, first_name, last_name, role, created_at")
 
   if (error) {
     console.error("Error fetching users:", error)

@@ -23,4 +23,7 @@ FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND 
 CREATE POLICY "Admins can update orders." ON orders
 FOR UPDATE USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Removed moddatetime trigger as it caused issues. updated_at will be handled in application logic.
+-- Optional: Add a trigger to update `updated_at` on change
+CREATE TRIGGER update_orders_updated_at
+BEFORE UPDATE ON orders
+FOR EACH ROW EXECUTE FUNCTION moddatetime('updated_at');

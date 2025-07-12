@@ -1,21 +1,19 @@
 import { redirect } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UsersTable } from "@/components/admin/users-table"
 import { OrdersTable } from "@/components/admin/orders-table"
 import { CustomQuotesTable } from "@/components/admin/custom-quotes-table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default async function AdminDashboardPage() {
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser()
 
-  if (authError || !user) {
-    redirect("/login") // Redirect to login if not authenticated
+  if (!user) {
+    redirect("/login")
   }
 
-  // Server-side check for admin role
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
@@ -23,29 +21,43 @@ export default async function AdminDashboardPage() {
     .single()
 
   if (profileError || profile?.role !== "admin") {
-    redirect("/") // Redirect to home or a forbidden page if not admin
+    redirect("/") // Redirect non-admin users
   }
 
-  return (
-    <div className="container mx-auto py-8">
-      <h1 className="mb-8 text-3xl font-bold">Admin Dashboard</h1>
+  // Fetch data for the dashboard
+  const [usersRes, ordersRes, customQuotesRes] = await Promise.all([
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/users`, { cache: "no-store" }),
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/orders`, { cache: "no-store" }),
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/custom-quotes`, { cache: "no-store" }),
+  ])
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="custom-quotes">Custom Quotes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="users">
-          <UsersTable />
-        </TabsContent>
-        <TabsContent value="orders">
-          <OrdersTable />
-        </TabsContent>
-        <TabsContent value="custom-quotes">
-          <CustomQuotesTable />
-        </TabsContent>
-      </Tabs>
-    </div>
+  const users = usersRes.ok ? await usersRes.json() : []
+  const orders = ordersRes.ok ? await ordersRes.json() : []
+  const customQuotes = customQuotesRes.ok ? await customQuotesRes.json() : []
+
+  return (
+    <main className="flex min-h-[calc(100vh-theme(spacing.16))] flex-1 flex-col gap-4 bg-muted/40 p-4 md:gap-8 md:p-10">
+      <div className="mx-auto grid w-full max-w-6xl gap-2">
+        <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
+      </div>
+      <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="quotes">Quotes</TabsTrigger>
+          </TabsList>
+          <TabsContent value="users">
+            <UsersTable users={users} />
+          </TabsContent>
+          <TabsContent value="orders">
+            <OrdersTable orders={orders} />
+          </TabsContent>
+          <TabsContent value="quotes">
+            <CustomQuotesTable customQuotes={customQuotes} />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </main>
   )
 }

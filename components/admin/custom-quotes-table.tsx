@@ -1,50 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { format } from "date-fns"
 
 interface CustomQuote {
   id: string
-  user_id: string | null
   details: string
   status: "new" | "reviewed" | "quoted" | "accepted" | "rejected"
   created_at: string
   updated_at: string
   profiles: {
-    full_name: string | null
+    first_name: string | null
+    last_name: string | null
     email: string | null
   } | null
 }
 
-export function CustomQuotesTable() {
-  const [quotes, setQuotes] = useState<CustomQuote[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface CustomQuotesTableProps {
+  customQuotes: CustomQuote[]
+}
 
-  useEffect(() => {
-    const fetchQuotes = async () => {
-      try {
-        const response = await fetch("/api/admin/custom-quotes")
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to fetch custom quotes")
-        }
-        const data = await response.json()
-        setQuotes(data)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchQuotes()
-  }, [])
-
-  if (loading) return <p>Loading custom quotes...</p>
-  if (error) return <p className="text-red-500">Error: {error}</p>
-
+export function CustomQuotesTable({ customQuotes }: CustomQuotesTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -54,23 +31,25 @@ export function CustomQuotesTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Quote ID</TableHead>
+              <TableHead>Request ID</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Details</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Requested At</TableHead>
+              <TableHead>Requested On</TableHead>
               <TableHead>Last Updated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {quotes.map((quote) => (
+            {customQuotes.map((quote) => (
               <TableRow key={quote.id}>
-                <TableCell className="font-mono text-xs">{quote.id.substring(0, 8)}...</TableCell>
-                <TableCell>{quote.profiles?.full_name || "Guest"}</TableCell>
-                <TableCell>{quote.profiles?.email || "N/A"}</TableCell>
-                <TableCell className="max-w-[200px] truncate">{quote.details}</TableCell>
-                <TableCell>{quote.status}</TableCell>
+                <TableCell>{quote.id.substring(0, 8)}...</TableCell>
+                <TableCell>
+                  {quote.profiles?.first_name} {quote.profiles?.last_name}
+                </TableCell>
+                <TableCell>{quote.profiles?.email}</TableCell>
+                <TableCell className="max-w-xs truncate">{quote.details}</TableCell>
+                <TableCell>{quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}</TableCell>
                 <TableCell>{format(new Date(quote.created_at), "PPP")}</TableCell>
                 <TableCell>{format(new Date(quote.updated_at), "PPP p")}</TableCell>
               </TableRow>

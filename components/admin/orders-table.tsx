@@ -1,60 +1,36 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
-import { useToast } from "@/hooks/use-toast"
+import { useState } from "react"
 
 interface Order {
   id: string
-  user_id: string | null
   total: number
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled"
   created_at: string
   updated_at: string
   profiles: {
-    full_name: string | null
+    first_name: string | null
+    last_name: string | null
     email: string | null
   } | null
 }
 
-export function OrdersTable() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
+interface OrdersTableProps {
+  orders: Order[]
+}
 
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch("/api/admin/orders")
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to fetch orders")
-      }
-      const data = await response.json()
-      setOrders(data)
-    } catch (err: any) {
-      setError(err.message)
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
+  const [orders, setOrders] = useState(initialOrders)
+  const orderStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"]
 
-  useEffect(() => {
-    fetchOrders()
-  }, [])
-
-  const handleStatusChange = async (orderId: string, newStatus: Order["status"]) => {
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -62,32 +38,20 @@ export function OrdersTable() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update order status")
+        throw new Error("Failed to update order status")
       }
 
-      // Update the order in the local state
+      const updatedOrder = await response.json()
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus, updated_at: new Date().toISOString() } : order,
+          order.id === orderId ? { ...order, status: updatedOrder.status, updated_at: updatedOrder.updated_at } : order,
         ),
       )
-      toast({
-        title: "Success",
-        description: `Order ${orderId} status updated to ${newStatus}.`,
-      })
-    } catch (err: any) {
-      setError(err.message)
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      })
+    } catch (error) {
+      console.error("Error updating order status:", error)
+      alert("Failed to update order status. Please try again.")
     }
   }
-
-  if (loading) return <p>Loading orders...</p>
-  if (error) return <p className="text-red-500">Error: {error}</p>
 
   return (
     <Card>
@@ -103,31 +67,30 @@ export function OrdersTable() {
               <TableHead>Email</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead>Order Date</TableHead>
               <TableHead>Last Updated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-mono text-xs">{order.id.substring(0, 8)}...</TableCell>
-                <TableCell>{order.profiles?.full_name || "Guest"}</TableCell>
-                <TableCell>{order.profiles?.email || "N/A"}</TableCell>
+                <TableCell>{order.id.substring(0, 8)}...</TableCell>
+                <TableCell>
+                  {order.profiles?.first_name} {order.profiles?.last_name}
+                </TableCell>
+                <TableCell>{order.profiles?.email}</TableCell>
                 <TableCell>${order.total.toFixed(2)}</TableCell>
                 <TableCell>
-                  <Select
-                    value={order.status}
-                    onValueChange={(value: Order["status"]) => handleStatusChange(order.id, value)}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Status" />
+                  <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      {orderStatuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </TableCell>

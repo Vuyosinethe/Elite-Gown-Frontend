@@ -1,45 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { format } from "date-fns"
 
 interface User {
   id: string
   email: string
-  full_name: string | null
+  first_name: string | null
+  last_name: string | null
   role: string
   created_at: string
 }
 
-export function UsersTable() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface UsersTableProps {
+  users: User[]
+}
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch("/api/admin/users")
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to fetch users")
-        }
-        const data = await response.json()
-        setUsers(data)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchUsers()
-  }, [])
-
-  if (loading) return <p>Loading users...</p>
-  if (error) return <p className="text-red-500">Error: {error}</p>
-
+export function UsersTable({ users }: UsersTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -49,8 +27,8 @@ export function UsersTable() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Full Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Registered On</TableHead>
             </TableRow>
@@ -58,8 +36,10 @@ export function UsersTable() {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
+                <TableCell>
+                  {user.first_name} {user.last_name}
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{user.full_name || "N/A"}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>{format(new Date(user.created_at), "PPP")}</TableCell>
               </TableRow>
