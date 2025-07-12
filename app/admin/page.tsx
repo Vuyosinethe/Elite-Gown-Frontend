@@ -1,11 +1,13 @@
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UsersTable } from "@/components/admin/users-table"
 import { OrdersTable } from "@/components/admin/orders-table"
 import { CustomQuotesTable } from "@/components/admin/custom-quotes-table"
 
 export default async function AdminDashboardPage() {
+  const supabase = createRouteHandlerClient({ cookies })
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -14,6 +16,7 @@ export default async function AdminDashboardPage() {
     redirect("/login")
   }
 
+  // Check if the user is an admin
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
@@ -21,37 +24,19 @@ export default async function AdminDashboardPage() {
     .single()
 
   if (profileError || profile?.role !== "admin") {
-    redirect("/") // Redirect non-admin users
+    // Redirect non-admin users to their account page
+    redirect("/account")
   }
 
-  // Data fetching for initial render (Server Component)
-  // These fetches will be handled by the client components themselves
-  // to allow for client-side data fetching and re-fetching.
-  // The server component only ensures the user is an admin before rendering.
-
   return (
-    <main className="flex min-h-[calc(100vh-theme(spacing.16))] flex-1 flex-col gap-4 bg-muted/40 p-4 md:gap-8 md:p-10">
-      <div className="mx-auto grid w-full max-w-6xl gap-2">
-        <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
+    <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
+      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+
+      <div className="grid gap-8">
+        <UsersTable />
+        <OrdersTable />
+        <CustomQuotesTable />
       </div>
-      <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="quotes">Quotes</TabsTrigger>
-          </TabsList>
-          <TabsContent value="users">
-            <UsersTable />
-          </TabsContent>
-          <TabsContent value="orders">
-            <OrdersTable />
-          </TabsContent>
-          <TabsContent value="quotes">
-            <CustomQuotesTable />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </main>
+    </div>
   )
 }

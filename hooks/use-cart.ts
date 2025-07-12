@@ -1,187 +1,280 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect, createContext, useContext } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface CartItem {
-  id: string
-  name: string
+  id: number
+  product_id: number
+  product_name: string
+  product_details: string
+  product_image: string
   price: number
   quantity: number
-  image?: string
-  size?: string
-  color?: string
+  user_id?: string
+  session_id?: string
+  created_at: string
+  updated_at: string
 }
 
-interface CartContextType {
-  items: CartItem[]
-  addItem: (item: CartItem) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
-  totalItems: number
-  totalPrice: number
+// Generate a session ID for guest users
+function generateSessionId(): string {
+  return "session_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36)
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
-
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cart")
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error("Error loading cart from localStorage:", error)
-      }
-    }
-  }, [])
-
-  // Save cart to localStorage whenever items change
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items))
-  }, [items])
-
-  const addItem = (newItem: CartItem) => {
-    setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) => item.id === newItem.id && item.size === newItem.size && item.color === newItem.color,
-      )
-
-      if (existingItem) {
-        return currentItems.map((item) =>
-          item.id === existingItem.id && item.size === existingItem.size && item.color === existingItem.color
-            ? { ...item, quantity: item.quantity + newItem.quantity }
-            : item,
-        )
-      }
-
-      return [...currentItems, newItem]
-    })
-  }
-
-  const removeItem = (id: string) => {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== id))
-  }
-
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(id)
-      return
-    }
-
-    setItems((currentItems) => currentItems.map((item) => (item.id === id ? { ...item, quantity } : item)))
-  }
-
-  const clearCart = () => {
-    setItems([])
-  }
-
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
-  )
-}
-
-export function useCartContext() {
-  const context = useContext(CartContext)
-  if (context === undefined) {
-    throw new Error("useCartContext must be used within a CartProvider")
-  }
-  return context
-}
-
-// Legacy hook for backward compatibility
 export function useCart() {
-  const [items, setItems] = useState<CartItem[]>([])
+  const { user } = useAuth()
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState<string>("")
 
+  // Initialize session ID for guest users
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart")
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error("Error loading cart:", error)
+    if (typeof window !== "undefined") {
+      let storedSessionId = localStorage.getItem("cart_session_id")
+      if (!storedSessionId) {
+        storedSessionId = generateSessionId()
+        localStorage.setItem("cart_session_id", storedSessionId)
       }
+      setSessionId(storedSessionId)
     }
   }, [])
 
-  const addItem = (newItem: CartItem) => {
-    setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) => item.id === newItem.id && item.size === newItem.size && item.color === newItem.color,
-      )
+  // Fetch cart items from database
+  const fetchCartItems = useCallback(async () => {
+    if (!user && !sessionId) return
 
-      if (existingItem) {
-        const updatedItems = currentItems.map((item) =>
-          item.id === existingItem.id && item.size === existingItem.size && item.color === existingItem.color
-            ? { ...item, quantity: item.quantity + newItem.quantity }
-            : item,
-        )
-        localStorage.setItem("cart", JSON.stringify(updatedItems))
-        return updatedItems
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (!user && sessionId) {
+        params.append("sessionId", sessionId)
       }
 
-      const updatedItems = [...currentItems, newItem]
-      localStorage.setItem("cart", JSON.stringify(updatedItems))
-      return updatedItems
-    })
+      const headers: HeadersInit = {}
+      if (user) {
+        // Get the session token for authenticated requests
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart?${params.toString()}`, { headers })
+      const data = await response.json()
+
+      if (response.ok) {
+        setCartItems(data.items || [])
+      } else {
+        console.error("Error fetching cart items:", data.error)
+      }
+    } catch (error) {
+      console.error("Error fetching cart items:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [user, sessionId])
+
+  // Load cart items when user or sessionId changes
+  useEffect(() => {
+    fetchCartItems()
+  }, [fetchCartItems])
+
+  // Add item to cart
+  const addToCart = async (item: {
+    id: number
+    name: string
+    details: string
+    price: number
+    image: string
+    quantity?: number
+  }) => {
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          productId: item.id,
+          productName: item.name,
+          productDetails: item.details,
+          productImage: item.image,
+          price: item.price,
+          quantity: item.quantity || 1,
+          sessionId: !user ? sessionId : undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        await fetchCartItems() // Refresh cart items
+        return { success: true }
+      } else {
+        console.error("Error adding to cart:", data.error)
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      return { success: false, error: "Failed to add item to cart" }
+    }
   }
 
-  const removeItem = (id: string) => {
-    setItems((currentItems) => {
-      const updatedItems = currentItems.filter((item) => item.id !== id)
-      localStorage.setItem("cart", JSON.stringify(updatedItems))
-      return updatedItems
-    })
-  }
-
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(id)
-      return
+  // Update item quantity
+  const updateQuantity = async (itemId: number, newQuantity: number) => {
+    if (newQuantity < 1) {
+      return removeFromCart(itemId)
     }
 
-    setItems((currentItems) => {
-      const updatedItems = currentItems.map((item) => (item.id === id ? { ...item, quantity } : item))
-      localStorage.setItem("cart", JSON.stringify(updatedItems))
-      return updatedItems
-    })
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ quantity: newQuantity }),
+      })
+
+      // --- NEW: robust JSON handling ---
+      const contentType = response.headers.get("content-type") ?? ""
+      let data: any = null
+      if (contentType.includes("application/json")) {
+        try {
+          data = await response.json()
+        } catch {
+          /* malformed JSON – leave data as null */
+        }
+      }
+
+      if (response.ok) {
+        await fetchCartItems() // Refresh cart items
+        return { success: true }
+      } else {
+        console.error("Error updating quantity:", data?.error || response.statusText)
+        return { success: false, error: data?.error || "Unexpected response format" }
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error)
+      return { success: false, error: "Failed to update quantity" }
+    }
   }
 
-  const clearCart = () => {
-    setItems([])
-    localStorage.removeItem("cart")
+  // Remove item from cart
+  const removeFromCart = async (itemId: number) => {
+    try {
+      const headers: HeadersInit = {}
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: "DELETE",
+        headers,
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        await fetchCartItems() // Refresh cart items
+        return { success: true }
+      } else {
+        console.error("Error removing from cart:", data.error)
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.error("Error removing from cart:", error)
+      return { success: false, error: "Failed to remove item from cart" }
+    }
   }
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // Clear entire cart
+  const clearCart = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (!user && sessionId) {
+        params.append("sessionId", sessionId)
+      }
+
+      const headers: HeadersInit = {}
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart?${params.toString()}`, {
+        method: "DELETE",
+        headers,
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setCartItems([])
+        return { success: true }
+      } else {
+        console.error("Error clearing cart:", data.error)
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.error("Error clearing cart:", error)
+      return { success: false, error: "Failed to clear cart" }
+    }
+  }
+
+  // Calculate totals
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const vat = subtotal * 0.15
+  const total = subtotal + vat
 
   return {
-    items,
-    addItem,
-    removeItem,
+    cartItems,
+    cartCount,
+    subtotal,
+    vat,
+    total,
+    loading,
+    addToCart,
     updateQuantity,
+    removeFromCart,
     clearCart,
-    totalItems,
-    totalPrice,
+    refreshCart: fetchCartItems,
+    isAuthenticated: !!user,
   }
 }

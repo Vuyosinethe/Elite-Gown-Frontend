@@ -1,51 +1,45 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
-import { toast } from "@/components/ui/use-toast"
 
 interface Order {
   id: string
   user_id: string
-  total_amount: number
+  order_number: string
   status: string
+  total_amount: number
+  items: any[]
   created_at: string
   updated_at: string
-  order_details: any // Adjust type as per your order details structure
 }
+
+const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"]
 
 export function OrdersTable() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/admin/orders")
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to fetch orders")
-      }
-      const data: Order[] = await response.json()
-      setOrders(data)
-    } catch (err: any) {
-      setError(err.message)
-      console.error("Failed to fetch orders:", err)
-      toast({
-        title: "Error",
-        description: `Failed to load orders: ${err.message}`,
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await fetch("/api/admin/orders")
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to fetch orders")
+        }
+        const data = await response.json()
+        setOrders(data)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchOrders()
   }, [])
 
@@ -64,29 +58,23 @@ export function OrdersTable() {
         throw new Error(errorData.error || "Failed to update order status")
       }
 
-      // Update the order in the local state
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderId ? { ...order, status: newStatus, updated_at: new Date().toISOString() } : order,
         ),
       )
-      toast({
-        title: "Success",
-        description: `Order ${orderId} status updated to ${newStatus}.`,
-        variant: "success",
-      })
     } catch (err: any) {
-      console.error("Failed to update order status:", err)
-      toast({
-        title: "Error",
-        description: `Failed to update order status: ${err.message}`,
-        variant: "destructive",
-      })
+      setError(err.message)
     }
   }
 
-  if (loading) return <div className="text-center py-4">Loading orders...</div>
-  if (error) return <div className="text-center py-4 text-red-500">Error: {error}</div>
+  if (loading) {
+    return <div className="text-center py-8">Loading orders...</div>
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">Error: {error}</div>
+  }
 
   return (
     <Card>
@@ -97,7 +85,7 @@ export function OrdersTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order ID</TableHead>
+              <TableHead>Order #</TableHead>
               <TableHead>User ID</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
@@ -108,7 +96,7 @@ export function OrdersTable() {
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>{order.id}</TableCell>
+                <TableCell>{order.order_number}</TableCell>
                 <TableCell>{order.user_id}</TableCell>
                 <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                 <TableCell>
@@ -117,16 +105,16 @@ export function OrdersTable() {
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      {ORDER_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell>{format(new Date(order.created_at), "PPP p")}</TableCell>
-                <TableCell>{format(new Date(order.updated_at), "PPP p")}</TableCell>
+                <TableCell>{format(new Date(order.created_at), "PPP")}</TableCell>
+                <TableCell>{format(new Date(order.updated_at), "PPP")}</TableCell>
               </TableRow>
             ))}
           </TableBody>

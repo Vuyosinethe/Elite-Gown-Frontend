@@ -15,10 +15,9 @@ import { useWishlist } from "@/hooks/use-wishlist"
 import { ChevronDown, User, X, Menu, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react"
 import Layout from "@/components/layout"
 import CartDrawer from "@/components/cart-drawer"
-import { toast } from "@/components/ui/use-toast"
 
 export default function LoginPage() {
-  const { signIn, loading: authLoading, user, initialized } = useAuth()
+  const { signIn, loading: authLoading, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { cartCount, addPendingCartItem } = useCart()
@@ -33,7 +32,6 @@ export default function LoginPage() {
   const [message, setMessage] = useState("")
   const [formInitialized, setFormInitialized] = useState(false)
   const mountedRef = useRef(true)
-  const verifiedMessage = searchParams.get("message")
 
   // Initialize form state properly on mount and navigation
   useEffect(() => {
@@ -54,23 +52,6 @@ export default function LoginPage() {
       mountedRef.current = false
     }
   }, []) // Only run on mount
-
-  useEffect(() => {
-    // Set formReady to true once the AuthProvider is initialized
-    if (initialized) {
-      setFormInitialized(true)
-    }
-  }, [initialized])
-
-  useEffect(() => {
-    if (verifiedMessage) {
-      toast({
-        title: "Email Verified!",
-        description: verifiedMessage,
-        variant: "success",
-      })
-    }
-  }, [verifiedMessage])
 
   // Handle URL parameters
   useEffect(() => {
