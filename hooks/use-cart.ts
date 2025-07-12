@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 interface CartItem {
@@ -277,4 +277,42 @@ export function useCart() {
     refreshCart: fetchCartItems,
     isAuthenticated: !!user,
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                Context wrapper so other files can <CartProvider>           */
+/* -------------------------------------------------------------------------- */
+
+type CartContextValue = ReturnType<typeof useCart>
+
+/**
+ * Internal React Context that will hold the cart state returned by useCart().
+ * It is initialised with null and MUST be consumed inside a <CartProvider>.
+ */
+const CartContext = createContext<CartContextValue | null>(null)
+
+/**
+ * CartProvider – wrap any part of the React tree that needs cart access.
+ *
+ * \`\`\`tsx
+ * <CartProvider>
+ *   <App />
+ * </CartProvider>
+ * \`\`\`
+ */
+export function CartProvider({ children }: { children: ReactNode }) {
+  const cart = useCart()
+  return <CartContext.Provider value={cart}>{children}</CartContext.Provider>
+}
+
+/**
+ * Helper hook for consuming the shared cart instance produced by <CartProvider>.
+ * Throws an error if called outside the provider.
+ */
+export function useCartContext(): CartContextValue {
+  const ctx = useContext(CartContext)
+  if (!ctx) {
+    throw new Error("useCartContext must be used within a <CartProvider>")
+  }
+  return ctx
 }

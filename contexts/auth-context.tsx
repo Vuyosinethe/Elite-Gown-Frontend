@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react"
 import type { User, Session } from "@supabase/supabase-js"
 import { supabase, type Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
+  const mountedRef = useRef(false)
 
   // Memoized function to load user with profile
   const loadUserWithProfile = useCallback(async (authUser: User) => {
@@ -111,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    let mounted = true
+    mountedRef.current = true
 
     // Get initial session immediately without timeout
     const getInitialSession = async () => {
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         console.log("Initial session result:", { session: !!session, error })
 
-        if (!mounted) return
+        if (!mountedRef.current) return
 
         if (session?.user) {
           console.log("Found valid session, loading user profile...")
@@ -138,13 +139,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("Error getting initial session:", error)
-        if (mounted) {
+        if (mountedRef.current) {
           setUser(null)
           setProfile(null)
           setSession(null)
         }
       } finally {
-        if (mounted) {
+        if (mountedRef.current) {
           console.log("Auth initialization complete")
           setLoading(false)
           setInitialized(true)
@@ -158,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
+      if (!mountedRef.current) return
 
       console.log("Auth state change:", event, session?.user?.id)
 
@@ -187,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => {
-      mounted = false
+      mountedRef.current = false
       subscription.unsubscribe()
     }
   }, [loadUserWithProfile, initialized])
@@ -220,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Attempting sign in for:", email)
+      setLoading(true) // Set loading true when sign-in starts
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -230,18 +232,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error("Sign in error:", error)
+        setLoading(false) // Reset loading on error
         return { error }
       }
 
       if (data?.user) {
         console.log("Sign in successful, user:", data.user.id)
-        // The auth state change listener will handle the redirect
+        // Fetch profile to determine redirect path
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error("Error fetching profile after sign-in:", profileError)
+          setLoading(false) // Reset loading on profile fetch error
+          return { error: profileError }
+        }
+
+        if (profileData?.role === "admin") {
+          router.push("/admin")
+        } else {
+          router.push("/account")
+        }
+        setLoading(false) // Reset loading on successful redirect
         return { error: null }
       }
 
+      setLoading(false) // Reset loading if no user data (shouldn't happen with successful sign-in)
       return { error: new Error("Unknown sign in error") }
     } catch (error) {
       console.error("Sign in exception:", error)
+      setLoading(false) // Reset loading on exception
       return { error }
     }
   }

@@ -20,21 +20,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const { data: orders, error } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      total,
-      status,
-      created_at,
-      updated_at,
-      profiles (
-        first_name,
-        last_name,
-        email
-      )
-    `)
-    .order("created_at", { ascending: false })
+  const { data: orders, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false })
 
   if (error) {
     console.error("Error fetching orders:", error)

@@ -24,16 +24,10 @@ export default async function AdminDashboardPage() {
     redirect("/") // Redirect non-admin users
   }
 
-  // Fetch data for the dashboard
-  const [usersRes, ordersRes, customQuotesRes] = await Promise.all([
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/users`, { cache: "no-store" }),
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/orders`, { cache: "no-store" }),
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/custom-quotes`, { cache: "no-store" }),
-  ])
-
-  const users = usersRes.ok ? await usersRes.json() : []
-  const orders = ordersRes.ok ? await ordersRes.json() : []
-  const customQuotes = customQuotesRes.ok ? await customQuotesRes.json() : []
+  // Data fetching for initial render (Server Component)
+  // These fetches will be handled by the client components themselves
+  // to allow for client-side data fetching and re-fetching.
+  // The server component only ensures the user is an admin before rendering.
 
   return (
     <main className="flex min-h-[calc(100vh-theme(spacing.16))] flex-1 flex-col gap-4 bg-muted/40 p-4 md:gap-8 md:p-10">
@@ -48,13 +42,13 @@ export default async function AdminDashboardPage() {
             <TabsTrigger value="quotes">Quotes</TabsTrigger>
           </TabsList>
           <TabsContent value="users">
-            <UsersTable users={users} />
+            <UsersTable />
           </TabsContent>
           <TabsContent value="orders">
-            <OrdersTable orders={orders} />
+            <OrdersTable />
           </TabsContent>
           <TabsContent value="quotes">
-            <CustomQuotesTable customQuotes={customQuotes} />
+            <CustomQuotesTable />
           </TabsContent>
         </Tabs>
       </div>

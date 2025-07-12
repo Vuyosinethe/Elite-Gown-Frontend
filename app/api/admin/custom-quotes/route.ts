@@ -22,18 +22,7 @@ export async function GET(request: Request) {
 
   const { data: customQuotes, error } = await supabase
     .from("custom_quotes")
-    .select(`
-      id,
-      details,
-      status,
-      created_at,
-      updated_at,
-      profiles (
-        first_name,
-        last_name,
-        email
-      )
-    `)
+    .select("*")
     .order("created_at", { ascending: false })
 
   if (error) {

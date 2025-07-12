@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params
   const { status } = await request.json()
 
@@ -25,7 +25,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   const { data, error } = await supabase
     .from("orders")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, updated_at: new Date().toISOString() }) // Explicitly update updated_at
     .eq("id", id)
     .select()
     .single()

@@ -1,36 +1,58 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
-import { useState } from "react"
+import { toast } from "@/components/ui/use-toast"
 
 interface Order {
   id: string
-  total: number
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled"
+  user_id: string
+  total_amount: number
+  status: string
   created_at: string
   updated_at: string
-  profiles: {
-    first_name: string | null
-    last_name: string | null
-    email: string | null
-  } | null
+  order_details: any // Adjust type as per your order details structure
 }
 
-interface OrdersTableProps {
-  orders: Order[]
-}
+export function OrdersTable() {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
-  const [orders, setOrders] = useState(initialOrders)
-  const orderStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"]
+  const fetchOrders = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/admin/orders")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to fetch orders")
+      }
+      const data: Order[] = await response.json()
+      setOrders(data)
+    } catch (err: any) {
+      setError(err.message)
+      console.error("Failed to fetch orders:", err)
+      toast({
+        title: "Error",
+        description: `Failed to load orders: ${err.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchOrders()
+  }, [])
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
@@ -38,20 +60,33 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update order status")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update order status")
       }
 
-      const updatedOrder = await response.json()
+      // Update the order in the local state
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: updatedOrder.status, updated_at: updatedOrder.updated_at } : order,
+          order.id === orderId ? { ...order, status: newStatus, updated_at: new Date().toISOString() } : order,
         ),
       )
-    } catch (error) {
-      console.error("Error updating order status:", error)
-      alert("Failed to update order status. Please try again.")
+      toast({
+        title: "Success",
+        description: `Order ${orderId} status updated to ${newStatus}.`,
+        variant: "success",
+      })
+    } catch (err: any) {
+      console.error("Failed to update order status:", err)
+      toast({
+        title: "Error",
+        description: `Failed to update order status: ${err.message}`,
+        variant: "destructive",
+      })
     }
   }
+
+  if (loading) return <div className="text-center py-4">Loading orders...</div>
+  if (error) return <div className="text-center py-4 text-red-500">Error: {error}</div>
 
   return (
     <Card>
@@ -63,38 +98,34 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Order ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead>User ID</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Order Date</TableHead>
+              <TableHead>Created At</TableHead>
               <TableHead>Last Updated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>{order.id.substring(0, 8)}...</TableCell>
-                <TableCell>
-                  {order.profiles?.first_name} {order.profiles?.last_name}
-                </TableCell>
-                <TableCell>{order.profiles?.email}</TableCell>
-                <TableCell>${order.total.toFixed(2)}</TableCell>
+                <TableCell>{order.id}</TableCell>
+                <TableCell>{order.user_id}</TableCell>
+                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {orderStatuses.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell>{format(new Date(order.created_at), "PPP")}</TableCell>
+                <TableCell>{format(new Date(order.created_at), "PPP p")}</TableCell>
                 <TableCell>{format(new Date(order.updated_at), "PPP p")}</TableCell>
               </TableRow>
             ))}
