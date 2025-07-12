@@ -1,7 +1,26 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "@/contexts/auth-context"
+
+// --- Cart React Context (shared across the whole app) ------------------------
+const CartContext = createContext<ReturnType<typeof useCart> | null>(null)
+
+/** Provider: wrap any part of the tree that needs cart access. */
+export function CartProvider({ children }: { children: ReactNode }) {
+  // Every provider instance re-uses the same hook logic.
+  const cart = useCart()
+  return <CartContext.Provider value={cart}>{children}</CartContext.Provider>
+}
+
+/** Hook for consuming the shared cart instance created by `<CartProvider>` */
+export function useCartContext() {
+  const ctx = useContext(CartContext)
+  if (!ctx) {
+    throw new Error("useCartContext must be used within a <CartProvider>")
+  }
+  return ctx
+}
 
 interface CartItem {
   id: number
@@ -262,6 +281,51 @@ export function useCart() {
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const vat = subtotal * 0.15
   const total = subtotal + vat
+
+  /* -------------------------------------------------------------------------- */
+  /*                              Cart Context API                              */
+  /* -------------------------------------------------------------------------- */
+
+  /**
+   * Create a React Context so components can access cart state without
+   * prop-drilling.  This is OPTIONAL for callers that already use the `useCart`
+   * hook directly, but some pages import a `CartProvider`, so we export it here
+   * to keep backward compatibility and fix the runtime error.
+   */
+
+  type CartContextValue = ReturnType<typeof useCart>
+
+  /**
+   * Internal context to share a single cart instance across the tree.
+   * It’s initialised to `null`; consumers must be nested inside <CartProvider>.
+   */
+  const CartContext = createContext<CartContextValue | null>(null)
+
+  /**
+   * CartProvider – wrap any part of the tree that needs cart access.
+   *
+   * \`\`\`tsx
+   * <CartProvider>
+   *   <YourApp />
+   * </CartProvider>
+   * \`\`\`
+   */
+  function CartProvider({ children }: { children: ReactNode }) {
+    const cart = useCart()
+    return <CartContext.Provider value={cart}>{children}</CartContext.Provider>
+  }
+
+  /**
+   * useCartContext – consume the shared cart instance created by <CartProvider>.
+   * Throws if used outside the provider.
+   */
+  function useCartContext(): CartContextValue {
+    const ctx = useContext(CartContext)
+    if (!ctx) {
+      throw new Error("useCartContext must be used within a <CartProvider>")
+    }
+    return ctx
+  }
 
   return {
     cartItems,
