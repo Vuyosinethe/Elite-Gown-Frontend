@@ -1,41 +1,42 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
+import { useState } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UsersTable } from "@/components/admin/users-table"
 import { OrdersTable } from "@/components/admin/orders-table"
 import { CustomQuotesTable } from "@/components/admin/custom-quotes-table"
-import { Button } from "@/components/ui/button"
-import { Layout } from "@/components/layout" // Assuming Layout is exported from components/layout
+import Layout from "@/components/layout"
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
-export default function AdminDashboardPage() {
-  const { user, loading, isAdmin, signOut } = useAuth()
+export default function AdminPage() {
+  const { user, loading, isAdmin } = useAuth()
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState("users")
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
-      // If not loading, and no user or not admin, redirect to login
-      router.push("/login")
+      router.push("/login?message=You must be logged in as an admin to access this page.")
     }
   }, [user, loading, isAdmin, router])
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex min-h-screen items-center justify-center">
-          <p>Loading dashboard...</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <p>Loading admin dashboard...</p>
         </div>
       </Layout>
     )
   }
 
   if (!user || !isAdmin) {
-    // This state should ideally be prevented by the useEffect redirect
+    // This state should ideally be brief as the useEffect redirects quickly
     return (
       <Layout>
-        <div className="flex min-h-screen items-center justify-center">
-          <p>Access Denied. Redirecting...</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <p>Redirecting...</p>
         </div>
       </Layout>
     )
@@ -43,19 +44,25 @@ export default function AdminDashboardPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <Button onClick={signOut} variant="outline">
-            Sign Out
-          </Button>
-        </div>
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
 
-        <div className="grid gap-6">
-          <UsersTable />
-          <OrdersTable />
-          <CustomQuotesTable />
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="quotes">Custom Quotes</TabsTrigger>
+          </TabsList>
+          <TabsContent value="users">
+            <UsersTable />
+          </TabsContent>
+          <TabsContent value="orders">
+            <OrdersTable />
+          </TabsContent>
+          <TabsContent value="quotes">
+            <CustomQuotesTable />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   )

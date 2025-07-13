@@ -1,20 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useCallback } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface CustomQuote {
   id: string
-  user_id: string
-  quote_number: string
+  user_id: string | null
+  guest_id: string | null
+  name: string
+  email: string
+  phone: string | null
   description: string
-  status: "pending" | "reviewed" | "quoted" | "accepted" | "rejected" | "completed"
-  quoted_price: number | null
+  status: string
   created_at: string
   updated_at: string
 }
@@ -23,31 +26,27 @@ export function CustomQuotesTable() {
   const [quotes, setQuotes] = useState<CustomQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editingPrice, setEditingPrice] = useState<string | null>(null) // quoteId being edited
-  const [newPrice, setNewPrice] = useState<string>("")
 
-  const fetchQuotes = async () => {
+  const fetchQuotes = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
       const response = await fetch("/api/admin/custom-quotes")
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to fetch custom quotes")
       }
-      const data = await response.json()
+      const data: CustomQuote[] = await response.json()
       setQuotes(data)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
       console.error("Error fetching custom quotes:", err)
+      setError((err as Error).message || "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchQuotes()
   }, [])
 
-  const handleStatusChange = async (quoteId: string, newStatus: CustomQuote["status"]) => {
+  const handleStatusChange = useCallback(async (quoteId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/admin/custom-quotes/${quoteId}`, {
         method: "PUT",
@@ -62,53 +61,29 @@ export function CustomQuotesTable() {
         throw new Error(errorData.error || "Failed to update quote status")
       }
 
-      // Update the local state with the new status
       setQuotes((prevQuotes) =>
         prevQuotes.map((quote) => (quote.id === quoteId ? { ...quote, status: newStatus } : quote)),
       )
-    } catch (err: any) {
-      alert(`Failed to update quote status: ${err.message}`)
+    } catch (err) {
       console.error("Error updating quote status:", err)
+      alert(`Failed to update quote status: ${(err as Error).message}`)
     }
-  }
+  }, [])
 
-  const handlePriceUpdate = async (quoteId: string) => {
-    const priceValue = Number.parseFloat(newPrice)
-    if (isNaN(priceValue) || priceValue < 0) {
-      alert("Please enter a valid positive number for the price.")
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/admin/custom-quotes/${quoteId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ quoted_price: priceValue }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update quote price")
-      }
-
-      // Update the local state with the new price
-      setQuotes((prevQuotes) =>
-        prevQuotes.map((quote) => (quote.id === quoteId ? { ...quote, quoted_price: priceValue } : quote)),
-      )
-      setEditingPrice(null)
-      setNewPrice("")
-    } catch (err: any) {
-      alert(`Failed to update quote price: ${err.message}`)
-      console.error("Error updating quote price:", err)
-    }
-  }
+  useEffect(() => {
+    fetchQuotes()
+  }, [fetchQuotes])
 
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-4 text-center">Loading custom quotes...</CardContent>
+        <CardHeader>
+          <CardTitle>Custom Quotes</CardTitle>
+          <CardDescription>Manage custom design requests.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>Loading custom quotes...</p>
+        </CardContent>
       </Card>
     )
   }
@@ -116,7 +91,13 @@ export function CustomQuotesTable() {
   if (error) {
     return (
       <Card>
-        <CardContent className="p-4 text-center text-red-500">Error: {error}</CardContent>
+        <CardHeader>
+          <CardTitle>Custom Quotes</CardTitle>
+          <CardDescription>Manage custom design requests.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">Error: {error}</p>
+        </CardContent>
       </Card>
     )
   }
@@ -124,34 +105,31 @@ export function CustomQuotesTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Custom Quote Requests</CardTitle>
+        <CardTitle>Custom Quotes</CardTitle>
+        <CardDescription>Manage custom design requests.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Quote #</TableHead>
-              <TableHead>User ID</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Quoted Price</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {quotes.map((quote) => (
               <TableRow key={quote.id}>
-                <TableCell>{quote.quote_number}</TableCell>
-                <TableCell>{quote.user_id}</TableCell>
-                <TableCell className="max-w-[200px] truncate">{quote.description}</TableCell>
+                <TableCell className="font-medium">{quote.name}</TableCell>
+                <TableCell>{quote.email}</TableCell>
+                <TableCell>{quote.phone || "N/A"}</TableCell>
                 <TableCell>
-                  <Select
-                    value={quote.status}
-                    onValueChange={(value: CustomQuote["status"]) => handleStatusChange(quote.id, value)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select Status" />
+                  <Select value={quote.status} onValueChange={(value) => handleStatusChange(quote.id, value)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
@@ -159,45 +137,64 @@ export function CustomQuotesTable() {
                       <SelectItem value="quoted">Quoted</SelectItem>
                       <SelectItem value="accepted">Accepted</SelectItem>
                       <SelectItem value="rejected">Rejected</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell>
-                  {editingPrice === quote.id ? (
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        type="number"
-                        value={newPrice}
-                        onChange={(e) => setNewPrice(e.target.value)}
-                        placeholder="Enter price"
-                        className="w-28"
-                      />
-                      <Button size="sm" onClick={() => handlePriceUpdate(quote.id)}>
-                        Save
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingPrice(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <span>{quote.quoted_price ? `$${quote.quoted_price.toFixed(2)}` : "N/A"}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingPrice(quote.id)
-                          setNewPrice(quote.quoted_price?.toString() || "")
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
                 <TableCell>{format(new Date(quote.created_at), "PPP")}</TableCell>
-                <TableCell>{/* Add any other actions here if needed */}</TableCell>
+                <TableCell>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Quote Details from {quote.name}</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="h-[300px] pr-4">
+                        <div className="grid gap-4 py-4 text-sm">
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Quote ID:</span>
+                            <span>{quote.id}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">User ID:</span>
+                            <span>{quote.user_id || quote.guest_id || "N/A"}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Name:</span>
+                            <span>{quote.name}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Email:</span>
+                            <span>{quote.email}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Phone:</span>
+                            <span>{quote.phone || "N/A"}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Status:</span>
+                            <span>{quote.status}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Created At:</span>
+                            <span>{format(new Date(quote.created_at), "PPP p")}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span className="font-medium">Last Updated:</span>
+                            <span>{format(new Date(quote.updated_at), "PPP p")}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <h4 className="font-semibold mt-4">Description:</h4>
+                            <p className="whitespace-pre-wrap">{quote.description}</p>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

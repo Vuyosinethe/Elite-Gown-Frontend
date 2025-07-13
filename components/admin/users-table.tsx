@@ -1,48 +1,64 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useCallback } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 
-interface UserProfile {
+interface UserData {
   id: string
   email: string
+  created_at: string
+  last_sign_in_at: string | null
+  email_confirmed_at: string | null
+  role: string
   first_name: string | null
   last_name: string | null
-  role: string
-  created_at: string
+  phone: string | null
+  avatar_url: string | null
+  profile_created_at: string | null
+  profile_updated_at: string | null
 }
 
 export function UsersTable() {
-  const [users, setUsers] = useState<UserProfile[]>([])
+  const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch("/api/admin/users")
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to fetch users")
-        }
-        const data = await response.json()
-        setUsers(data)
-      } catch (err: any) {
-        setError(err.message)
-        console.error("Error fetching users:", err)
-      } finally {
-        setLoading(false)
+  const fetchUsers = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/admin/users")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to fetch users")
       }
+      const data: UserData[] = await response.json()
+      setUsers(data)
+    } catch (err) {
+      console.error("Error fetching users:", err)
+      setError((err as Error).message || "An unexpected error occurred.")
+    } finally {
+      setLoading(false)
     }
-    fetchUsers()
   }, [])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-4 text-center">Loading users...</CardContent>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Manage all user accounts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>Loading users...</p>
+        </CardContent>
       </Card>
     )
   }
@@ -50,7 +66,13 @@ export function UsersTable() {
   if (error) {
     return (
       <Card>
-        <CardContent className="p-4 text-center text-red-500">Error: {error}</CardContent>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Manage all user accounts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">Error: {error}</p>
+        </CardContent>
       </Card>
     )
   }
@@ -58,7 +80,8 @@ export function UsersTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Registered Users</CardTitle>
+        <CardTitle>Users</CardTitle>
+        <CardDescription>Manage all user accounts.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -67,18 +90,28 @@ export function UsersTable() {
               <TableHead>Email</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Signed Up</TableHead>
+              <TableHead>Last Sign In</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell>{user.email}</TableCell>
+                <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>
-                  {user.first_name} {user.last_name}
+                  {user.first_name || "N/A"} {user.last_name || ""}
                 </TableCell>
-                <TableCell>{user.role}</TableCell>
+                <TableCell>
+                  <Badge variant={user.role === "admin" ? "default" : "secondary"}>{user.role}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={user.email_confirmed_at ? "default" : "destructive"}>
+                    {user.email_confirmed_at ? "Confirmed" : "Unconfirmed"}
+                  </Badge>
+                </TableCell>
                 <TableCell>{format(new Date(user.created_at), "PPP")}</TableCell>
+                <TableCell>{user.last_sign_in_at ? format(new Date(user.last_sign_in_at), "PPP p") : "N/A"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

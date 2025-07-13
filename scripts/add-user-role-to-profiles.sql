@@ -2,65 +2,47 @@
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='role') THEN
-        ALTER TABLE profiles ADD COLUMN role TEXT DEFAULT 'user';
+        ALTER TABLE public.profiles ADD COLUMN role text DEFAULT 'user'::text;
     END IF;
 END
 $$;
 
--- Update existing users to 'user' role if role is null
-UPDATE profiles SET role = 'user' WHERE role IS NULL;
+-- Create a policy to allow users to update their own profiles
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
+CREATE POLICY "Users can update their own profile."
+ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Create RLS policy for profiles table
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+-- Create a policy to allow authenticated users to read profiles
+DROP POLICY IF EXISTS "Authenticated users can read profiles." ON public.profiles;
+CREATE POLICY "Authenticated users can read profiles."
+ON public.profiles FOR SELECT USING (auth.role() = 'authenticated');
 
--- Policy to allow authenticated users to view their own profile
-CREATE POLICY "Allow authenticated users to view their own profile"
-ON profiles FOR SELECT
-TO authenticated
-USING (auth.uid() = id);
+-- Create a policy to allow admins to read all profiles
+DROP POLICY IF EXISTS "Admins can read all profiles." ON public.profiles;
+CREATE POLICY "Admins can read all profiles."
+ON public.profiles FOR SELECT USING (auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin'));
 
--- Policy to allow authenticated users to update their own profile
-CREATE POLICY "Allow authenticated users to update their own profile"
-ON profiles FOR UPDATE
-TO authenticated
-USING (auth.uid() = id);
+-- Create a policy to allow admins to update any profile
+DROP POLICY IF EXISTS "Admins can update any profile." ON public.profiles;
+CREATE POLICY "Admins can update any profile."
+ON public.profiles FOR UPDATE USING (auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin'));
 
--- Policy to allow admin users to view all profiles
-CREATE POLICY "Allow admin to view all profiles"
-ON profiles FOR SELECT
-TO authenticated
-USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+-- Create a policy to allow admins to insert profiles
+DROP POLICY IF EXISTS "Admins can insert profiles." ON public.profiles;
+CREATE POLICY "Admins can insert profiles."
+ON public.profiles FOR INSERT WITH CHECK (auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin'));
 
--- Policy to allow admin users to update any profile
-CREATE POLICY "Allow admin to update any profile"
-ON profiles FOR UPDATE
-TO authenticated
-USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+-- Create a policy to allow admins to delete profiles
+DROP POLICY IF EXISTS "Admins can delete profiles." ON public.profiles;
+CREATE POLICY "Admins can delete profiles."
+ON public.profiles FOR DELETE USING (auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin'));
 
--- Policy to allow admin users to insert profiles (e.g., for new admin creation)
-CREATE POLICY "Allow admin to insert profiles"
-ON profiles FOR INSERT
-TO authenticated
-WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-
--- Policy to allow admin users to delete profiles
-CREATE POLICY "Allow admin to delete profiles"
-ON profiles FOR DELETE
-TO authenticated
-USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-
--- Function to create a profile for new users
+-- Create a function to create a profile for new users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, first_name, last_name, phone)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    NEW.raw_user_meta_data->>'first_name',
-    NEW.raw_user_meta_data->>'last_name',
-    NEW.raw_user_meta_data->>'phone'
-  );
+  INSERT INTO public.profiles (id, email)
+  VALUES (NEW.id, NEW.email);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -68,7 +50,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Drop existing trigger if it exists
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
--- Create trigger to call handle_new_user function on new user creation
+-- Create a trigger to call handle_new_user on new user creation
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Ensure RLS is enabled for profiles table
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
