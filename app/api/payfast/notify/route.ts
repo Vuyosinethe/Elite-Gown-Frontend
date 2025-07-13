@@ -1,123 +1,94 @@
-import { NextResponse } from 'next/server'
-import { verifyPayFastSignature } from '@/lib/payfast'
-import { supabase } from '@/lib/supabase'
+import { type NextRequest, NextResponse } from "next/server"
+import { verifyPayFastSignature } from "@/lib/payfast"
+import { supabase } from "@/lib/supabase"
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData()
+    const formData = await request.formData()
     const data: Record<string, string> = {}
     formData.forEach((value, key) => {
       data[key] = value.toString()
     })
 
-    const pfSignature = data.signature
+    const signature = data.signature
     delete data.signature // Remove signature before verification
 
-    // 1. Verify the signature
-    if (!verifyPayFastSignature(data, pfSignature)) {
-      console.error('PayFast ITN: Invalid signature')
-      return new NextResponse('Invalid signature', { status: 400 })
+    if (!signature || !verifyPayFastSignature(data, signature)) {
+      console.error("PayFast ITN: Invalid signature")
+      return new NextResponse("Invalid signature", { status: 400 })
     }
 
-    const mPaymentId = data.m_payment_id // Our internal order ID
-    const pfPaymentId = data.pf_payment_id // PayFast's unique transaction ID
-    const paymentStatus = data.payment_status // e.g., 'COMPLETE', 'FAILED', 'PENDING'
-    const amountGross = parseFloat(data.amount_gross)
-    const item_name = data.item_name
-    const item_description = data.item_description
+    const payfastTransactionId = data.pf_payment_id
+    const orderId = data.m_payment_id // This is our internal order ID
+    const paymentStatus = data.payment_status // e.g., COMPLETE, FAILED, PENDING
+    const amountGross = Number.parseFloat(data.amount_gross)
 
-    // 2. Check if the transaction ID has already been processed
+    if (!orderId || !payfastTransactionId || !paymentStatus || isNaN(amountGross)) {
+      console.error("PayFast ITN: Missing or invalid required fields in ITN data", data)
+      return new NextResponse("Missing or invalid ITN data", { status: 400 })
+    }
+
+    // Check if transaction already exists to prevent duplicate processing
     const { data: existingTransaction, error: existingTransactionError } = await supabase
-      .from('transactions')
-      .select('id')
-      .eq('payfast_transaction_id', pfPaymentId)
+      .from("transactions")
+      .select("id")
+      .eq("payfast_transaction_id", payfastTransactionId)
       .single()
 
-    if (existingTransactionError && existingTransactionError.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error('Error checking existing transaction:', existingTransactionError.message)
-      return new NextResponse('Internal Server Error', { status: 500 })
+    if (existingTransactionError && existingTransactionError.code !== "PGRST116") {
+      // PGRST116 is "not found"
+      console.error("Error checking existing transaction:", existingTransactionError)
+      return new NextResponse("Internal server error", { status: 500 })
     }
 
     if (existingTransaction) {
-      console.warn(`PayFast ITN: Transaction ${pfPaymentId} already processed.`)
-      return new NextResponse('OK', { status: 200 }) // Already processed, acknowledge
+      console.warn(`PayFast ITN: Transaction ${payfastTransactionId} already processed.`)
+      return new NextResponse("Transaction already processed", { status: 200 }) // Acknowledge success
     }
 
-    // 3. Get the order from your database
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', mPaymentId)
+    // Insert new transaction record
+    const { data: newTransaction, error: transactionError } = await supabase
+      .from("transactions")
+      .insert({
+        order_id: orderId,
+        payfast_transaction_id: payfastTransactionId,
+        amount: amountGross,
+        status: paymentStatus,
+        payment_method: data.payment_method || "unknown",
+        metadata: data, // Store full ITN data for debugging/auditing
+      })
+      .select()
       .single()
 
-    if (orderError || !order) {
-      console.error('PayFast ITN: Order not found or error fetching order:', orderError?.message)
-      return new NextResponse('Order not found', { status: 404 })
+    if (transactionError || !newTransaction) {
+      console.error("Error inserting transaction:", transactionError)
+      return new NextResponse("Failed to record transaction", { status: 500 })
     }
 
-    // 4. Verify amount matches
-    if (order.total_amount !== amountGross) {
-      console.error(`PayFast ITN: Amount mismatch for order ${mPaymentId}. Expected ${order.total_amount}, got ${amountGross}.`)
-      return new NextResponse('Amount mismatch', { status: 400 })
+    // Update order status based on payment status
+    let orderStatus = "pending"
+    if (paymentStatus === "COMPLETE") {
+      orderStatus = "completed"
+    } else if (paymentStatus === "FAILED") {
+      orderStatus = "failed"
+    } else if (paymentStatus === "CANCELLED") {
+      orderStatus = "cancelled"
     }
 
-    // 5. Update order status and create transaction record
-    let newOrderStatus = order.status
-    let transactionStatus = 'PENDING'
+    const { error: orderUpdateError } = await supabase
+      .from("orders")
+      .update({ status: orderStatus, updated_at: new Date().toISOString() })
+      .eq("id", orderId)
 
-    switch (paymentStatus) {
-      case 'COMPLETE':
-        newOrderStatus = 'completed'
-        transactionStatus = 'COMPLETE'
-        break
-      case 'FAILED':
-        newOrderStatus = 'failed'
-        transactionStatus = 'FAILED'
-        break
-      case 'PENDING':
-        newOrderStatus = 'pending'
-        transactionStatus = 'PENDING'
-        break
-      case 'CANCELLED':
-        newOrderStatus = 'cancelled'
-        transactionStatus = 'CANCELLED'
-        break
-      default:
-        console.warn(`PayFast ITN: Unknown payment status: ${paymentStatus} for order ${mPaymentId}`)
-        transactionStatus = 'UNKNOWN'
-        break
+    if (orderUpdateError) {
+      console.error("Error updating order status:", orderUpdateError)
+      return new NextResponse("Failed to update order status", { status: 500 })
     }
 
-    // Update order status
-    const { error: updateOrderError } = await supabase
-      .from('orders')
-      .update({ status: newOrderStatus })
-      .eq('id', order.id)
-
-    if (updateOrderError) {
-      console.error('Error updating order status:', updateOrderError.message)
-      return new NextResponse('Internal Server Error', { status: 500 })
-    }
-
-    // Create transaction record
-    const { error: transactionError } = await supabase.from('transactions').insert({
-      order_id: order.id,
-      payfast_transaction_id: pfPaymentId,
-      amount: amountGross,
-      status: transactionStatus,
-      payment_method: 'PayFast', // Or data.payment_method if available
-      raw_data: data, // Store the full payload
-    })
-
-    if (transactionError) {
-      console.error('Error inserting transaction:', transactionError.message)
-      return new NextResponse('Internal Server Error', { status: 500 })
-    }
-
-    console.log(`PayFast ITN: Order ${mPaymentId} updated to ${newOrderStatus}, Transaction ${pfPaymentId} recorded as ${transactionStatus}.`)
-    return new NextResponse('OK', { status: 200 }) // Acknowledge successful processing
+    console.log(`PayFast ITN: Order ${orderId} updated to status: ${orderStatus}`)
+    return new NextResponse("ITN received and processed", { status: 200 })
   } catch (error) {
-    console.error('PayFast ITN processing error:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    console.error("PayFast ITN processing error:", error)
+    return new NextResponse("Internal server error", { status: 500 })
   }
 }

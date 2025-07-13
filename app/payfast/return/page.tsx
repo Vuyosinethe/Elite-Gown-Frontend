@@ -1,98 +1,114 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { CheckCircle, XCircle, Loader2 } from "lucide-react"
+import Link from "next/link"
+import Layout from "@/components/layout"
+import { supabase } from "@/lib/supabase"
+
+interface OrderStatus {
+  status: string
+  total_amount: number
+  payfast_order_id: string
+}
 
 export default function PayFastReturnPage() {
   const searchParams = useSearchParams()
-  const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'unknown'>('loading')
-  const [message, setMessage] = useState('Processing your payment...')
-  const [orderId, setOrderId] = useState<string | null>(null)
+  const orderId = searchParams.get("order_id")
+  const [orderStatus, setOrderStatus] = useState<OrderStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const pfPaymentId = searchParams.get('pf_payment_id')
-    const mPaymentId = searchParams.get('m_payment_id') // Our internal order ID
-    const paymentStatus = searchParams.get('payment_status') // PayFast status
-
-    setOrderId(mPaymentId)
-
-    if (paymentStatus === 'COMPLETE') {
-      setStatus('success')
-      setMessage('Your payment was successful! Thank you for your purchase.')
-    } else if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-      setStatus('failed')
-      setMessage('Your payment could not be processed. Please try again or contact support.')
-    } else if (paymentStatus === 'PENDING') {
-      setStatus('unknown') // Treat pending as unknown for immediate display
-      setMessage('Your payment is pending. We will notify you once it is confirmed.')
-    } else {
-      setStatus('unknown')
-      setMessage('Payment status is unknown. Please check your order history or contact support.')
-    }
-
-    // Optional: Fetch the actual order status from your backend for confirmation
-    // This is good practice as the ITN is the definitive source of truth
     const fetchOrderStatus = async () => {
-      if (mPaymentId) {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('status')
-          .eq('id', mPaymentId)
+      if (!orderId) {
+        setError("No order ID found in the URL.")
+        setLoading(false)
+        return
+      }
+
+      try {
+        // Fetch order details from your database
+        const { data, error: dbError } = await supabase
+          .from("orders")
+          .select("status, total_amount, payfast_order_id")
+          .eq("id", orderId)
           .single()
 
-        if (error) {
-          console.error('Error fetching order status:', error.message)
-          // Keep current message, but log error
+        if (dbError) {
+          console.error("Error fetching order status:", dbError)
+          setError("Failed to retrieve order details. Please check your account history.")
+          setOrderStatus(null)
         } else if (data) {
-          if (data.status === 'completed') {
-            setStatus('success')
-            setMessage('Your payment was successful! Thank you for your purchase.')
-          } else if (data.status === 'failed' || data.status === 'cancelled') {
-            setStatus('failed')
-            setMessage('Your payment could not be processed. Please try again or contact support.')
-          } else if (data.status === 'pending') {
-            setStatus('unknown')
-            setMessage('Your payment is pending. We will notify you once it is confirmed.')
-          }
+          setOrderStatus(data)
+        } else {
+          setError("Order not found.")
+          setOrderStatus(null)
         }
+      } catch (err) {
+        console.error("Unexpected error fetching order status:", err)
+        setError("An unexpected error occurred. Please try again later.")
+      } finally {
+        setLoading(false)
       }
     }
 
     fetchOrderStatus()
-  }, [searchParams])
+  }, [orderId])
 
-  const Icon =
-    status === 'success' ? CheckCircle : status === 'failed' ? XCircle : Loader2
-  const iconColor =
-    status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-blue-500'
+  const isSuccess = orderStatus?.status === "completed"
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md text-center shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold">Payment {status === 'success' ? 'Successful' : status === 'failed' ? 'Failed' : 'Status'}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-6 p-6">
-          <Icon className={`h-20 w-20 ${iconColor} animate-pulse`} />
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">{message}</p>
-          {orderId && (
-            <p className="text-sm text-muted-foreground">Order ID: {orderId}</p>
+    <Layout>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 text-center bg-white p-8 rounded-lg shadow-lg">
+          {loading ? (
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-12 w-12 text-yellow-500 animate-spin mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Processing your payment...</h2>
+              <p className="mt-2 text-gray-600">Please do not close this page.</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center">
+              <XCircle className="h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-2xl font-bold text-red-700">Payment Error</h2>
+              <p className="mt-2 text-gray-600">{error}</p>
+              <Link href="/account" className="mt-6 text-blue-600 hover:underline">
+                View your account
+              </Link>
+            </div>
+          ) : (
+            <>
+              {isSuccess ? (
+                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              ) : (
+                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              )}
+              <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+                {isSuccess ? "Payment Successful!" : "Payment Unsuccessful"}
+              </h2>
+              <p className="mt-2 text-lg text-gray-600">
+                {isSuccess
+                  ? `Your order #${orderId?.substring(0, 8)} for R${orderStatus?.total_amount.toFixed(2)} has been successfully processed.`
+                  : `There was an issue with your payment for order #${orderId?.substring(0, 8)}. Status: ${orderStatus?.status || "Unknown"}.`}
+              </p>
+              <p className="text-sm text-gray-500">You will receive an email confirmation shortly.</p>
+              <div className="mt-6 space-y-4">
+                <Link
+                  href="/account"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  View My Orders
+                </Link>
+                <Link href="/" className="block text-sm text-blue-600 hover:underline">
+                  Continue Shopping
+                </Link>
+              </div>
+            </>
           )}
-          <div className="flex gap-4">
-            <Button asChild>
-              <Link href="/account">View My Orders</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/">Continue Shopping</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </Layout>
   )
 }

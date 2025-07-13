@@ -1,18 +1,16 @@
-import { Loader2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Loader2 } from "lucide-react"
+import Layout from "@/components/layout"
 
 export default function Loading() {
   return (
-    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md text-center shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold">Loading...</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-6 p-6">
-          <Loader2 className="h-20 w-20 text-blue-500 animate-spin" />
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Please wait...</p>
-        </CardContent>
-      </Card>
-    </div>
+    <Layout>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 text-center bg-white p-8 rounded-lg shadow-lg">
+          <Loader2 className="h-12 w-12 text-yellow-500 animate-spin mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900">Loading cancellation status...</h2>
+          <p className="mt-2 text-gray-600">Please wait while we confirm your transaction.</p>
+        </div>
+      </div>
+    </Layout>
   )
 }

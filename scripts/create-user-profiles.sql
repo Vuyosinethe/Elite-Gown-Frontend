@@ -3,7 +3,15 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create profiles table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL PRIMARY KEY
+  id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  first_name text NULL,
+  last_name text NULL,
+  phone text NULL,
+  avatar_url text NULL,
+  role text NULL DEFAULT 'user'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id)
 );
 
 -- Add columns if they don't exist
@@ -19,13 +27,13 @@ BEGIN
         ALTER TABLE public.profiles ADD COLUMN avatar_url text;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'role') THEN
-        ALTER TABLE public.profiles ADD COLUMN role text DEFAULT 'user' NOT NULL;
+        ALTER TABLE public.profiles ADD COLUMN role text NULL DEFAULT 'user'::text;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'created_at') THEN
-        ALTER TABLE public.profiles ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;
+        ALTER TABLE public.profiles ADD COLUMN created_at timestamp with time zone NOT NULL DEFAULT now();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'updated_at') THEN
-        ALTER TABLE public.profiles ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;
+        ALTER TABLE public.profiles ADD COLUMN updated_at timestamp with time zone NOT NULL DEFAULT now();
     END IF;
 END
 $$;

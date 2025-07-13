@@ -4,22 +4,26 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create the order_items table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.order_items (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
-    product_id uuid NOT NULL, -- Assuming a products table exists or will exist
+    order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE,
+    product_id uuid, -- Assuming a products table exists or will exist
+    product_name text NOT NULL,
     quantity integer NOT NULL,
     price numeric(10, 2) NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
 );
 
 -- Add columns if they don't exist
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'order_id') THEN
-        ALTER TABLE public.order_items ADD COLUMN order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL;
+        ALTER TABLE public.order_items ADD COLUMN order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'product_id') THEN
-        ALTER TABLE public.order_items ADD COLUMN product_id uuid NOT NULL;
+        ALTER TABLE public.order_items ADD COLUMN product_id uuid;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'product_name') THEN
+        ALTER TABLE public.order_items ADD COLUMN product_name text NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'quantity') THEN
         ALTER TABLE public.order_items ADD COLUMN quantity integer NOT NULL;
@@ -28,10 +32,10 @@ BEGIN
         ALTER TABLE public.order_items ADD COLUMN price numeric(10, 2) NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'created_at') THEN
-        ALTER TABLE public.order_items ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;
+        ALTER TABLE public.order_items ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'updated_at') THEN
-        ALTER TABLE public.order_items ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;
+        ALTER TABLE public.order_items ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
     END IF;
 END
 $$;
@@ -44,6 +48,7 @@ DROP POLICY IF EXISTS "Users can view their own order items." ON public.order_it
 DROP POLICY IF EXISTS "Users can insert their own order items." ON public.order_items;
 DROP POLICY IF EXISTS "Admins can update all order items." ON public.order_items;
 DROP POLICY IF EXISTS "Admins can delete all order items." ON public.order_items;
+DROP POLICY IF EXISTS "Admins can view all order items." ON public.order_items;
 
 -- Create RLS policies for order_items table
 CREATE POLICY "Users can view their own order items." ON public.order_items
@@ -51,6 +56,9 @@ FOR SELECT USING (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND us
 
 CREATE POLICY "Users can insert their own order items." ON public.order_items
 FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid()));
+
+CREATE POLICY "Admins can view all order items." ON public.order_items
+FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 CREATE POLICY "Admins can update all order items." ON public.order_items
 FOR UPDATE USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));

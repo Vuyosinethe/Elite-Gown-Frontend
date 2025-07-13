@@ -1,95 +1,93 @@
-import { NextResponse } from 'next/server'
-import { getPayFastFormFields, PAYFAST_URL } from '@/lib/payfast'
-import { supabase } from '@/lib/supabase'
-import { cookies } from 'next/headers'
+import { type NextRequest, NextResponse } from "next/server"
+import { getPayFastFormFields } from "@/lib/payfast"
+import { supabase } from "@/lib/supabase"
+import { headers } from "next/headers"
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabaseServer = supabase.auth.getSession()
-    const { data: sessionData, error: sessionError } = await supabaseServer
+    const { cartItems, userId, totalAmount } = await request.json()
 
-    if (sessionError || !sessionData?.session) {
-      console.error('Authentication error:', sessionError?.message)
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    if (!userId || !cartItems || cartItems.length === 0 || totalAmount === undefined) {
+      return NextResponse.json({ error: "Missing required fields for checkout" }, { status: 400 })
     }
 
-    const userId = sessionData.session.user.id
-    const userEmail = sessionData.session.user.email || 'guest@example.com'
-
-    const { cartItems } = await req.json()
-
-    if (!cartItems || cartItems.length === 0) {
-      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
-    }
-
-    // Calculate total amount
-    const totalAmount = cartItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0)
-
-    // 1. Create a new order in your database
+    // 1. Create a new order in the database
     const { data: order, error: orderError } = await supabase
-      .from('orders')
+      .from("orders")
       .insert({
         user_id: userId,
         total_amount: totalAmount,
-        status: 'pending', // Initial status
+        status: "pending", // Initial status
       })
       .select()
       .single()
 
     if (orderError || !order) {
-      console.error('Error creating order:', orderError?.message)
-      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+      console.error("Error creating order:", orderError)
+      return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
     }
 
-    // 2. Insert order items
-    const orderItemsData = cartItems.map((item: any) => ({
+    // 2. Add order items
+    const orderItems = cartItems.map((item: any) => ({
       order_id: order.id,
-      product_id: item.id, // Assuming item.id is your product_id
+      product_id: item.product_id, // Assuming product_id exists
+      product_name: item.name,
       quantity: item.quantity,
       price: item.price,
     }))
 
-    const { error: orderItemsError } = await supabase.from('order_items').insert(orderItemsData)
+    const { error: orderItemsError } = await supabase.from("order_items").insert(orderItems)
 
     if (orderItemsError) {
-      console.error('Error inserting order items:', orderItemsError.message)
+      console.error("Error creating order items:", orderItemsError)
       // Optionally, roll back the order creation here
-      await supabase.from('orders').delete().eq('id', order.id)
-      return NextResponse.json({ error: 'Failed to create order items' }, { status: 500 })
+      await supabase.from("orders").delete().eq("id", order.id)
+      return NextResponse.json({ error: "Failed to create order items" }, { status: 500 })
     }
 
-    // 3. Generate PayFast form fields
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000' // Ensure this is set in Vercel env vars
+    // 3. Get user email for PayFast
+    const { data: user, error: userError } = await supabase.from("profiles").select("email").eq("id", userId).single()
 
-    const payFastFields = getPayFastFormFields(
-      order.id,
-      totalAmount,
-      'EliteGowns Order',
-      userEmail,
-      `${siteUrl}/payfast/return`,
-      `${siteUrl}/payfast/cancel`,
-      `${siteUrl}/api/payfast/notify`
-    )
-
-    // 4. Update the order with the PayFast order ID (our internal order ID)
-    const { error: updateOrderError } = await supabase
-      .from('orders')
-      .update({ payfast_order_id: order.id }) // Use our internal order ID as PayFast's m_payment_id
-      .eq('id', order.id)
-
-    if (updateOrderError) {
-      console.error('Failed to update order with PayFast ID:', updateOrderError.message)
-      // Optionally, roll back the order and order items here
-      await supabase.from('order_items').delete().eq('order_id', order.id)
-      await supabase.from('orders').delete().eq('id', order.id)
-      return NextResponse.json({ error: 'Failed to update order with PayFast ID' }, { status: 500 })
+    if (userError || !user?.email) {
+      console.error("Error fetching user email:", userError)
+      return NextResponse.json({ error: "Failed to retrieve user email" }, { status: 500 })
     }
 
-    // Return PayFast URL and form fields to the client
-    return NextResponse.json({ payFastUrl: PAYFAST_URL, payFastFields })
+    // Determine the base URL for return/cancel/notify
+    const host = headers().get("host")
+    const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`
+
+    const returnUrl = `${baseUrl}/payfast/return?order_id=${order.id}`
+    const cancelUrl = `${baseUrl}/payfast/cancel?order_id=${order.id}`
+    const notifyUrl = `${baseUrl}/api/payfast/notify` // PayFast will POST to this endpoint
+
+    // 4. Generate PayFast form fields
+    const payFastFields = getPayFastFormFields({
+      orderId: order.id,
+      amount: totalAmount,
+      itemName: `Elite Gowns Order #${order.id.substring(0, 8)}`, // A descriptive name
+      userEmail: user.email,
+      returnUrl,
+      cancelUrl,
+      notifyUrl,
+    })
+
+    // 5. Update the order with the PayFast ID (our order ID is the m_payment_id)
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ payfast_order_id: order.id }) // m_payment_id is our order.id
+      .eq("id", order.id)
+
+    if (updateError) {
+      console.error("Failed to update order with PayFast ID:", updateError)
+      return NextResponse.json({ error: "Failed to update order with PayFast ID" }, { status: 500 })
+    }
+
+    // Return the PayFast form fields to the client
+    return NextResponse.json({ success: true, payFastFields })
   } catch (error) {
-    console.error('Checkout process failed:', error)
-    return NextResponse.json({ error: 'Internal server error during checkout' }, { status: 500 })
+    console.error("Checkout process error:", error)
+    return NextResponse.json({ error: "Internal server error during checkout" }, { status: 500 })
   }
 }

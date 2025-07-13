@@ -39,19 +39,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [initialized, setInitialized] = useState(false)
+  const [loading, setLoading] = useState(true) // Initial loading state is true
+  const [initialized, setInitialized] = useState(false) // To track if initial session check is done
   const router = useRouter()
 
   // Memoized function to load user with profile
   const loadUserWithProfile = useCallback(async (authUser: User) => {
+    console.log("AuthContext: Loading user profile for user ID:", authUser.id)
     try {
       // Fetch profile from database
       const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
 
       if (error && error.code !== "PGRST116") {
-        // PGRST116 is "not found" error
-        console.error("Error fetching profile:", error)
+        // PGRST116 is "not found" error, which is fine if profile doesn't exist yet
+        console.error("AuthContext: Error fetching profile:", error)
         // Use auth user data as fallback
         setUser({
           id: authUser.id,
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           phone: profileData.phone || authUser.user_metadata?.phone || "",
           avatar: profileData.avatar_url || authUser.user_metadata?.avatar_url || "",
         })
+        console.log("AuthContext: Profile loaded successfully for user ID:", authUser.id)
       } else {
         // No profile found, use auth user data
         setUser({
@@ -89,9 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar: authUser.user_metadata?.avatar_url || "",
         })
         setProfile(null)
+        console.log("AuthContext: No profile found, using auth user data for user ID:", authUser.id)
       }
     } catch (error) {
-      console.error("Error loading user profile:", error)
+      console.error("AuthContext: Error loading user profile:", error)
       // Fallback to auth user data
       setUser({
         id: authUser.id,
@@ -107,32 +110,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
+    console.log("AuthContext: useEffect mounted, initial loading state:", loading)
 
     // Get initial session immediately without timeout
     const getInitialSession = async () => {
       try {
-        console.log("Getting initial session...")
+        console.log("AuthContext: Getting initial session...")
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession()
 
-        console.log("Initial session result:", { session: !!session, error })
+        console.log("AuthContext: Initial session result:", { session: !!session, error })
 
-        if (!mounted) return
+        if (!mounted) {
+          console.log("AuthContext: Component unmounted during initial session fetch.")
+          return
+        }
 
         if (session?.user) {
-          console.log("Found valid session, loading user profile...")
+          console.log("AuthContext: Found valid session, loading user profile...")
           setSession(session)
           await loadUserWithProfile(session.user)
         } else {
-          console.log("No valid session found")
+          console.log("AuthContext: No valid session found.")
           setUser(null)
           setProfile(null)
           setSession(null)
         }
       } catch (error) {
-        console.error("Error getting initial session:", error)
+        console.error("AuthContext: Error getting initial session:", error)
         if (mounted) {
           setUser(null)
           setProfile(null)
@@ -140,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted) {
-          console.log("Auth initialization complete")
+          console.log("AuthContext: Initial session check complete. Setting loading to false.")
           setLoading(false)
           setInitialized(true)
         }
@@ -153,30 +160,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
+      if (!mounted) {
+        console.log("AuthContext: Component unmounted during auth state change.")
+        return
+      }
 
-      console.log("Auth state change:", event, session?.user?.id)
+      console.log("AuthContext: Auth state change event:", event, "User ID:", session?.user?.id)
 
       // Handle different auth events
       if (event === "SIGNED_OUT") {
         setUser(null)
         setProfile(null)
         setSession(null)
+        console.log("AuthContext: User signed out.")
       } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         if (session?.user) {
           setSession(session)
           await loadUserWithProfile(session.user)
+          console.log("AuthContext: User signed in or token refreshed.")
         }
       } else if (event === "USER_UPDATED") {
         if (session?.user) {
           setSession(session)
           await loadUserWithProfile(session.user)
+          console.log("AuthContext: User profile updated.")
         }
       }
 
-      // Ensure loading is false after any auth event
-      if (!initialized) {
+      // Ensure loading is false after any auth event, especially if it was true
+      // This ensures the loading state is always resolved after an auth event.
+      if (loading) {
+        // Check current loading state, not initialized
+        console.log("AuthContext: Auth state changed, ensuring loading is false.")
         setLoading(false)
+      }
+      if (!initialized) {
         setInitialized(true)
       }
     })
@@ -184,11 +202,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false
       subscription.unsubscribe()
+      console.log("AuthContext: useEffect cleanup, subscription unsubscribed.")
     }
-  }, [loadUserWithProfile, initialized])
+  }, [loadUserWithProfile]) // Removed 'initialized' from dependencies to avoid re-runs based on internal flag
+  // 'loading' is not a dependency here because we are setting it within the effect.
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
+      console.log("AuthContext: Attempting sign up for:", email)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -203,78 +224,94 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
+        console.error("AuthContext: Sign up error:", error)
         return { error }
       }
-
+      console.log("AuthContext: Sign up successful for:", email)
       return { error: null }
     } catch (error) {
+      console.error("AuthContext: Sign up exception:", error)
       return { error }
     }
   }
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log("Attempting sign in for:", email)
-
+      console.log("AuthContext: Attempting sign in for:", email)
+      setLoading(true) // Set loading true during sign-in attempt
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      console.log("Sign in result:", { user: !!data?.user, error })
+      console.log("AuthContext: Sign in result:", { user: !!data?.user, error })
 
       if (error) {
-        console.error("Sign in error:", error)
+        console.error("AuthContext: Sign in error:", error)
+        setLoading(false) // Set loading false on error
         return { error }
       }
 
       if (data?.user) {
-        console.log("Sign in successful, user:", data.user.id)
-        // The auth state change listener will handle the redirect
+        console.log("AuthContext: Sign in successful, user:", data.user.id)
+        // The auth state change listener will handle loading user profile and setting loading to false
         return { error: null }
       }
 
+      setLoading(false) // Fallback in case of unknown error without user
       return { error: new Error("Unknown sign in error") }
     } catch (error) {
-      console.error("Sign in exception:", error)
+      console.error("AuthContext: Sign in exception:", error)
+      setLoading(false) // Set loading false on exception
       return { error }
     }
   }
 
   const signOut = async () => {
     try {
+      console.log("AuthContext: Attempting sign out.")
       const { error } = await supabase.auth.signOut()
       if (error) {
-        console.error("Error signing out:", error)
+        console.error("AuthContext: Error signing out:", error)
       }
       // Clear local state immediately
       setUser(null)
       setProfile(null)
       setSession(null)
+      console.log("AuthContext: User signed out locally, redirecting.")
       router.push("/")
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("AuthContext: Error signing out:", error)
     }
   }
 
   const resetPassword = async (email: string) => {
     try {
+      console.log("AuthContext: Attempting password reset for:", email)
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
+      if (error) {
+        console.error("AuthContext: Reset password error:", error)
+      } else {
+        console.log("AuthContext: Reset password email sent to:", email)
+      }
       return { error }
     } catch (error) {
+      console.error("AuthContext: Reset password exception:", error)
       return { error }
     }
   }
 
   const updateProfile = async (updates: Partial<AuthUser>) => {
     if (!user) {
+      console.warn("AuthContext: No user logged in to update profile.")
       return { error: new Error("No user logged in") }
     }
 
     try {
+      console.log("AuthContext: Attempting to update profile for user ID:", user.id, updates)
       // Convert camelCase to snake_case for database
       const dbUpdates: any = {
         updated_at: new Date().toISOString(),
@@ -296,6 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.from("profiles").update(dbUpdates).eq("id", user.id)
 
       if (error) {
+        console.error("AuthContext: Error updating profile in DB:", error)
         return { error }
       }
 
@@ -305,10 +343,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getUser()
       if (authUser) {
         await loadUserWithProfile(authUser)
+        console.log("AuthContext: Profile updated and reloaded successfully.")
+      } else {
+        console.warn("AuthContext: User not found after profile update, cannot reload profile.")
       }
 
       return { error: null }
     } catch (error) {
+      console.error("AuthContext: Update profile exception:", error)
       return { error }
     }
   }

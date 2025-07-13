@@ -6,11 +6,21 @@ import crypto from "crypto"
 const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || "10040412"
 const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || "hplfynw1fkm14"
 const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || "This1is2Elite3Gowns45678"
-export const PAYFAST_URL = process.env.PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process"
+const PAYFAST_SANDBOX_URL = process.env.PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process"
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+interface PayFastFormField {
+  name: string
+  value: string
+}
+
+interface PayFastCheckoutForm {
+  url: string
+  fields: PayFastFormField[]
+}
+
 export interface PayFastFormData {
   merchant_id: string
   merchant_key: string
@@ -36,69 +46,128 @@ export interface PayFastFormData {
 // ---------------------------------------------------------------------------
 // Signature helpers
 // ---------------------------------------------------------------------------
-export function generatePayFastSignature(data: Record<string, string>): string {
-  const query = Object.keys(data)
-    .filter((k) => k !== "signature" && data[k] !== undefined && data[k] !== "")
-    .sort()
-    .map((k) => `${k}=${encodeURIComponent(data[k]).replace(/%20/g, "+")}`)
+/**
+ * Generates the signature for PayFast.
+ * @param data The data object to sign.
+ * @returns The generated signature.
+ */
+export function generatePayFastSignature(data: Record<string, string | number>): string {
+  // Sort the data by key
+  const sortedKeys = Object.keys(data).sort()
+  const queryString = sortedKeys
+    .map((key) => {
+      const value = data[key]
+      // Encode values, replace spaces with '+'
+      return `${key}=${encodeURIComponent(String(value)).replace(/%20/g, "+")}`
+    })
     .join("&")
 
-  const stringToHash = PAYFAST_PASSPHRASE
-    ? `${query}&passphrase=${encodeURIComponent(PAYFAST_PASSPHRASE).replace(/%20/g, "+")}`
-    : query
+  const passPhraseString = PAYFAST_PASSPHRASE
+    ? `&passphrase=${encodeURIComponent(PAYFAST_PASSPHRASE).replace(/%20/g, "+")}`
+    : ""
+  const fullString = `${queryString}${passPhraseString}`
 
-  return crypto.createHash("md5").update(stringToHash).digest("hex")
+  return crypto.md5(fullString).toString()
 }
 
-export function verifyPayFastSignature(data: Record<string, string>): boolean {
-  const { signature: received, ...rest } = data
-  const expected = generatePayFastSignature(rest as Record<string, string>)
-  return expected === received
+/**
+ * Verifies the signature from PayFast ITN.
+ * @param data The data received from PayFast.
+ * @param signature The signature to verify.
+ * @returns True if the signature is valid, false otherwise.
+ */
+export function verifyPayFastSignature(data: Record<string, string | number>, signature: string): boolean {
+  const generatedSignature = generatePayFastSignature(data)
+  return generatedSignature === signature
 }
 
 // ---------------------------------------------------------------------------
 // Checkout helpers
 // ---------------------------------------------------------------------------
-export function getPayFastCheckoutForm(params: {
+/**
+ * Generates the form fields for PayFast checkout.
+ * @param orderId The unique ID of the order.
+ * @param amount The total amount of the order.
+ * @param itemName The name of the item being purchased.
+ * @param userEmail The user's email address.
+ * @param returnUrl URL for successful payment.
+ * @param cancelUrl URL for cancelled payment.
+ * @param notifyUrl URL for ITN callback.
+ * @returns An object containing the PayFast URL and form fields.
+ */
+export function getPayFastCheckoutForm({
+  orderId,
+  amount,
+  itemName,
+  userEmail,
+  returnUrl,
+  cancelUrl,
+  notifyUrl,
+}: {
   orderId: string
-  totalAmountInCents: number
+  amount: number
   itemName: string
-  customerEmail: string
-  siteUrl: string
-  firstName?: string
-  lastName?: string
-}) {
-  const { orderId, totalAmountInCents, itemName, customerEmail, siteUrl, firstName = "", lastName = "" } = params
-
-  const amountZar = (totalAmountInCents / 100).toFixed(2) // "123.45"
-
-  const base: Omit<PayFastFormData, "signature"> = {
+  userEmail: string
+  returnUrl: string
+  cancelUrl: string
+  notifyUrl: string
+}): PayFastCheckoutForm {
+  const data: Record<string, string | number> = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
-    return_url: `${siteUrl}/payfast/return`,
-    cancel_url: `${siteUrl}/payfast/cancel`,
-    notify_url: `${siteUrl}/api/payfast/notify`,
-    m_payment_id: orderId,
-    amount: amountZar,
+    return_url: returnUrl,
+    cancel_url: cancelUrl,
+    notify_url: notifyUrl,
+    m_payment_id: orderId, // Our unique order ID
+    amount: amount.toFixed(2),
     item_name: itemName,
-    email_address: customerEmail,
-    name_first: firstName,
-    name_last: lastName,
-    custom_str1: orderId,
+    email_address: userEmail,
+    // Add other optional fields as needed, e.g., first_name, last_name, phone
   }
 
-  const fields: PayFastFormData = {
-    ...base,
-    signature: generatePayFastSignature(base as Record<string, string>),
-  }
+  const signature = generatePayFastSignature(data)
+  data.signature = signature
 
-  return { url: PAYFAST_URL, fields }
+  const fields: PayFastFormField[] = Object.keys(data).map((key) => ({
+    name: key,
+    value: String(data[key]),
+  }))
+
+  return {
+    url: PAYFAST_SANDBOX_URL,
+    fields,
+  }
 }
 
 /**
- * Alias kept for backward-compatibility with earlier imports.
- * Returns ONLY the form fields object, not the PayFast URL.
+ * Helper to get just the form fields for client-side rendering.
+ * This is a named export to match the import in process/route.ts
  */
-export function getPayFastFormFields(params: Parameters<typeof getPayFastCheckoutForm>[0]): PayFastFormData {
-  return getPayFastCheckoutForm(params).fields
+export function getPayFastFormFields({
+  orderId,
+  amount,
+  itemName,
+  userEmail,
+  returnUrl,
+  cancelUrl,
+  notifyUrl,
+}: {
+  orderId: string
+  amount: number
+  itemName: string
+  userEmail: string
+  returnUrl: string
+  cancelUrl: string
+  notifyUrl: string
+}): PayFastFormField[] {
+  const { fields } = getPayFastCheckoutForm({
+    orderId,
+    amount,
+    itemName,
+    userEmail,
+    returnUrl,
+    cancelUrl,
+    notifyUrl,
+  })
+  return fields
 }
