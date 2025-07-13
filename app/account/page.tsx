@@ -1,38 +1,46 @@
 "use client"
 
+import { Separator } from "@/components/ui/separator"
+
 import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Loader2, UserIcon, ShoppingBag, Heart, LogOut, Edit } from "lucide-react"
 import Layout from "@/components/layout"
-import { supabase } from "@/lib/supabase"
-import { Loader2 } from "lucide-react"
 
 interface Order {
   id: string
+  created_at: string
   total_amount: number
   status: string
-  created_at: string
-  payfast_order_id: string | null
+  order_items: {
+    product_name: string
+    quantity: number
+    price: number
+  }[]
 }
 
 export default function AccountPage() {
-  const { user, profile, signOut, updateProfile, loading: authLoading } = useAuth()
+  const { user, profile, signOut, loading: authLoading, updateProfile } = useAuth()
   const router = useRouter()
-
-  const [firstName, setFirstName] = useState(user?.firstName || "")
-  const [lastName, setLastName] = useState(user?.lastName || "")
-  const [phone, setPhone] = useState(user?.phone || "")
-  const [avatar, setAvatar] = useState(user?.avatar || "")
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
-  const [profileUpdateMessage, setProfileUpdateMessage] = useState("")
-  const [profileUpdateError, setProfileUpdateError] = useState("")
+  const [activeTab, setActiveTab] = useState("profile")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState("")
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [profileUpdateLoading, setProfileUpdateLoading] = useState(false)
+  const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null)
+  const [profileUpdateSuccess, setProfileUpdateSuccess] = useState<string | null>(null)
 
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(true)
@@ -45,105 +53,146 @@ export default function AccountPage() {
   }, [user, authLoading, router])
 
   useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName || "")
-      setLastName(user.lastName || "")
-      setPhone(user.phone || "")
-      setAvatar(user.avatar || "")
+    if (profile) {
+      setFirstName(profile.first_name || "")
+      setLastName(profile.last_name || "")
+      setPhone(profile.phone || "")
+      setAvatarUrl(profile.avatar_url || "")
     }
-  }, [user])
+  }, [profile])
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!user?.id) {
-        setOrdersLoading(false)
-        return
-      }
+      if (!user) return
 
       setOrdersLoading(true)
       setOrdersError(null)
       try {
         const { data, error } = await supabase
           .from("orders")
-          .select("id, total_amount, status, created_at, payfast_order_id")
+          .select(
+            `
+            id,
+            created_at,
+            total_amount,
+            status,
+            order_items (
+              product_name,
+              quantity,
+              price
+            )
+          `,
+          )
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
 
         if (error) {
-          console.error("Error fetching orders:", error)
-          setOrdersError("Failed to load orders.")
-        } else {
-          setOrders(data || [])
+          throw error
         }
-      } catch (err) {
-        console.error("Unexpected error fetching orders:", err)
-        setOrdersError("An unexpected error occurred while loading orders.")
+
+        setOrders(data || [])
+      } catch (err: any) {
+        console.error("Error fetching orders:", err.message)
+        setOrdersError("Failed to load orders. Please try again.")
       } finally {
         setOrdersLoading(false)
       }
     }
 
-    fetchOrders()
-  }, [user])
+    if (user && activeTab === "orders") {
+      fetchOrders()
+    }
+  }, [user, activeTab])
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsUpdatingProfile(true)
-    setProfileUpdateMessage("")
-    setProfileUpdateError("")
+    setProfileUpdateLoading(true)
+    setProfileUpdateError(null)
+    setProfileUpdateSuccess(null)
 
-    const { error } = await updateProfile({ firstName, lastName, phone, avatar })
+    const { error } = await updateProfile({ firstName, lastName, phone, avatar: avatarUrl })
 
     if (error) {
       setProfileUpdateError(error.message || "Failed to update profile.")
+      setProfileUpdateSuccess(null)
     } else {
-      setProfileUpdateMessage("Profile updated successfully!")
+      setProfileUpdateSuccess("Profile updated successfully!")
+      setProfileUpdateError(null)
+      setIsEditingProfile(false) // Exit edit mode on success
     }
-    setIsUpdatingProfile(false)
+    setProfileUpdateLoading(false)
   }
 
-  if (authLoading || !user) {
+  if (authLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-          <span className="ml-2 text-gray-600">Loading account...</span>
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </Layout>
     )
   }
 
+  if (!user) {
+    return null // Should redirect to login via useEffect
+  }
+
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">My Account</h1>
+      <div className="container mx-auto px-4 py-8 md:px-6 lg:px-8">
+        <h1 className="mb-8 text-3xl font-bold">My Account</h1>
 
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            {profile?.role === "admin" && <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>}
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 md:w-auto">
+            <TabsTrigger value="profile">
+              <UserIcon className="mr-2 h-4 w-4" /> Profile
+            </TabsTrigger>
+            <TabsTrigger value="orders">
+              <ShoppingBag className="mr-2 h-4 w-4" /> Orders
+            </TabsTrigger>
+            <TabsTrigger value="wishlist">
+              <Heart className="mr-2 h-4 w-4" /> Wishlist
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your personal details.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-2xl font-bold">Profile Information</CardTitle>
+                {!isEditingProfile && (
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
+                    <Edit className="mr-2 h-4 w-4" /> Edit
+                  </Button>
+                )}
               </CardHeader>
-              <CardContent>
-                {profileUpdateMessage && <div className="mb-4 text-green-600">{profileUpdateMessage}</div>}
-                {profileUpdateError && <div className="mb-4 text-red-600">{profileUpdateError}</div>}
+              <CardContent className="space-y-4">
+                {profileUpdateSuccess && (
+                  <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">{profileUpdateSuccess}</div>
+                )}
+                {profileUpdateError && (
+                  <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">{profileUpdateError}</div>
+                )}
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={avatarUrl || "/placeholder-user.jpg"} alt={user.firstName || "User"} />
+                    <AvatarFallback>{user.firstName ? user.firstName[0] : "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <p className="text-lg font-semibold">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
+                </div>
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        disabled={isUpdatingProfile}
+                        disabled={!isEditingProfile || profileUpdateLoading}
                       />
                     </div>
                     <div className="space-y-2">
@@ -152,36 +201,52 @@ export default function AccountPage() {
                         id="lastName"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        disabled={isUpdatingProfile}
+                        disabled={!isEditingProfile || profileUpdateLoading}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" value={user.email} disabled />
+                    <Input id="email" value={user.email} disabled />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="phone">Phone Number</Label>
                     <Input
                       id="phone"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      disabled={isUpdatingProfile}
+                      disabled={!isEditingProfile || profileUpdateLoading}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="avatar">Avatar URL</Label>
+                    <Label htmlFor="avatarUrl">Avatar URL</Label>
                     <Input
-                      id="avatar"
-                      value={avatar}
-                      onChange={(e) => setAvatar(e.target.value)}
-                      disabled={isUpdatingProfile}
+                      id="avatarUrl"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      disabled={!isEditingProfile || profileUpdateLoading}
                     />
                   </div>
-                  <Button type="submit" disabled={isUpdatingProfile}>
-                    {isUpdatingProfile ? "Updating..." : "Update Profile"}
-                  </Button>
+                  {isEditingProfile && (
+                    <div className="flex gap-2">
+                      <Button type="submit" disabled={profileUpdateLoading}>
+                        {profileUpdateLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Save Changes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditingProfile(false)}
+                        disabled={profileUpdateLoading}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </form>
+                <Separator />
+                <Button variant="destructive" onClick={signOut} className="w-full">
+                  <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -194,41 +259,50 @@ export default function AccountPage() {
               </CardHeader>
               <CardContent>
                 {ordersLoading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                    <span className="ml-2 text-gray-600">Loading orders...</span>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   </div>
                 ) : ordersError ? (
-                  <div className="text-red-600">{ordersError}</div>
+                  <div className="text-center text-red-600">{ordersError}</div>
                 ) : orders.length === 0 ? (
-                  <p>You have no orders yet.</p>
+                  <div className="text-center text-gray-500">You have no orders yet.</div>
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div key={order.id} className="border rounded-md p-4">
+                      <Card key={order.id} className="p-4">
                         <div className="flex justify-between items-center">
-                          <h3 className="font-semibold">Order #{order.id.substring(0, 8)}</h3>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              order.status === "completed"
-                                ? "bg-green-100 text-green-800"
-                                : order.status === "pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {order.status.toUpperCase()}
-                          </span>
+                          <div>
+                            <p className="font-semibold">Order #{order.id.substring(0, 8)}</p>
+                            <p className="text-sm text-gray-500">
+                              Date: {new Date(order.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">R{order.total_amount.toFixed(2)}</p>
+                            <p
+                              className={`text-sm font-medium ${
+                                order.status === "completed" ? "text-green-600" : "text-yellow-600"
+                              }`}
+                            >
+                              {order.status.toUpperCase()}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600">Total: R{order.total_amount.toFixed(2)}</p>
-                        <p className="text-sm text-gray-600">Date: {new Date(order.created_at).toLocaleDateString()}</p>
-                        {order.payfast_order_id && (
-                          <p className="text-sm text-gray-600">PayFast ID: {order.payfast_order_id.substring(0, 8)}</p>
-                        )}
-                        <Button variant="link" className="p-0 h-auto mt-2">
+                        <Separator className="my-3" />
+                        <div className="space-y-2">
+                          {order.order_items.map((item, index) => (
+                            <div key={index} className="flex justify-between text-sm text-gray-700">
+                              <span>
+                                {item.product_name} (x{item.quantity})
+                              </span>
+                              <span>R{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <Button variant="outline" size="sm" className="mt-4 w-full bg-transparent">
                           View Details
                         </Button>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 )}
@@ -236,31 +310,14 @@ export default function AccountPage() {
             </Card>
           </TabsContent>
 
-          {profile?.role === "admin" && (
-            <TabsContent value="admin" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Admin Dashboard</CardTitle>
-                  <CardDescription>Access administrative functions.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>Welcome, Admin! More features coming soon.</p>
-                  {/* Add admin specific content here */}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          <TabsContent value="settings" className="mt-6">
+          <TabsContent value="wishlist" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Account Settings</CardTitle>
-                <CardDescription>Manage your account preferences.</CardDescription>
+                <CardTitle>My Wishlist</CardTitle>
+                <CardDescription>Your saved items for later.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={signOut} variant="destructive">
-                  Sign Out
-                </Button>
+                <div className="text-center text-gray-500">Wishlist functionality coming soon!</div>
               </CardContent>
             </Card>
           </TabsContent>

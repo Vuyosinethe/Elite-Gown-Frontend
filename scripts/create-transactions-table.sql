@@ -1,29 +1,41 @@
-CREATE TABLE IF NOT EXISTS public.transactions (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE,
-  payfast_transaction_id text UNIQUE NOT NULL,
-  amount numeric(10, 2) NOT NULL,
-  status text NOT NULL, -- e.g., 'COMPLETE', 'FAILED', 'PENDING'
-  payment_method text,
-  metadata jsonb, -- Store any additional data from PayFast ITN
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now()
+CREATE TABLE IF NOT EXISTS transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
+  transaction_id TEXT UNIQUE NOT NULL, -- PayFast transaction ID
+  status TEXT NOT NULL, -- e.g., 'COMPLETE', 'FAILED', 'PENDING'
+  amount NUMERIC(10, 2) NOT NULL,
+  currency TEXT DEFAULT 'ZAR' NOT NULL,
+  payment_method TEXT,
+  metadata JSONB, -- Store additional PayFast ITN data
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+-- Set up Row Level Security (RLS)
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they exist to prevent errors
-DROP POLICY IF EXISTS "Users can view their own transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Users can insert their own transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Admins can view all transactions." ON public.transactions;
+-- Drop existing policies if they exist to prevent errors on re-run
+DROP POLICY IF EXISTS "Users can view their own transactions." ON transactions;
+DROP POLICY IF EXISTS "Admins can view all transactions." ON transactions;
 
--- Policies
-CREATE POLICY "Users can view their own transactions." ON public.transactions
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid()));
+-- Create RLS policies
+CREATE POLICY "Users can view their own transactions." ON transactions FOR SELECT USING (EXISTS (SELECT 1 FROM orders WHERE orders.id = transactions.order_id AND orders.user_id = auth.uid()));
+CREATE POLICY "Admins can view all transactions." ON transactions FOR SELECT USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
-CREATE POLICY "Users can insert their own transactions." ON public.transactions
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid()));
+-- Create a function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_transactions_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
--- Admin policies
-CREATE POLICY "Admins can view all transactions." ON public.transactions
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+-- Drop existing trigger if it exists to prevent errors on re-run
+DROP TRIGGER IF EXISTS set_transactions_updated_at ON transactions;
+
+-- Create trigger to update updated_at on transaction changes
+CREATE TRIGGER set_transactions_updated_at
+BEFORE UPDATE ON transactions
+FOR EACH ROW
+EXECUTE FUNCTION update_transactions_updated_at_column();

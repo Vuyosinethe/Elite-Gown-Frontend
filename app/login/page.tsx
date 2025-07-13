@@ -20,7 +20,7 @@ export default function LoginPage() {
   const { signIn, loading: authLoading, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { addPendingCartItem } = useCart() // Removed cartCount as it's not used here
+  const { cartCount, addPendingCartItem } = useCart()
   const { addPendingWishlistItem } = useWishlist()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
@@ -346,7 +346,7 @@ export default function LoginPage() {
                     onClick={() => setCartOpen(true)}
                     className="text-gray-700 hover:text-black transition-colors"
                   >
-                    {user ? `Cart (${addPendingCartItem.length})` : "Cart"}
+                    {user ? `Cart (${cartCount})` : "Cart"}
                   </button>
                   {user ? (
                     <Link
@@ -374,7 +374,7 @@ export default function LoginPage() {
               {/* Mobile Navigation Button */}
               <div className="flex items-center space-x-4 md:hidden">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? `Cart (${addPendingCartItem.length})` : "Cart"}
+                  {user ? `Cart (${cartCount})` : "Cart"}
                 </button>
                 <Image
                   src="/elite-gowns-logo.png"
