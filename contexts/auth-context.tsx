@@ -1,196 +1,340 @@
 "use client"
 
 import type React from "react"
-import { createContext, useState, useEffect, useContext, useCallback } from "react"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import type { User, Session } from "@supabase/supabase-js"
+import { supabase, type Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import type { User } from "@supabase/supabase-js"
-import { getSupabaseClient } from "@/lib/supabase" // Correct import path for the singleton client
-import type { Profile } from "@/lib/types" // Import Profile type
+
+interface AuthUser {
+  id: string
+  email: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  avatar?: string
+}
 
 interface AuthContextType {
-  user: User | null
-  loading: boolean
-  isAdmin: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>
-  signOut: () => Promise<{ error: string | null }>
-  forgotPassword: (email: string) => Promise<{ error: string | null }>
-  resetPassword: (accessToken: string, newPassword: string) => Promise<{ error: string | null }>
+  user: AuthUser | null
   profile: Profile | null
-  profileLoading: boolean
+  session: Session | null
+  loading: boolean
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone?: string,
+  ) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<AuthUser>) => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [profileLoading, setProfileLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [initialized, setInitialized] = useState(false)
   const router = useRouter()
-  const supabase = getSupabaseClient() // Use the singleton client
 
-  const fetchUserAndProfile = useCallback(async () => {
-    setLoading(true)
-    setProfileLoading(true)
-    const {
-      data: { user: sessionUser },
-    } = await supabase.auth.getUser()
-    setUser(sessionUser)
+  // Memoized function to load user with profile
+  const loadUserWithProfile = useCallback(async (authUser: User) => {
+    try {
+      // Fetch profile from database
+      const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
 
-    if (sessionUser) {
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, email, first_name, last_name, phone, avatar_url, role, created_at, updated_at") // Select all profile fields
-        .eq("id", sessionUser.id)
-        .single()
-
-      if (profileError) {
-        console.error("Error fetching profile:", profileError)
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 is "not found" error
+        console.error("Error fetching profile:", error)
+        // Use auth user data as fallback
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          firstName: authUser.user_metadata?.first_name || "",
+          lastName: authUser.user_metadata?.last_name || "",
+          phone: authUser.user_metadata?.phone || "",
+          avatar: authUser.user_metadata?.avatar_url || "",
+        })
         setProfile(null)
-        setIsAdmin(false)
-      } else {
-        setProfile(profileData)
-        setIsAdmin(profileData?.role === "admin")
+        return
       }
-    } else {
+
+      if (profileData) {
+        // Set profile data
+        setProfile(profileData)
+
+        // Create user object with profile data
+        setUser({
+          id: authUser.id,
+          email: authUser.email || profileData.email || "",
+          firstName: profileData.first_name || authUser.user_metadata?.first_name || "",
+          lastName: profileData.last_name || authUser.user_metadata?.last_name || "",
+          phone: profileData.phone || authUser.user_metadata?.phone || "",
+          avatar: profileData.avatar_url || authUser.user_metadata?.avatar_url || "",
+        })
+      } else {
+        // No profile found, use auth user data
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          firstName: authUser.user_metadata?.first_name || "",
+          lastName: authUser.user_metadata?.last_name || "",
+          phone: authUser.user_metadata?.phone || "",
+          avatar: authUser.user_metadata?.avatar_url || "",
+        })
+        setProfile(null)
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error)
+      // Fallback to auth user data
+      setUser({
+        id: authUser.id,
+        email: authUser.email || "",
+        firstName: authUser.user_metadata?.first_name || "",
+        lastName: authUser.user_metadata?.last_name || "",
+        phone: authUser.user_metadata?.phone || "",
+        avatar: authUser.user_metadata?.avatar_url || "",
+      })
       setProfile(null)
-      setIsAdmin(false)
     }
-    setLoading(false)
-    setProfileLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
-    fetchUserAndProfile()
+    let mounted = true
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
-      fetchUserAndProfile() // Re-fetch profile on auth state change
+    // Get initial session immediately without timeout
+    const getInitialSession = async () => {
+      try {
+        console.log("Getting initial session...")
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        console.log("Initial session result:", { session: !!session, error })
+
+        if (!mounted) return
+
+        if (session?.user) {
+          console.log("Found valid session, loading user profile...")
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        } else {
+          console.log("No valid session found")
+          setUser(null)
+          setProfile(null)
+          setSession(null)
+        }
+      } catch (error) {
+        console.error("Error getting initial session:", error)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setSession(null)
+        }
+      } finally {
+        if (mounted) {
+          console.log("Auth initialization complete")
+          setLoading(false)
+          setInitialized(true)
+        }
+      }
+    }
+
+    getInitialSession()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
+      console.log("Auth state change:", event, session?.user?.id)
+
+      // Handle different auth events
+      if (event === "SIGNED_OUT") {
+        setUser(null)
+        setProfile(null)
+        setSession(null)
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        }
+      } else if (event === "USER_UPDATED") {
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        }
+      }
+
+      // Ensure loading is false after any auth event
+      if (!initialized) {
+        setLoading(false)
+        setInitialized(true)
+      }
     })
 
     return () => {
-      authListener.subscription.unsubscribe()
+      mounted = false
+      subscription.unsubscribe()
     }
-  }, [fetchUserAndProfile, supabase.auth])
+  }, [loadUserWithProfile, initialized])
 
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      setLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      setLoading(false)
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login?verified=true&message=Your email has been verified! You can now sign in.`,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone || "",
+          },
+        },
+      })
 
       if (error) {
-        console.error("Sign-in error:", error)
-        return { error: error.message }
+        return { error }
       }
 
-      if (data.user) {
-        // Fetch profile immediately after successful sign-in to get role
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single()
-
-        if (profileError) {
-          console.error("Error fetching profile after sign-in:", profileError)
-          return { error: "Failed to fetch user profile after sign-in." }
-        }
-
-        if (profileData?.role === "admin") {
-          router.push("/admin")
-        } else {
-          router.push("/account")
-        }
-      }
       return { error: null }
-    },
-    [supabase.auth, router],
-  )
-
-  const signUp = useCallback(
-    async (email: string, password: string) => {
-      setLoading(true)
-      const { error } = await supabase.auth.signUp({ email, password })
-      setLoading(false)
-      if (error) {
-        console.error("Sign-up error:", error)
-        return { error: error.message }
-      }
-      return { error: null }
-    },
-    [supabase.auth],
-  )
-
-  const signOut = useCallback(async () => {
-    setLoading(true)
-    const { error } = await supabase.auth.signOut()
-    setLoading(false)
-    if (error) {
-      console.error("Sign-out error:", error)
-      return { error: error.message }
+    } catch (error) {
+      return { error }
     }
-    setUser(null)
-    setProfile(null)
-    setIsAdmin(false)
-    router.push("/login")
-    return { error: null }
-  }, [supabase.auth, router])
+  }
 
-  const forgotPassword = useCallback(
-    async (email: string) => {
-      setLoading(true)
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log("Attempting sign in for:", email)
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      console.log("Sign in result:", { user: !!data?.user, error })
+
+      if (error) {
+        console.error("Sign in error:", error)
+        return { error }
+      }
+
+      if (data?.user) {
+        console.log("Sign in successful, user:", data.user.id)
+        // The auth state change listener will handle the redirect
+        return { error: null }
+      }
+
+      return { error: new Error("Unknown sign in error") }
+    } catch (error) {
+      console.error("Sign in exception:", error)
+      return { error }
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Error signing out:", error)
+      }
+      // Clear local state immediately
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+      router.push("/")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
+  const resetPassword = async (email: string) => {
+    try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       })
-      setLoading(false)
-      if (error) {
-        console.error("Forgot password error:", error)
-        return { error: error.message }
-      }
-      return { error: null }
-    },
-    [supabase.auth],
-  )
 
-  const resetPassword = useCallback(
-    async (accessToken: string, newPassword: string) => {
-      setLoading(true)
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      })
-      setLoading(false)
-      if (error) {
-        console.error("Reset password error:", error)
-        return { error: error.message }
+      return { error }
+    } catch (error) {
+      return { error }
+    }
+  }
+
+  const updateProfile = async (updates: Partial<AuthUser>) => {
+    if (!user) {
+      return { error: new Error("No user logged in") }
+    }
+
+    try {
+      // Convert camelCase to snake_case for database
+      const dbUpdates: any = {
+        updated_at: new Date().toISOString(),
       }
+
+      if (updates.firstName !== undefined) {
+        dbUpdates.first_name = updates.firstName
+      }
+      if (updates.lastName !== undefined) {
+        dbUpdates.last_name = updates.lastName
+      }
+      if (updates.phone !== undefined) {
+        dbUpdates.phone = updates.phone
+      }
+      if (updates.avatar !== undefined) {
+        dbUpdates.avatar_url = updates.avatar
+      }
+
+      const { error } = await supabase.from("profiles").update(dbUpdates).eq("id", user.id)
+
+      if (error) {
+        return { error }
+      }
+
+      // Refresh user and profile data
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
+      if (authUser) {
+        await loadUserWithProfile(authUser)
+      }
+
       return { error: null }
-    },
-    [supabase.auth],
-  )
+    } catch (error) {
+      return { error }
+    }
+  }
 
   const value = {
     user,
-    loading,
-    isAdmin,
-    signIn,
-    signUp,
-    signOut,
-    forgotPassword,
-    resetPassword,
     profile,
-    profileLoading,
+    session,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    resetPassword,
+    updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
+
+// Re-export the context so "import { AuthContext } …" works.
+export { AuthContext }
