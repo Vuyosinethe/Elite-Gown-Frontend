@@ -1,37 +1,34 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 import { UsersTable } from "@/components/admin/users-table"
 import { OrdersTable } from "@/components/admin/orders-table"
 import { CustomQuotesTable } from "@/components/admin/custom-quotes-table"
 
-export default async function AdminDashboardPage() {
-  const supabase = createRouteHandlerClient({ cookies })
+export default function AdminDashboardPage() {
+  const { user, loading, isAdmin } = useAuth()
+  const router = useRouter()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      // Redirect to login if not authenticated or not an admin
+      router.push("/login")
+    }
+  }, [user, loading, isAdmin, router])
 
-  if (!user) {
-    redirect("/login")
-  }
-
-  // Check if the user is an admin
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
-
-  if (profileError || profile?.role !== "admin") {
-    // Redirect non-admin users to their account page
-    redirect("/account")
+  if (loading || !user || !isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading admin dashboard...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-
+    <div className="container mx-auto py-8 px-4 md:px-6">
+      <h1 className="mb-8 text-3xl font-bold">Admin Dashboard</h1>
       <div className="grid gap-8">
         <UsersTable />
         <OrdersTable />

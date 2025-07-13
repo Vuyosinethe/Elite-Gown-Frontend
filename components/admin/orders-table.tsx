@@ -1,20 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 
 interface Order {
   id: string
-  user_id: string
   order_number: string
-  status: string
+  user_id: string | null
+  guest_id: string | null
   total_amount: number
-  items: any[]
+  status: string
   created_at: string
-  updated_at: string
 }
 
 const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"]
@@ -25,7 +24,7 @@ export function OrdersTable() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    async function fetchOrders() {
       try {
         const response = await fetch("/api/admin/orders")
         if (!response.ok) {
@@ -59,22 +58,15 @@ export function OrdersTable() {
       }
 
       setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus, updated_at: new Date().toISOString() } : order,
-        ),
+        prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
       )
     } catch (err: any) {
       setError(err.message)
     }
   }
 
-  if (loading) {
-    return <div className="text-center py-8">Loading orders...</div>
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-500">Error: {error}</div>
-  }
+  if (loading) return <p>Loading orders...</p>
+  if (error) return <p className="text-red-500">Error: {error}</p>
 
   return (
     <Card>
@@ -86,23 +78,22 @@ export function OrdersTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Order #</TableHead>
-              <TableHead>User ID</TableHead>
+              <TableHead>Customer ID</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Last Updated</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell>{order.order_number}</TableCell>
-                <TableCell>{order.user_id}</TableCell>
+                <TableCell>{order.user_id || order.guest_id || "N/A"}</TableCell>
                 <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select Status" />
+                      <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       {ORDER_STATUSES.map((status) => (
@@ -114,7 +105,6 @@ export function OrdersTable() {
                   </Select>
                 </TableCell>
                 <TableCell>{format(new Date(order.created_at), "PPP")}</TableCell>
-                <TableCell>{format(new Date(order.updated_at), "PPP")}</TableCell>
               </TableRow>
             ))}
           </TableBody>

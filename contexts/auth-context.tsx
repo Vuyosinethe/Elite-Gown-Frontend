@@ -1,122 +1,196 @@
 "use client"
 
 import type React from "react"
-
-import { createContext, useContext, useEffect, useState, useCallback } from "react"
-import { createClientComponentClient, type Session, type User } from "@supabase/auth-helpers-nextjs"
+import { createContext, useState, useEffect, useContext, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase" // Corrected import path
-
-interface Profile {
-  id: string
-  full_name: string | null
-  avatar_url: string | null
-  email: string | null
-  role: string | null
-}
+import type { User } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase" // Correct import path
 
 interface AuthContextType {
-  session: Session | null
   user: User | null
-  profile: Profile | null
   loading: boolean
-  signOut: () => Promise<void>
-  fetchUserProfile: () => Promise<void>
+  isAdmin: boolean
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signOut: () => Promise<{ error: string | null }>
+  forgotPassword: (email: string) => Promise<{ error: string | null }>
+  resetPassword: (accessToken: string, newPassword: string) => Promise<{ error: string | null }>
+  profile: { full_name: string | null; avatar_url: string | null; role: string | null } | null
+  profileLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<{
+    full_name: string | null
+    avatar_url: string | null
+    role: string | null
+  } | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
-  const supabaseClient = createClientComponentClient()
+  const supabase = createClient()
 
-  const fetchUserProfile = useCallback(
-    async (userId?: string) => {
-      if (!userId && !user?.id) return
+  const fetchUserAndProfile = useCallback(async () => {
+    setLoading(true)
+    setProfileLoading(true)
+    const {
+      data: { user: sessionUser },
+    } = await supabase.auth.getUser()
+    setUser(sessionUser)
 
-      const currentUserId = userId || user?.id
-
-      const { data, error } = await supabase
+    if (sessionUser) {
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, email, role")
-        .eq("id", currentUserId)
+        .select("full_name, avatar_url, role")
+        .eq("id", sessionUser.id)
         .single()
 
-      if (error) {
-        console.error("Error fetching profile:", error)
+      if (profileError) {
+        console.error("Error fetching profile:", profileError)
         setProfile(null)
-      } else if (data) {
-        setProfile(data)
+        setIsAdmin(false)
+      } else {
+        setProfile(profileData)
+        setIsAdmin(profileData?.role === "admin")
       }
-    },
-    [user?.id],
-  )
+    } else {
+      setProfile(null)
+      setIsAdmin(false)
+    }
+    setLoading(false)
+    setProfileLoading(false)
+  }, [supabase])
 
   useEffect(() => {
-    const { data: authListener } = supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
-      setSession(currentSession)
-      setUser(currentSession?.user || null)
-      setLoading(false)
+    fetchUserAndProfile()
 
-      if (currentSession?.user) {
-        await fetchUserProfile(currentSession.user.id)
-        // Redirect admin users to the admin dashboard
-        if (profile?.role === "admin" && window.location.pathname !== "/admin") {
-          router.push("/admin")
-        } else if (profile?.role !== "admin" && window.location.pathname === "/admin") {
-          // Redirect non-admin users away from admin page
-          router.push("/account")
-        }
-      } else {
-        setProfile(null)
-        // If user logs out from admin page, redirect to login
-        if (window.location.pathname === "/admin") {
-          router.push("/login")
-        }
-      }
-    })
-
-    // Initial session check
-    supabaseClient.auth.getSession().then(async ({ data: { session: initialSession } }) => {
-      setSession(initialSession)
-      setUser(initialSession?.user || null)
-      setLoading(false)
-      if (initialSession?.user) {
-        await fetchUserProfile(initialSession.user.id)
-      }
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+      fetchUserAndProfile() // Re-fetch profile on auth state change
     })
 
     return () => {
-      authListener.unsubscribe()
+      authListener.subscription.unsubscribe()
     }
-  }, [supabaseClient, router, fetchUserProfile, profile?.role]) // Added profile.role to dependencies
+  }, [fetchUserAndProfile, supabase.auth])
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true)
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      setLoading(false)
+
+      if (error) {
+        console.error("Sign-in error:", error)
+        return { error: error.message }
+      }
+
+      if (data.user) {
+        // Fetch profile immediately after successful sign-in to get role
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error("Error fetching profile after sign-in:", profileError)
+          return { error: "Failed to fetch user profile after sign-in." }
+        }
+
+        if (profileData?.role === "admin") {
+          router.push("/admin")
+        } else {
+          router.push("/account")
+        }
+      }
+      return { error: null }
+    },
+    [supabase.auth, router],
+  )
+
+  const signUp = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true)
+      const { error } = await supabase.auth.signUp({ email, password })
+      setLoading(false)
+      if (error) {
+        console.error("Sign-up error:", error)
+        return { error: error.message }
+      }
+      return { error: null }
+    },
+    [supabase.auth],
+  )
 
   const signOut = useCallback(async () => {
     setLoading(true)
-    const { error } = await supabaseClient.auth.signOut()
-    if (error) {
-      console.error("Error signing out:", error)
-    } else {
-      setSession(null)
-      setUser(null)
-      setProfile(null)
-      router.push("/login") // Redirect to login after sign out
-    }
+    const { error } = await supabase.auth.signOut()
     setLoading(false)
-  }, [supabaseClient, router])
+    if (error) {
+      console.error("Sign-out error:", error)
+      return { error: error.message }
+    }
+    setUser(null)
+    setProfile(null)
+    setIsAdmin(false)
+    router.push("/login")
+    return { error: null }
+  }, [supabase.auth, router])
 
-  return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut, fetchUserProfile }}>
-      {children}
-    </AuthContext.Provider>
+  const forgotPassword = useCallback(
+    async (email: string) => {
+      setLoading(true)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+      })
+      setLoading(false)
+      if (error) {
+        console.error("Forgot password error:", error)
+        return { error: error.message }
+      }
+      return { error: null }
+    },
+    [supabase.auth],
   )
+
+  const resetPassword = useCallback(
+    async (accessToken: string, newPassword: string) => {
+      setLoading(true)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+      setLoading(false)
+      if (error) {
+        console.error("Reset password error:", error)
+        return { error: error.message }
+      }
+      return { error: null }
+    },
+    [supabase.auth],
+  )
+
+  const value = {
+    user,
+    loading,
+    isAdmin,
+    signIn,
+    signUp,
+    signOut,
+    forgotPassword,
+    resetPassword,
+    profile,
+    profileLoading,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")

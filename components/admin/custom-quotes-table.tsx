@@ -1,34 +1,39 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 
 interface CustomQuote {
   id: string
-  user_id: string
   quote_number: string
-  status: string
-  product_type: string
+  user_id: string | null
+  guest_id: string | null
+  customer_name: string
+  customer_email: string
+  phone_number: string | null
   description: string
-  quantity: number
-  estimated_price: number | null
-  final_price: number | null
+  status: string
+  quoted_price: number | null
+  quoted_at: string | null
   created_at: string
-  updated_at: string
 }
 
-const QUOTE_STATUSES = ["pending", "reviewing", "quoted", "approved", "in_production", "completed", "cancelled"]
+const QUOTE_STATUSES = ["pending", "reviewed", "quoted", "accepted", "rejected"]
 
 export function CustomQuotesTable() {
   const [quotes, setQuotes] = useState<CustomQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editingPrice, setEditingPrice] = useState<string | null>(null)
+  const [currentPrice, setCurrentPrice] = useState<string>("")
 
   useEffect(() => {
-    const fetchQuotes = async () => {
+    async function fetchQuotes() {
       try {
         const response = await fetch("/api/admin/custom-quotes")
         if (!response.ok) {
@@ -62,22 +67,50 @@ export function CustomQuotesTable() {
       }
 
       setQuotes((prevQuotes) =>
-        prevQuotes.map((quote) =>
-          quote.id === quoteId ? { ...quote, status: newStatus, updated_at: new Date().toISOString() } : quote,
-        ),
+        prevQuotes.map((quote) => (quote.id === quoteId ? { ...quote, status: newStatus } : quote)),
       )
     } catch (err: any) {
       setError(err.message)
     }
   }
 
-  if (loading) {
-    return <div className="text-center py-8">Loading custom quotes...</div>
+  const handlePriceUpdate = async (quoteId: string) => {
+    try {
+      const price = Number.parseFloat(currentPrice)
+      if (isNaN(price)) {
+        setError("Invalid price entered.")
+        return
+      }
+
+      const response = await fetch(`/api/admin/custom-quotes/${quoteId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quoted_price: price, status: "quoted" }), // Automatically set status to 'quoted'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update quote price")
+      }
+
+      setQuotes((prevQuotes) =>
+        prevQuotes.map((quote) =>
+          quote.id === quoteId
+            ? { ...quote, quoted_price: price, status: "quoted", quoted_at: new Date().toISOString() }
+            : quote,
+        ),
+      )
+      setEditingPrice(null)
+      setCurrentPrice("")
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
 
-  if (error) {
-    return <div className="text-center py-8 text-red-500">Error: {error}</div>
-  }
+  if (loading) return <p>Loading custom quotes...</p>
+  if (error) return <p className="text-red-500">Error: {error}</p>
 
   return (
     <Card>
@@ -89,31 +122,27 @@ export function CustomQuotesTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Quote #</TableHead>
-              <TableHead>User ID</TableHead>
-              <TableHead>Product Type</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Est. Price</TableHead>
-              <TableHead>Final Price</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Last Updated</TableHead>
+              <TableHead>Quoted Price</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {quotes.map((quote) => (
               <TableRow key={quote.id}>
                 <TableCell>{quote.quote_number}</TableCell>
-                <TableCell>{quote.user_id}</TableCell>
-                <TableCell>{quote.product_type}</TableCell>
+                <TableCell>{quote.customer_name}</TableCell>
+                <TableCell>{quote.customer_email}</TableCell>
+                <TableCell>{quote.phone_number || "N/A"}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{quote.description}</TableCell>
-                <TableCell>{quote.quantity}</TableCell>
-                <TableCell>{quote.estimated_price ? `$${quote.estimated_price.toFixed(2)}` : "N/A"}</TableCell>
-                <TableCell>{quote.final_price ? `$${quote.final_price.toFixed(2)}` : "N/A"}</TableCell>
                 <TableCell>
                   <Select value={quote.status} onValueChange={(value) => handleStatusChange(quote.id, value)}>
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select Status" />
+                      <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       {QUOTE_STATUSES.map((status) => (
@@ -124,8 +153,40 @@ export function CustomQuotesTable() {
                     </SelectContent>
                   </Select>
                 </TableCell>
+                <TableCell>
+                  {editingPrice === quote.id ? (
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        type="number"
+                        value={currentPrice}
+                        onChange={(e) => setCurrentPrice(e.target.value)}
+                        placeholder="Price"
+                        className="w-24"
+                      />
+                      <Button size="sm" onClick={() => handlePriceUpdate(quote.id)}>
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingPrice(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <span>{quote.quoted_price ? `$${quote.quoted_price.toFixed(2)}` : "N/A"}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingPrice(quote.id)
+                          setCurrentPrice(quote.quoted_price?.toString() || "")
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell>{format(new Date(quote.created_at), "PPP")}</TableCell>
-                <TableCell>{format(new Date(quote.updated_at), "PPP")}</TableCell>
               </TableRow>
             ))}
           </TableBody>

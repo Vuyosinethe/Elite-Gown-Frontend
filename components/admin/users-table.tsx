@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { format } from "date-fns"
 
 interface User {
   id: string
-  full_name: string | null
   email: string
+  first_name: string | null
+  last_name: string | null
   role: string
   created_at: string
 }
@@ -19,7 +20,7 @@ export function UsersTable() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    async function fetchUsers() {
       try {
         const response = await fetch("/api/admin/users")
         if (!response.ok) {
@@ -37,13 +38,8 @@ export function UsersTable() {
     fetchUsers()
   }, [])
 
-  if (loading) {
-    return <div className="text-center py-8">Loading users...</div>
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-500">Error: {error}</div>
-  }
+  if (loading) return <p>Loading users...</p>
+  if (error) return <p className="text-red-500">Error: {error}</p>
 
   return (
     <Card>
@@ -54,17 +50,19 @@ export function UsersTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Joined At</TableHead>
+              <TableHead>Joined</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell>{user.full_name || "N/A"}</TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  {user.first_name} {user.last_name}
+                </TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>{format(new Date(user.created_at), "PPP")}</TableCell>
               </TableRow>
