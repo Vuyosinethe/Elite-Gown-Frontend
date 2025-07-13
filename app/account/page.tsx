@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react" // Import useCallback
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -12,7 +12,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWishlist } from "@/hooks/use-wishlist"
 import { useCart } from "@/hooks/use-cart"
 import CartDrawer from "@/components/cart-drawer"
-import { User, Settings, Heart, Package, Edit3, Trash2, Menu, X, ChevronDown, RefreshCw } from "lucide-react"
+import { User, Settings, Heart, Package, Edit3, Trash2, Menu, X, ChevronDown, RefreshCw, Eye } from "lucide-react" // Import Eye icon
+import { supabase } from "@/lib/supabase" // Import supabase client
+
+interface Order {
+  id: string
+  total_amount: number
+  status: string
+  created_at: string
+  payfast_order_id: string | null
+  order_items: OrderItem[]
+}
+
+interface OrderItem {
+  id: string
+  product_name: string
+  product_image: string
+  quantity: number
+  price: number
+}
 
 export default function AccountPage() {
   const { user, loading, signOut, updateProfile } = useAuth()
@@ -29,6 +47,8 @@ export default function AccountPage() {
   })
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateMessage, setUpdateMessage] = useState("")
+  const [orders, setOrders] = useState<Order[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -47,6 +67,52 @@ export default function AccountPage() {
       })
     }
   }, [user])
+
+  const fetchOrders = useCallback(async () => {
+    if (!user?.id) {
+      setOrdersLoading(false)
+      return
+    }
+    setOrdersLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(
+          `
+          id,
+          total_amount,
+          status,
+          created_at,
+          payfast_order_id,
+          order_items (
+            id,
+            product_name,
+            product_image,
+            quantity,
+            price
+          )
+        `,
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching orders:", error)
+        setOrders([])
+      } else {
+        setOrders(data as Order[])
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error)
+      setOrders([])
+    } finally {
+      setOrdersLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
 
   const handleSignOut = async () => {
     await signOut()
@@ -570,15 +636,88 @@ export default function AccountPage() {
           <TabsContent value="orders">
             <Card>
               <CardHeader>
-                <CardTitle>Order History</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  Order History
+                  <Button variant="outline" size="sm" onClick={fetchOrders} disabled={ordersLoading}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${ordersLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </CardTitle>
                 <CardDescription>View your past orders and their status</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No orders yet</p>
-                  <p className="text-sm text-gray-400 mt-2">Your order history will appear here</p>
-                </div>
+                {ordersLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No orders yet</p>
+                    <p className="text-sm text-gray-400 mt-2">Your order history will appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {orders.map((order) => (
+                      <Card key={order.id} className="border border-gray-200">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-base font-semibold">
+                            Order #{order.payfast_order_id || order.id.substring(0, 8).toUpperCase()}
+                          </CardTitle>
+                          <div
+                            className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                              order.status === "completed"
+                                ? "bg-green-100 text-green-800"
+                                : order.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : order.status === "failed" || order.status === "cancelled"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {order.status}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-gray-500 mb-2">
+                            Order Date: {new Date(order.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-lg font-bold mb-4">Total: R {order.total_amount.toFixed(2)}</p>
+
+                          <h4 className="font-medium text-gray-700 mb-2">Items:</h4>
+                          <div className="space-y-3">
+                            {order.order_items.map((item) => (
+                              <div key={item.id} className="flex items-center space-x-3">
+                                <div className="w-12 h-12 relative overflow-hidden rounded-md bg-gray-100 flex-shrink-0">
+                                  <Image
+                                    src={item.product_image || "/placeholder.svg"}
+                                    alt={item.product_name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{item.product_name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {item.quantity} x R {(item.price / 100).toFixed(2)}
+                                  </p>
+                                </div>
+                                <span className="text-sm font-semibold">
+                                  R {((item.price * item.quantity) / 100).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-4 text-right">
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-4 h-4 mr-2" /> View Details
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

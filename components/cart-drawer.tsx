@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { X, Minus, Plus, ShoppingCart, User, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/hooks/use-cart"
+import { useState } from "react" // Import useState
 
 interface CartDrawerProps {
   isOpen: boolean
@@ -16,7 +17,19 @@ interface CartDrawerProps {
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { user } = useAuth()
   const router = useRouter()
-  const { cartItems, cartCount, subtotal, vat, total, updateQuantity, removeFromCart, clearCart, loading } = useCart()
+  const {
+    cartItems,
+    cartCount,
+    subtotal,
+    vat,
+    total,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    loading,
+    refreshCart,
+  } = useCart()
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false) // New state for payment processing
 
   const handleSignInClick = () => {
     onClose()
@@ -34,6 +47,74 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const handleClearCart = async () => {
     if (window.confirm("Are you sure you want to clear your cart?")) {
       await clearCart()
+    }
+  }
+
+  const handleProceedToCheckout = async () => {
+    if (!user) {
+      router.push("/login") // Redirect to login if not authenticated
+      return
+    }
+
+    if (cartItems.length === 0) {
+      alert("Your cart is empty. Please add items before proceeding to checkout.")
+      return
+    }
+
+    setIsProcessingPayment(true)
+    try {
+      const {
+        data: { session },
+      } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        alert("Authentication error. Please log in again.")
+        router.push("/login")
+        return
+      }
+
+      const response = await fetch("/api/payfast/process", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ cartItems, subtotal, vat, total }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        // Dynamically create and submit a form to PayFast
+        const form = document.createElement("form")
+        form.method = "POST"
+        form.action = result.payfastUrl
+        form.target = "_self" // Open in the same tab
+
+        for (const key in result.payfastFields) {
+          if (Object.prototype.hasOwnProperty.call(result.payfastFields, key)) {
+            const hiddenField = document.createElement("input")
+            hiddenField.type = "hidden"
+            hiddenField.name = key
+            hiddenField.value = result.payfastFields[key]
+            form.appendChild(hiddenField)
+          }
+        }
+
+        document.body.appendChild(form)
+        form.submit()
+        onClose() // Close the cart drawer
+        await clearCart() // Clear the cart after initiating payment
+      } else {
+        alert(`Checkout failed: ${result.error || "Unknown error"}`)
+        console.error("Checkout error:", result.error)
+      }
+    } catch (error) {
+      console.error("Error during checkout:", error)
+      alert("An unexpected error occurred during checkout. Please try again.")
+    } finally {
+      setIsProcessingPayment(false)
     }
   }
 
@@ -199,7 +280,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </div>
               </div>
 
-              <Button className="w-full bg-black hover:bg-gray-800 text-white">Proceed to Checkout</Button>
+              <Button
+                className="w-full bg-black hover:bg-gray-800 text-white"
+                onClick={handleProceedToCheckout}
+                disabled={isProcessingPayment}
+              >
+                {isProcessingPayment ? "Processing Payment..." : "Proceed to Checkout"}
+              </Button>
 
               <div className="text-center">
                 <Button variant="ghost" className="text-sm text-gray-600 hover:text-black" onClick={onClose}>
