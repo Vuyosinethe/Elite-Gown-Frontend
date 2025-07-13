@@ -15,26 +15,20 @@ DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Insert profile for new user (without full_name column)
+  -- Insert profile for new user
   INSERT INTO public.profiles (
     id, 
     email, 
-    first_name, 
-    last_name, 
-    phone, 
+    full_name, 
     avatar_url,
-    created_at,
-    updated_at
+    role
   )
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'phone', ''),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
-    NOW(),
-    NOW()
+    'user'
   );
   
   RETURN NEW;
@@ -55,26 +49,20 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Now create profiles for existing users who don't have them (without full_name)
+-- Now create profiles for existing users who don't have them
 INSERT INTO public.profiles (
   id, 
   email, 
-  first_name, 
-  last_name, 
-  phone, 
+  full_name, 
   avatar_url,
-  created_at,
-  updated_at
+  role
 )
 SELECT 
   au.id,
   au.email,
-  COALESCE(au.raw_user_meta_data->>'first_name', ''),
-  COALESCE(au.raw_user_meta_data->>'last_name', ''),
-  COALESCE(au.raw_user_meta_data->>'phone', ''),
+  COALESCE(au.raw_user_meta_data->>'full_name', ''),
   COALESCE(au.raw_user_meta_data->>'avatar_url', ''),
-  au.created_at,
-  NOW()
+  'user'
 FROM auth.users au
 LEFT JOIN public.profiles p ON au.id = p.id
 WHERE p.id IS NULL;

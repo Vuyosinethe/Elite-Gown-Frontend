@@ -1,312 +1,141 @@
-"use client"
+'use client'
 
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { X, Minus, Plus, ShoppingCart, User, Trash2 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
-import { useCart } from "@/hooks/use-cart"
-import { useState } from "react" // Import useState
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { ShoppingCart, X } from 'lucide-react'
+import Image from 'next/image'
+import { useCart } from '@/hooks/use-cart'
+import { useRouter } from 'next/navigation'
 
-interface CartDrawerProps {
-  isOpen: boolean
-  onClose: () => void
-}
-
-export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { user } = useAuth()
+export default function CartDrawer() {
+  const [isOpen, setIsOpen] = useState(false)
+  const { cartItems, removeFromCart, updateQuantity } = useCart()
   const router = useRouter()
-  const {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    loading,
-    refreshCart,
-  } = useCart()
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false) // New state for payment processing
 
-  const handleSignInClick = () => {
-    onClose()
-    router.push("/login")
-  }
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  const handleUpdateQuantity = async (itemId: number, newQuantity: number) => {
-    await updateQuantity(itemId, newQuantity)
-  }
-
-  const handleRemoveItem = async (itemId: number) => {
-    await removeFromCart(itemId)
-  }
-
-  const handleClearCart = async () => {
-    if (window.confirm("Are you sure you want to clear your cart?")) {
-      await clearCart()
-    }
-  }
-
-  const handleProceedToCheckout = async () => {
-    if (!user) {
-      router.push("/login") // Redirect to login if not authenticated
-      return
-    }
-
-    if (cartItems.length === 0) {
-      alert("Your cart is empty. Please add items before proceeding to checkout.")
-      return
-    }
-
-    setIsProcessingPayment(true)
+  const handleCheckout = async () => {
     try {
-      const {
-        data: { session },
-      } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-      const accessToken = session?.access_token
-
-      if (!accessToken) {
-        alert("Authentication error. Please log in again.")
-        router.push("/login")
-        return
-      }
-
-      const response = await fetch("/api/payfast/process", {
-        method: "POST",
+      const response = await fetch('/api/payfast/process', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ cartItems, subtotal, vat, total }),
+        body: JSON.stringify({ cartItems }),
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (response.ok && result.success) {
-        // Dynamically create and submit a form to PayFast
-        const form = document.createElement("form")
-        form.method = "POST"
-        form.action = result.payfastUrl
-        form.target = "_self" // Open in the same tab
+      if (response.ok) {
+        // Construct a form and submit it to PayFast
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = data.payFastUrl
 
-        for (const key in result.payfastFields) {
-          if (Object.prototype.hasOwnProperty.call(result.payfastFields, key)) {
-            const hiddenField = document.createElement("input")
-            hiddenField.type = "hidden"
+        for (const key in data.payFastFields) {
+          if (data.payFastFields.hasOwnProperty(key)) {
+            const hiddenField = document.createElement('input')
+            hiddenField.type = 'hidden'
             hiddenField.name = key
-            hiddenField.value = result.payfastFields[key]
+            hiddenField.value = data.payFastFields[key]
             form.appendChild(hiddenField)
           }
         }
-
         document.body.appendChild(form)
         form.submit()
-        onClose() // Close the cart drawer
-        await clearCart() // Clear the cart after initiating payment
       } else {
-        alert(`Checkout failed: ${result.error || "Unknown error"}`)
-        console.error("Checkout error:", result.error)
+        alert(`Checkout failed: ${data.error}`)
+        console.error('Checkout failed:', data.error)
       }
     } catch (error) {
-      console.error("Error during checkout:", error)
-      alert("An unexpected error occurred during checkout. Please try again.")
-    } finally {
-      setIsProcessingPayment(false)
+      alert('An unexpected error occurred during checkout.')
+      console.error('An unexpected error occurred during checkout:', error)
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-25 z-40" onClick={onClose} />
-
-      {/* Cart Panel */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <div className="flex items-center space-x-3">
-              <div className="bg-black text-white rounded-full w-10 h-10 flex items-center justify-center">
-                <ShoppingCart className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">Shopping Cart</h2>
-                <p className="text-sm text-gray-600">{loading ? "Loading..." : `${cartCount} items`}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {cartItems.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-red-600 hover:text-red-700">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-gray-100">
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
-              </div>
-            ) : !user ? (
-              // Not logged in state
-              <div className="text-center py-12">
-                <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <User className="w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view your cart</h3>
-                <p className="text-gray-600 mb-6">
-                  Create an account or sign in to save items to your cart and track your orders.
-                </p>
-                <div className="space-y-3">
-                  <Button className="w-full bg-black hover:bg-gray-800 text-white" onClick={handleSignInClick}>
-                    Sign In
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full bg-transparent"
-                    onClick={() => {
-                      onClose()
-                      router.push("/register")
-                    }}
-                  >
-                    Create Account
-                  </Button>
-                </div>
-              </div>
-            ) : cartItems.length === 0 ? (
-              // Empty cart state (logged in)
-              <div className="text-center py-12">
-                <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Your cart is empty</h3>
-                <p className="text-gray-600 mb-6">Add some items to get started</p>
-                <Button className="bg-black hover:bg-gray-800 text-white" onClick={onClose}>
-                  Continue Shopping
-                </Button>
-              </div>
-            ) : (
-              // Cart with items
-              <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <Card key={item.id} className="border border-gray-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-16 h-16 relative overflow-hidden rounded-lg bg-gray-100 flex-shrink-0">
-                          <Image
-                            src={item.product_image || "/placeholder.svg"}
-                            alt={item.product_name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-900 text-sm leading-tight">{item.product_name}</h3>
-                              <p className="text-xs text-gray-600 mt-1">{item.product_details}</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 p-1"
-                              onClick={() => handleRemoveItem(item.id)}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-7 h-7 p-0 bg-transparent"
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                              >
-                                <Minus className="w-3 h-3" />
-                              </Button>
-                              <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-7 h-7 p-0 bg-transparent"
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                            <p className="font-semibold text-sm">R {((item.price * item.quantity) / 100).toFixed(2)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer - only show if has items */}
-          {cartItems.length > 0 && !loading && (
-            <div className="border-t p-6 space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal</span>
-                  <span>R {(subtotal / 100).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>VAT (15%)</span>
-                  <span>R {(vat / 100).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Shipping</span>
-                  <span className="text-green-600">Free</span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>R {(total / 100).toFixed(2)}</span>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <ShoppingCart className="h-6 w-6" />
+          {totalItems > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+              {totalItems}
+            </span>
+          )}
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="flex flex-col w-full max-w-md">
+        <SheetHeader>
+          <SheetTitle className="text-2xl font-bold">Your Cart ({totalItems})</SheetTitle>
+        </SheetHeader>
+        <Separator />
+        {cartItems.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">Your cart is empty.</div>
+        ) : (
+          <ScrollArea className="flex-1 py-4">
+            <div className="grid gap-6 pr-4">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-4">
+                  <Image
+                    src={item.image || '/placeholder.svg'}
+                    alt={item.name}
+                    width={80}
+                    height={80}
+                    className="rounded-md object-cover"
+                  />
+                  <div className="grid flex-1 gap-1">
+                    <h3 className="font-medium">{item.name}</h3>
+                    <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </Button>
+                      <span className="text-sm font-medium">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        +
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-auto h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeFromCart(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <Button
-                className="w-full bg-black hover:bg-gray-800 text-white"
-                onClick={handleProceedToCheckout}
-                disabled={isProcessingPayment}
-              >
-                {isProcessingPayment ? "Processing Payment..." : "Proceed to Checkout"}
-              </Button>
-
-              <div className="text-center">
-                <Button variant="ghost" className="text-sm text-gray-600 hover:text-black" onClick={onClose}>
-                  Continue Shopping
-                </Button>
-              </div>
-
-              {/* Payment Methods */}
-              <div className="text-center pt-4 border-t">
-                <p className="text-xs text-gray-600 mb-2">We accept:</p>
-                <div className="flex justify-center space-x-2">
-                  <div className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold">VISA</div>
-                  <div className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold">MasterCard</div>
-                  <div className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold">EFT</div>
-                </div>
-              </div>
+              ))}
             </div>
-          )}
+          </ScrollArea>
+        )}
+        <Separator className="mt-auto" />
+        <div className="grid gap-4 py-4">
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-medium">Subtotal:</span>
+            <span className="text-lg font-bold">${subtotal.toFixed(2)}</span>
+          </div>
+          <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cartItems.length === 0}>
+            Proceed to Checkout
+          </Button>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   )
 }
