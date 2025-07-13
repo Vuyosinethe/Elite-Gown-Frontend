@@ -12,8 +12,10 @@ interface Order {
   user_id: string | null
   guest_id: string | null
   total_amount: number
+  currency: string
   status: string
   created_at: string
+  updated_at: string
 }
 
 const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"]
@@ -24,7 +26,7 @@ export function OrdersTable() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchOrders() {
+    const fetchOrders = async () => {
       try {
         const response = await fetch("/api/admin/orders")
         if (!response.ok) {
@@ -58,10 +60,13 @@ export function OrdersTable() {
       }
 
       setOrders((prevOrders) =>
-        prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus, updated_at: new Date().toISOString() } : order,
+        ),
       )
     } catch (err: any) {
-      setError(err.message)
+      console.error("Error updating status:", err)
+      alert(`Failed to update status: ${err.message}`)
     }
   }
 
@@ -89,7 +94,9 @@ export function OrdersTable() {
               <TableRow key={order.id}>
                 <TableCell>{order.order_number}</TableCell>
                 <TableCell>{order.user_id || order.guest_id || "N/A"}</TableCell>
-                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                <TableCell>
+                  {order.total_amount} {order.currency}
+                </TableCell>
                 <TableCell>
                   <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
                     <SelectTrigger className="w-[180px]">

@@ -3,32 +3,37 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UsersTable } from "@/components/admin/users-table"
 import { OrdersTable } from "@/components/admin/orders-table"
 import { CustomQuotesTable } from "@/components/admin/custom-quotes-table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default function AdminDashboard() {
+export default function AdminDashboardPage() {
   const { user, loading, isAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
-      router.push("/login?message=You are not authorized to view this page.")
+      router.push("/login") // Redirect to login if not authenticated or not admin
     }
   }, [user, loading, isAdmin, router])
 
-  if (loading || (!user && !loading)) {
-    return <div className="flex justify-center items-center h-screen">Loading dashboard...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading dashboard...</p>
+      </div>
+    )
   }
 
-  if (!isAdmin) {
-    return null // Redirect handled by useEffect
+  if (!user || !isAdmin) {
+    return null // Will be redirected by useEffect
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-6">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gray-100 p-8">
+      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users">Users</TabsTrigger>

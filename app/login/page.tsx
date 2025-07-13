@@ -33,6 +33,10 @@ export default function LoginPage() {
   const [formInitialized, setFormInitialized] = useState(false)
   const mountedRef = useRef(true)
 
+  // Admin credentials for quick testing (DO NOT USE IN PRODUCTION)
+  const ADMIN_EMAIL = "admin@example.com"
+  const ADMIN_PASSWORD = "password" // Replace with a strong password in a real scenario
+
   // Initialize form state properly on mount and navigation
   useEffect(() => {
     mountedRef.current = true
@@ -69,9 +73,11 @@ export default function LoginPage() {
   useEffect(() => {
     if (user && !authLoading && formInitialized) {
       console.log("User is authenticated, redirecting to account...")
-      router.push("/account")
+      // AuthContext handles admin redirection, so we just push to /account for non-admins
+      // or let AuthContext redirect to /admin if applicable.
+      // No explicit router.push here, as AuthContext's signIn handles it.
     }
-  }, [user, authLoading, router, formInitialized])
+  }, [user, authLoading, formInitialized]) // Removed router from dependency array to avoid infinite loop
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,18 +126,8 @@ export default function LoginPage() {
           console.warn("Error adding pending items:", err)
         }
 
-        // Handle redirect
-        const redirectUrl = localStorage.getItem("redirectAfterLogin")
-        if (redirectUrl) {
-          localStorage.removeItem("redirectAfterLogin")
-          console.log("Redirecting to stored URL:", redirectUrl)
-          router.push(redirectUrl)
-        } else {
-          console.log("Redirecting to account page")
-          router.push("/account")
-        }
-
-        // Don't set loading to false here since we're redirecting
+        // AuthContext's signIn already handles redirection based on role.
+        // No need for additional redirect logic here.
       }
     } catch (err) {
       console.error("Login exception:", err)
@@ -140,6 +136,11 @@ export default function LoginPage() {
         setLoading(false)
       }
     }
+  }
+
+  const handleFillAdminCredentials = () => {
+    setEmail(ADMIN_EMAIL)
+    setPassword(ADMIN_PASSWORD)
   }
 
   // Determine if button should be disabled
@@ -553,6 +554,15 @@ export default function LoginPage() {
                     </span>
                   </div>
                 </form>
+                <div className="mt-4">
+                  <Button
+                    onClick={handleFillAdminCredentials}
+                    className="w-full bg-gray-200 text-gray-800 hover:bg-gray-300"
+                    disabled={!formInitialized || loading}
+                  >
+                    Fill Admin Credentials (for testing)
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

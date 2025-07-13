@@ -2,17 +2,20 @@
    Supabase helper – safe in all environments (build, dev, prod)
    --------------------------------------------------------------------------- */
 
-import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import type { Profile } from "./types" // Assuming you have a types file for Profile
 
 /**
- * We create the real client *lazily* the first time `createClient()` is called.
+ * We create the real client *lazily* the first time `getSupabaseClient()` is called.
  * If the NEXT_PUBLIC_* vars are missing (for example in a CI build),
  * we fall back to a harmless placeholder so the build doesn’t crash.
  */
-let cached: SupabaseClient | null = null
+let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null
 
-export function createClient(): SupabaseClient {
-  if (cached) return cached
+export function getSupabaseClient() {
+  if (supabaseInstance) {
+    return supabaseInstance
+  }
 
   /* Try real env vars first. */
   let url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -28,7 +31,7 @@ export function createClient(): SupabaseClient {
     key = "public-anon-key"
   }
 
-  cached = createSupabaseClient(url, key, {
+  supabaseInstance = createSupabaseClient(url, key, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -36,27 +39,34 @@ export function createClient(): SupabaseClient {
     },
   })
 
-  return cached
+  return supabaseInstance
 }
 
 /* ---------------------------------------------------------------------------
    Types & convenient default export
    --------------------------------------------------------------------------- */
 
-export type Profile = {
-  id: string
-  email: string | null
-  first_name: string | null
-  last_name: string | null
-  phone: string | null
-  avatar_url: string | null
-  role: string | null
-  updated_at: string | null
-}
+// Define a type for your Supabase database schema if you have one
+// For example:
+// interface Database {
+//   public: {
+//     Tables: {
+//       profiles: {
+//         Row: Profile;
+//         Insert: Partial<Profile>;
+//         Update: Partial<Profile>;
+//       };
+//       // Add other tables here
+//     };
+//   };
+// }
 
-/**
- * Default export so `import supabase from "@/lib/supabase"` works,
- * but note it instantiates the client immediately.
- */
-const supabaseDefault = createClient()
-export default supabaseDefault
+// Re-export createClient for server-side or specific needs
+export { createSupabaseClient as createClient }
+
+// Export the default client instance
+const supabase = getSupabaseClient()
+export default supabase
+
+// Re-export Profile type for convenience
+export type { Profile }

@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase"
 import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params
@@ -14,7 +14,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Check if the user is an admin
+  // Check if user is admin
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
@@ -33,7 +33,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     .single()
 
   if (error) {
-    console.error("Error updating order status:", error)
+    console.error(`Error updating order ${id}:`, error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

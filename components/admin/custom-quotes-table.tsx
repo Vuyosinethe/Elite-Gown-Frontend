@@ -13,12 +13,14 @@ interface CustomQuote {
   quote_number: string
   user_id: string | null
   guest_id: string | null
+  contact_email: string
+  contact_phone: string | null
   description: string
   status: string
   quoted_price: number | null
-  contact_email: string
-  contact_phone: string | null
+  quoted_currency: string | null
   created_at: string
+  updated_at: string
 }
 
 const QUOTE_STATUSES = ["pending", "reviewed", "quoted", "accepted", "rejected", "completed"]
@@ -27,11 +29,11 @@ export function CustomQuotesTable() {
   const [quotes, setQuotes] = useState<CustomQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editingPrice, setEditingPrice] = useState<string | null>(null)
-  const [newPrice, setNewPrice] = useState<string>("")
+  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null)
+  const [currentPrice, setCurrentPrice] = useState<string>("")
 
   useEffect(() => {
-    async function fetchQuotes() {
+    const fetchQuotes = async () => {
       try {
         const response = await fetch("/api/admin/custom-quotes")
         if (!response.ok) {
@@ -65,27 +67,29 @@ export function CustomQuotesTable() {
       }
 
       setQuotes((prevQuotes) =>
-        prevQuotes.map((quote) => (quote.id === quoteId ? { ...quote, status: newStatus } : quote)),
+        prevQuotes.map((quote) =>
+          quote.id === quoteId ? { ...quote, status: newStatus, updated_at: new Date().toISOString() } : quote,
+        ),
       )
     } catch (err: any) {
-      setError(err.message)
+      console.error("Error updating status:", err)
+      alert(`Failed to update status: ${err.message}`)
     }
   }
 
   const handlePriceUpdate = async (quoteId: string) => {
-    try {
-      const price = Number.parseFloat(newPrice)
-      if (isNaN(price)) {
-        setError("Invalid price entered.")
-        return
-      }
+    if (!currentPrice || isNaN(Number.parseFloat(currentPrice))) {
+      alert("Please enter a valid number for the price.")
+      return
+    }
 
+    try {
       const response = await fetch(`/api/admin/custom-quotes/${quoteId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ quoted_price: price, status: "quoted" }), // Automatically set to 'quoted'
+        body: JSON.stringify({ status: "quoted", quoted_price: Number.parseFloat(currentPrice) }),
       })
 
       if (!response.ok) {
@@ -94,12 +98,23 @@ export function CustomQuotesTable() {
       }
 
       setQuotes((prevQuotes) =>
-        prevQuotes.map((quote) => (quote.id === quoteId ? { ...quote, quoted_price: price, status: "quoted" } : quote)),
+        prevQuotes.map((quote) =>
+          quote.id === quoteId
+            ? {
+                ...quote,
+                status: "quoted",
+                quoted_price: Number.parseFloat(currentPrice),
+                quoted_currency: "USD", // Assuming USD for now
+                updated_at: new Date().toISOString(),
+              }
+            : quote,
+        ),
       )
-      setEditingPrice(null)
-      setNewPrice("")
+      setEditingQuoteId(null)
+      setCurrentPrice("")
     } catch (err: any) {
-      setError(err.message)
+      console.error("Error updating price:", err)
+      alert(`Failed to update price: ${err.message}`)
     }
   }
 
@@ -116,25 +131,20 @@ export function CustomQuotesTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Quote #</TableHead>
-              <TableHead>Customer ID</TableHead>
+              <TableHead>Customer Email</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead>Contact</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Quoted Price</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {quotes.map((quote) => (
               <TableRow key={quote.id}>
                 <TableCell>{quote.quote_number}</TableCell>
-                <TableCell>{quote.user_id || quote.guest_id || "N/A"}</TableCell>
+                <TableCell>{quote.contact_email}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{quote.description}</TableCell>
-                <TableCell>
-                  {quote.contact_email}
-                  {quote.contact_phone && <br />}
-                  {quote.contact_phone}
-                </TableCell>
                 <TableCell>
                   <Select value={quote.status} onValueChange={(value) => handleStatusChange(quote.id, value)}>
                     <SelectTrigger className="w-[180px]">
@@ -150,39 +160,39 @@ export function CustomQuotesTable() {
                   </Select>
                 </TableCell>
                 <TableCell>
-                  {editingPrice === quote.id ? (
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        type="number"
-                        value={newPrice}
-                        onChange={(e) => setNewPrice(e.target.value)}
-                        placeholder="Enter price"
-                        className="w-32"
-                      />
-                      <Button size="sm" onClick={() => handlePriceUpdate(quote.id)}>
-                        Save
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingPrice(null)}>
-                        Cancel
-                      </Button>
-                    </div>
+                  {editingQuoteId === quote.id ? (
+                    <Input
+                      type="number"
+                      value={currentPrice}
+                      onChange={(e) => setCurrentPrice(e.target.value)}
+                      placeholder="Enter price"
+                      className="w-[100px]"
+                    />
+                  ) : quote.quoted_price ? (
+                    `${quote.quoted_price} ${quote.quoted_currency}`
                   ) : (
-                    <div className="flex items-center space-x-2">
-                      <span>{quote.quoted_price ? `$${quote.quoted_price.toFixed(2)}` : "N/A"}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingPrice(quote.id)
-                          setNewPrice(quote.quoted_price?.toString() || "")
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    </div>
+                    "N/A"
                   )}
                 </TableCell>
                 <TableCell>{format(new Date(quote.created_at), "PPP")}</TableCell>
+                <TableCell>
+                  {editingQuoteId === quote.id ? (
+                    <Button size="sm" onClick={() => handlePriceUpdate(quote.id)}>
+                      Save
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingQuoteId(quote.id)
+                        setCurrentPrice(quote.quoted_price?.toString() || "")
+                      }}
+                    >
+                      Set Price
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

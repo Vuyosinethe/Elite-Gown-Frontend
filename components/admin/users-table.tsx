@@ -20,7 +20,7 @@ export function UsersTable() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchUsers() {
+    const fetchUsers = async () => {
       try {
         const response = await fetch("/api/admin/users")
         if (!response.ok) {

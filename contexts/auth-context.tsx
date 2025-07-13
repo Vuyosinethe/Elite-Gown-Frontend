@@ -4,7 +4,8 @@ import type React from "react"
 import { createContext, useState, useEffect, useContext, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
-import { createClient } from "@/lib/supabase" // Correct import path
+import { getSupabaseClient } from "@/lib/supabase" // Correct import path for the singleton client
+import type { Profile } from "@/lib/types" // Import Profile type
 
 interface AuthContextType {
   user: User | null
@@ -15,7 +16,7 @@ interface AuthContextType {
   signOut: () => Promise<{ error: string | null }>
   forgotPassword: (email: string) => Promise<{ error: string | null }>
   resetPassword: (accessToken: string, newPassword: string) => Promise<{ error: string | null }>
-  profile: { full_name: string | null; avatar_url: string | null; role: string | null } | null
+  profile: Profile | null
   profileLoading: boolean
 }
 
@@ -24,15 +25,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<{
-    full_name: string | null
-    avatar_url: string | null
-    role: string | null
-  } | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = getSupabaseClient() // Use the singleton client
 
   const fetchUserAndProfile = useCallback(async () => {
     setLoading(true)
@@ -45,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (sessionUser) {
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, role")
+        .select("id, email, first_name, last_name, phone, avatar_url, role, created_at, updated_at") // Select all profile fields
         .eq("id", sessionUser.id)
         .single()
 
