@@ -2,7 +2,7 @@
    Supabase helper – safe in all environments (build, dev, prod)
    --------------------------------------------------------------------------- */
 
-import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js"
 import type { Profile } from "./types" // Assuming you have a types file for Profile
 
 /**
@@ -12,7 +12,7 @@ import type { Profile } from "./types" // Assuming you have a types file for Pro
  */
 let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null
 
-export function getSupabaseClient() {
+export function getSupabaseClient(): SupabaseClient {
   if (supabaseInstance) {
     return supabaseInstance
   }
@@ -45,21 +45,6 @@ export function getSupabaseClient() {
 /* ---------------------------------------------------------------------------
    Types & convenient default export
    --------------------------------------------------------------------------- */
-
-// Define a type for your Supabase database schema if you have one
-// For example:
-// interface Database {
-//   public: {
-//     Tables: {
-//       profiles: {
-//         Row: Profile;
-//         Insert: Partial<Profile>;
-//         Update: Partial<Profile>;
-//       };
-//       // Add other tables here
-//     };
-//   };
-// }
 
 // Re-export createClient for server-side or specific needs
 export { createSupabaseClient as createClient }

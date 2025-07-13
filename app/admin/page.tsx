@@ -6,50 +6,57 @@ import { useAuth } from "@/contexts/auth-context"
 import { UsersTable } from "@/components/admin/users-table"
 import { OrdersTable } from "@/components/admin/orders-table"
 import { CustomQuotesTable } from "@/components/admin/custom-quotes-table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Layout } from "@/components/layout" // Assuming Layout is exported from components/layout
 
 export default function AdminDashboardPage() {
-  const { user, loading, isAdmin } = useAuth()
+  const { user, loading, isAdmin, signOut } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
-      router.push("/login") // Redirect to login if not authenticated or not admin
+      // If not loading, and no user or not admin, redirect to login
+      router.push("/login")
     }
   }, [user, loading, isAdmin, router])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading dashboard...</p>
-      </div>
+      <Layout>
+        <div className="flex min-h-screen items-center justify-center">
+          <p>Loading dashboard...</p>
+        </div>
+      </Layout>
     )
   }
 
   if (!user || !isAdmin) {
-    return null // Will be redirected by useEffect
+    // This state should ideally be prevented by the useEffect redirect
+    return (
+      <Layout>
+        <div className="flex min-h-screen items-center justify-center">
+          <p>Access Denied. Redirecting...</p>
+        </div>
+      </Layout>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+    <Layout>
+      <div className="container mx-auto py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <Button onClick={signOut} variant="outline">
+            Sign Out
+          </Button>
+        </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="custom-quotes">Custom Quotes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="users">
+        <div className="grid gap-6">
           <UsersTable />
-        </TabsContent>
-        <TabsContent value="orders">
           <OrdersTable />
-        </TabsContent>
-        <TabsContent value="custom-quotes">
           <CustomQuotesTable />
-        </TabsContent>
-      </Tabs>
-    </div>
+        </div>
+      </div>
+    </Layout>
   )
 }

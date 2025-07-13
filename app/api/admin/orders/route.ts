@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Check if user is admin
+  // Check if the user is an admin
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     .single()
 
   if (profileError || profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    return NextResponse.json({ error: "Forbidden: Not an admin" }, { status: 403 })
   }
 
   const { data: orders, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false })

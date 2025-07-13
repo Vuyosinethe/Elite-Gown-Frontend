@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { format } from "date-fns"
 
-interface User {
+interface UserProfile {
   id: string
   email: string
   first_name: string | null
@@ -15,7 +15,7 @@ interface User {
 }
 
 export function UsersTable() {
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,6 +31,7 @@ export function UsersTable() {
         setUsers(data)
       } catch (err: any) {
         setError(err.message)
+        console.error("Error fetching users:", err)
       } finally {
         setLoading(false)
       }
@@ -38,8 +39,21 @@ export function UsersTable() {
     fetchUsers()
   }, [])
 
-  if (loading) return <p>Loading users...</p>
-  if (error) return <p className="text-red-500">Error: {error}</p>
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-4 text-center">Loading users...</CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-4 text-center text-red-500">Error: {error}</CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

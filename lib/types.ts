@@ -1,12 +1,14 @@
 // lib/types.ts
-export interface Profile {
+export type Profile = {
   id: string
-  email: string
-  first_name?: string
-  last_name?: string
-  phone?: string
-  avatar_url?: string
-  role?: "user" | "admin" // Add role to profile type
+  email: string | null
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  avatar_url: string | null
+  role: string | null
   created_at?: string
-  updated_at?: string
+  updated_at: string | null
 }
+
+// Add other types as needed for your application

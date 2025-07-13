@@ -102,6 +102,9 @@ export default function LoginPage() {
 
       if (error) {
         console.error("Login failed:", error)
+        console.error("Supabase Auth Error Code:", error.code)
+        console.error("Supabase Auth Error Message:", error.message)
+        console.error("Supabase Auth Error Status:", error.status)
 
         let errorMessage = "Login failed. Please try again."
 
