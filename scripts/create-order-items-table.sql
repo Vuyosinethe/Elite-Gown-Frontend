@@ -13,33 +13,6 @@ CREATE TABLE IF NOT EXISTS public.order_items (
     updated_at timestamp with time zone DEFAULT now()
 );
 
--- Add columns if they don't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'order_id') THEN
-        ALTER TABLE public.order_items ADD COLUMN order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'product_id') THEN
-        ALTER TABLE public.order_items ADD COLUMN product_id uuid;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'product_name') THEN
-        ALTER TABLE public.order_items ADD COLUMN product_name text NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'quantity') THEN
-        ALTER TABLE public.order_items ADD COLUMN quantity integer NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'price') THEN
-        ALTER TABLE public.order_items ADD COLUMN price numeric(10, 2) NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'created_at') THEN
-        ALTER TABLE public.order_items ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'updated_at') THEN
-        ALTER TABLE public.order_items ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-    END IF;
-END
-$$;
-
 -- Enable Row Level Security for order_items table
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 

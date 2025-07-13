@@ -7,6 +7,7 @@ const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || "10040412"
 const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || "hplfynw1fkm14"
 const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || "This1is2Elite3Gowns45678"
 const PAYFAST_SANDBOX_URL = process.env.PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process"
+const PAYFAST_LIVE_URL = process.env.PAYFAST_LIVE_URL || "https://www.payfast.co.za/eng/process"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,6 +94,7 @@ export function verifyPayFastSignature(data: Record<string, string | number>, si
  * @param returnUrl URL for successful payment.
  * @param cancelUrl URL for cancelled payment.
  * @param notifyUrl URL for ITN callback.
+ * @param isSandbox Whether to use the sandbox environment.
  * @returns An object containing the PayFast URL and form fields.
  */
 export function getPayFastCheckoutForm({
@@ -103,6 +105,7 @@ export function getPayFastCheckoutForm({
   returnUrl,
   cancelUrl,
   notifyUrl,
+  isSandbox = true,
 }: {
   orderId: string
   amount: number
@@ -111,6 +114,7 @@ export function getPayFastCheckoutForm({
   returnUrl: string
   cancelUrl: string
   notifyUrl: string
+  isSandbox?: boolean
 }): PayFastCheckoutForm {
   const data: Record<string, string | number> = {
     merchant_id: PAYFAST_MERCHANT_ID,
@@ -134,7 +138,7 @@ export function getPayFastCheckoutForm({
   }))
 
   return {
-    url: PAYFAST_SANDBOX_URL,
+    url: isSandbox ? PAYFAST_SANDBOX_URL : PAYFAST_LIVE_URL,
     fields,
   }
 }
@@ -151,6 +155,7 @@ export function getPayFastFormFields({
   returnUrl,
   cancelUrl,
   notifyUrl,
+  isSandbox = true,
 }: {
   orderId: string
   amount: number
@@ -159,6 +164,7 @@ export function getPayFastFormFields({
   returnUrl: string
   cancelUrl: string
   notifyUrl: string
+  isSandbox?: boolean
 }): PayFastFormField[] {
   const { fields } = getPayFastCheckoutForm({
     orderId,
@@ -168,6 +174,7 @@ export function getPayFastFormFields({
     returnUrl,
     cancelUrl,
     notifyUrl,
+    isSandbox,
   })
   return fields
 }

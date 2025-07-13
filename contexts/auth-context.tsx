@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true) // Initial loading state is true
-  const [initialized, setInitialized] = useState(false) // To track if initial session check is done
   const router = useRouter()
 
   // Memoized function to load user with profile
@@ -115,18 +114,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session immediately without timeout
     const getInitialSession = async () => {
       try {
-        console.log("AuthContext: Getting initial session...")
+        console.log("AuthContext: Calling supabase.auth.getSession()...")
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession()
-
-        console.log("AuthContext: Initial session result:", { session: !!session, error })
+        console.log("AuthContext: supabase.auth.getSession() returned.")
 
         if (!mounted) {
           console.log("AuthContext: Component unmounted during initial session fetch.")
           return
         }
+
+        console.log("AuthContext: Initial session result:", { session: !!session, error })
 
         if (session?.user) {
           console.log("AuthContext: Found valid session, loading user profile...")
@@ -146,10 +146,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(null)
         }
       } finally {
+        // Ensure loading is set to false regardless of success or failure
         if (mounted) {
           console.log("AuthContext: Initial session check complete. Setting loading to false.")
           setLoading(false)
-          setInitialized(true)
         }
       }
     }
@@ -186,16 +186,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("AuthContext: User profile updated.")
         }
       }
-
-      // Ensure loading is false after any auth event, especially if it was true
-      // This ensures the loading state is always resolved after an auth event.
+      // After any auth state change, ensure loading is false if it was true
+      // This handles cases where a sign-in/out might have kept it true.
       if (loading) {
-        // Check current loading state, not initialized
         console.log("AuthContext: Auth state changed, ensuring loading is false.")
         setLoading(false)
-      }
-      if (!initialized) {
-        setInitialized(true)
       }
     })
 
@@ -204,8 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe()
       console.log("AuthContext: useEffect cleanup, subscription unsubscribed.")
     }
-  }, [loadUserWithProfile]) // Removed 'initialized' from dependencies to avoid re-runs based on internal flag
-  // 'loading' is not a dependency here because we are setting it within the effect.
+  }, [loadUserWithProfile, loading]) // Added 'loading' to dependencies to ensure effect reacts to its changes
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
