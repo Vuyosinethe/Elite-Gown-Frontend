@@ -1,37 +1,48 @@
-/* ------------------------------------------------------------------------
-   Shared Supabase client
-   ------------------------------------------------------------------------ */
+/* ---------------------------------------------------------------------------
+   Supabase helper – safe in all environments (build, dev, prod)
+   --------------------------------------------------------------------------- */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js"
 
 /**
- * Environment variables (exposed on both server & client because they are
- * prefixed with NEXT_PUBLIC_).  Make sure they are set in your Vercel project.
+ * We create the real client *lazily* the first time `createClient()` is called.
+ * If the NEXT_PUBLIC_* vars are missing (for example in a CI build),
+ * we fall back to a harmless placeholder so the build doesn’t crash.
  */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+let cached: SupabaseClient | null = null
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase env vars are missing. " + "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.")
+export function createClient(): SupabaseClient {
+  if (cached) return cached
+
+  /* Try real env vars first. */
+  let url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  let key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  /* Fallback – lets `next build` run even without real creds. */
+  if (!url || !key) {
+    console.warn(
+      "[supabase] NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY missing. " +
+        "Using placeholder credentials for static generation.",
+    )
+    url = "http://localhost:54321"
+    key = "public-anon-key"
+  }
+
+  cached = createSupabaseClient(url, key, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  })
+
+  return cached
 }
 
-/** One singleton client for the entire Next.js runtime (per browser tab / server process). */
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-})
+/* ---------------------------------------------------------------------------
+   Types & convenient default export
+   --------------------------------------------------------------------------- */
 
-/* ------------------------------------------------------------------------
-   Exports
-   ------------------------------------------------------------------------ */
-
-/** Re-export the factory for code that needs a totally separate client (e.g. service-role). */
-export { createClient }
-
-/** Basic row shape for the `profiles` table (extend as needed). */
 export type Profile = {
   id: string
   email: string | null
@@ -43,5 +54,9 @@ export type Profile = {
   updated_at: string | null
 }
 
-/** Default export so `import supabase from "@/lib/supabase"` also works. */
-export default supabase
+/**
+ * Default export so `import supabase from "@/lib/supabase"` works,
+ * but note it instantiates the client immediately.
+ */
+const supabaseDefault = createClient()
+export default supabaseDefault

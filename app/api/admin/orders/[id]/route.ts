@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase"
+import { NextResponse } from "next/server"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params
@@ -22,7 +22,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     .single()
 
   if (profileError || profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden: Not an admin" }, { status: 403 })
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { data, error } = await supabase
@@ -33,7 +33,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     .single()
 
   if (error) {
-    console.error("Error updating order:", error)
+    console.error("Error updating order status:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
