@@ -1,8 +1,8 @@
--- Drop existing trigger and function to prevent errors
+-- Drop existing trigger and function to ensure idempotency
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
--- Function to create a profile for new users
+-- Create the function to handle new user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -19,12 +19,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create trigger to call handle_new_user on new user creation
+-- Create the trigger to call the function on new user creation
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Backfill existing users who might not have a profile
+-- Optional: Backfill profiles for existing users who might not have one
 INSERT INTO public.profiles (id, email, first_name, last_name, phone, avatar_url)
 SELECT
   u.id,
