@@ -2,57 +2,71 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { ShoppingCart, X } from "lucide-react"
+import { v4 as uuidv4 } from "uuid"
+
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useCart } from "@/hooks/use-cart"
-import { useAuth } from "@/contexts/auth-context"
-import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context" // Assuming you have an AuthContext
 
 export default function CartDrawer() {
-  const { cartItems, cartTotal, removeFromCart, clearCart } = useCart()
-  const { user } = useAuth()
-  const router = useRouter()
+  const { cartItems, cartTotal, removeFromCart, updateQuantity } = useCart()
+  const { user } = useAuth() // Get user from AuthContext
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
 
   const handleCheckout = async () => {
     if (!user) {
-      router.push("/login?redirect=/cart") // Redirect to login if not authenticated
+      alert("Please log in to proceed to checkout.")
+      // Optionally redirect to login page
+      // router.push('/login');
       return
     }
 
-    setIsProcessing(true)
+    if (cartItems.length === 0) {
+      alert("Your cart is empty.")
+      return
+    }
+
     try {
+      // Generate a unique order ID
+      const orderId = uuidv4()
+
+      // Prepare data for the API route
+      const checkoutData = {
+        cartItems: cartItems.map((item) => ({
+          product_id: item.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          price: item.price, // Price is already in cents from useCart
+          product_image: item.image,
+        })),
+        userId: user.id,
+        totalAmount: cartTotal, // Total amount in cents
+      }
+
       const res = await fetch("/api/payfast/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cartItems: cartItems.map((item) => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price / 100, // Convert cents to Rands for PayFast
-            image: item.image,
-          })),
-          userId: user.id,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(checkoutData),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data?.error || "Failed to create PayFast session")
+        console.error("Checkout API error:", data.error)
+        alert(`Checkout failed: ${data.error}`)
+        return
       }
 
-      const { payfastUrl, payfastFields } = data as {
-        payfastUrl: string
-        payfastFields?: Record<string, string | number>
-      }
+      const { payfastUrl, payfastFields } = data
 
-      // If the API returned form fields, build a hidden form and POST it (required by PayFast)
-      if (payfastFields && Object.keys(payfastFields).length > 0) {
+      // Dynamically create and submit the form to PayFast
+      if (payfastUrl && payfastFields) {
         const form = document.createElement("form")
         form.method = "POST"
         form.action = payfastUrl
@@ -63,26 +77,19 @@ export default function CartDrawer() {
             const input = document.createElement("input")
             input.type = "hidden"
             input.name = key
-            input.value = String(payfastFields[key])
+            input.value = payfastFields[key]
             form.appendChild(input)
           }
         }
 
         document.body.appendChild(form)
         form.submit()
-        clearCart() // Clear cart optimistically
-        setIsSheetOpen(false) // Close the cart drawer
       } else {
-        // Fallback: if no fields, redirect directly (though PayFast usually requires POST)
-        window.location.href = payfastUrl
-        clearCart() // Clear cart optimistically
-        setIsSheetOpen(false) // Close the cart drawer
+        alert("Failed to get PayFast details. Please try again.")
       }
     } catch (error) {
-      console.error("Checkout error:", error)
-      alert("There was an error processing your checkout. Please try again.")
-    } finally {
-      setIsProcessing(false)
+      console.error("Error during checkout:", error)
+      alert("An unexpected error occurred during checkout.")
     }
   }
 
@@ -92,59 +99,73 @@ export default function CartDrawer() {
         <Button variant="ghost" size="icon" className="relative">
           <ShoppingCart className="h-6 w-6" />
           {cartItems.length > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
               {cartItems.length}
             </span>
           )}
           <span className="sr-only">View cart</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex flex-col">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Your Cart ({cartItems.length})</SheetTitle>
         </SheetHeader>
-        <Separator />
-        {cartItems.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-muted-foreground">Your cart is empty.</div>
-        ) : (
-          <div className="flex-1 overflow-y-auto py-4">
-            <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto py-6">
+          {cartItems.length === 0 ? (
+            <p className="text-center text-muted-foreground">Your cart is empty.</p>
+          ) : (
+            <ul className="space-y-4">
               {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4">
-                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border">
-                    <Image
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.name}
-                      fill
-                      style={{ objectFit: "cover" }}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
+                <li key={item.id} className="flex items-center gap-4">
+                  <Image
+                    src={item.image || "/placeholder.svg"}
+                    alt={item.name}
+                    width={80}
+                    height={80}
+                    className="rounded-md object-cover"
+                  />
                   <div className="flex-1">
                     <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                    <p className="text-sm font-semibold">R{(item.price / 100).toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">R{(item.price / 100).toFixed(2)}</p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </Button>
+                      <span>{item.quantity}</span>
+                      <Button variant="outline" size="sm" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                        +
+                      </Button>
+                    </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
                     <X className="h-4 w-4" />
                     <span className="sr-only">Remove item</span>
                   </Button>
-                </div>
+                </li>
               ))}
-            </div>
-          </div>
-        )}
-        <Separator className="mt-auto" />
-        <div className="flex items-center justify-between py-4 font-semibold">
-          <span>Total:</span>
-          <span>R{cartTotal.toFixed(2)}</span>
+            </ul>
+          )}
         </div>
-        <Button onClick={handleCheckout} disabled={cartItems.length === 0 || isProcessing}>
-          {isProcessing ? "Processing..." : "Proceed to Checkout"}
-        </Button>
-        <Button variant="outline" onClick={() => setIsSheetOpen(false)}>
-          Continue Shopping
-        </Button>
+        <Separator />
+        <SheetFooter className="flex flex-col gap-2 pt-4">
+          <div className="flex justify-between text-lg font-semibold">
+            <span>Total:</span>
+            <span>R{(cartTotal / 100).toFixed(2)}</span>
+          </div>
+          <Button className="w-full" onClick={handleCheckout} disabled={cartItems.length === 0}>
+            Proceed to Checkout
+          </Button>
+          <Link href="/products" passHref>
+            <Button variant="outline" className="w-full bg-transparent">
+              Continue Shopping
+            </Button>
+          </Link>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

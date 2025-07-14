@@ -1,54 +1,91 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle, XCircle, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { CheckCircle, XCircle } from "lucide-react"
+import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function PayFastReturnPage() {
   const searchParams = useSearchParams()
-  const [status, setStatus] = useState<"success" | "failed" | "pending">("pending")
-  const [message, setMessage] = useState("Processing your payment...")
+  const [status, setStatus] = useState<"success" | "cancelled" | "failed" | "pending" | "unknown">("unknown")
+  const [message, setMessage] = useState("")
+  const [orderId, setOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment_status")
-    const orderId = searchParams.get("m_payment_id")
+    const mPaymentId = searchParams.get("m_payment_id") // Your custom payment ID
+
+    setOrderId(mPaymentId)
 
     if (paymentStatus === "COMPLETE") {
       setStatus("success")
-      setMessage(`Payment successful for Order ID: ${orderId}. Thank you for your purchase!`)
-    } else if (paymentStatus === "FAILED" || paymentStatus === "CANCELLED") {
+      setMessage("Your payment was successful! Thank you for your purchase.")
+    } else if (paymentStatus === "CANCELLED") {
+      setStatus("cancelled")
+      setMessage("Your payment was cancelled. You can try again or contact support.")
+    } else if (paymentStatus === "FAILED") {
       setStatus("failed")
-      setMessage(`Payment ${paymentStatus.toLowerCase()} for Order ID: ${orderId}. Please try again.`)
-    } else {
-      // Fallback for other statuses or if status is not immediately available
+      setMessage("Your payment failed. Please try again or contact support.")
+    } else if (paymentStatus === "PENDING") {
       setStatus("pending")
-      setMessage("Your payment is being processed. Please check your order history for updates.")
+      setMessage("Your payment is pending. We will notify you once it's confirmed.")
+    } else {
+      setStatus("unknown")
+      setMessage("We could not determine the status of your payment. Please check your order history.")
     }
   }, [searchParams])
 
+  const getIcon = () => {
+    switch (status) {
+      case "success":
+        return <CheckCircle className="h-16 w-16 text-green-500" />
+      case "cancelled":
+      case "failed":
+        return <XCircle className="h-16 w-16 text-red-500" />
+      case "pending":
+      case "unknown":
+      default:
+        return <XCircle className="h-16 w-16 text-yellow-500" /> // Using XCircle for pending/unknown for now
+    }
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 text-center">
-        {status === "pending" && <Loader2 className="mx-auto h-16 w-16 text-gray-500 animate-spin" />}
-        {status === "success" && <CheckCircle className="mx-auto h-16 w-16 text-green-500" />}
-        {status === "failed" && <XCircle className="mx-auto h-16 w-16 text-red-500" />}
-        <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-          {status === "success" ? "Payment Successful!" : status === "failed" ? "Payment Failed" : "Payment Processing"}
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">{message}</p>
-        <div className="mt-6 space-y-3">
-          <Link href="/account" className="block">
-            <Button className="w-full">View My Orders</Button>
-          </Link>
-          <Link href="/products" className="block">
-            <Button variant="outline" className="w-full bg-transparent">
-              Continue Shopping
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-100 px-4 py-12 dark:bg-gray-950">
+      <Card className="w-full max-w-md text-center">
+        <CardHeader>
+          <div className="flex justify-center">{getIcon()}</div>
+          <CardTitle className="mt-4 text-2xl font-bold">
+            {status === "success"
+              ? "Payment Successful!"
+              : status === "cancelled"
+                ? "Payment Cancelled"
+                : status === "failed"
+                  ? "Payment Failed"
+                  : "Payment Status Unknown"}
+          </CardTitle>
+          <CardDescription>{message}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {orderId && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Order Reference: <span className="font-medium">{orderId}</span>
+            </p>
+          )}
+          <div className="flex flex-col gap-2">
+            <Link href="/products" passHref>
+              <Button className="w-full">Continue Shopping</Button>
+            </Link>
+            <Link href="/account/orders" passHref>
+              <Button variant="outline" className="w-full bg-transparent">
+                View Your Orders
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

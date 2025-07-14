@@ -18,81 +18,136 @@ interface PayFastCheckoutOptions {
   notifyUrl: string
 }
 
-const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || "10040412"
-const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || "hplfynw1fkm14"
-const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || "This1is2Elite3Gowns45678"
+// PayFast Sandbox Credentials (from environment variables)
+const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || ""
+const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || ""
+const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || ""
 const PAYFAST_SANDBOX_URL = process.env.PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process"
 
-/**
- * Generates the PayFast signature for the given data, following PayFast's specific ordering and encoding rules.
- * @param data The data object to sign.
- * @param orderedKeys An array of keys in the exact order required by PayFast for signature generation.
- * @returns The MD5 hash signature.
- */
-function generatePayFastSignature(data: Record<string, string | number>, orderedKeys: string[]): string {
-  let dataString = ""
+// Your site's public URL (from environment variables)
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
+/**
+ * Generates the PayFast signature (MD5 hash) for the given data.
+ * The order of parameters is crucial for PayFast.
+ * @param data The key-value pairs to sign.
+ * @param passphrase The PayFast passphrase.
+ * @param orderedKeys An array specifying the exact order of keys for signature generation.
+ * @returns The MD5 signature.
+ */
+function generatePayFastSignature(
+  data: Record<string, string | number | undefined>,
+  passphrase: string,
+  orderedKeys: string[],
+): string {
+  let dataString = ""
   for (const key of orderedKeys) {
     const value = data[key]
     // Only include non-blank variables
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      // Encode values, replace spaces with '+'
-      // Ensure URL encoding is uppercase (encodeURIComponent does this by default for hex)
-      dataString += `${key}=${encodeURIComponent(String(value)).replace(/%20/g, "+")}&`
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      // URL encode the value, then encode spaces as '+' and convert to uppercase
+      const encodedValue = encodeURIComponent(String(value).trim()).replace(/%20/g, "+")
+      dataString += `${key}=${encodedValue}&`
     }
   }
 
-  // Remove trailing '&'
-  dataString = dataString.slice(0, -1)
+  // Add the passphrase at the end
+  dataString += `passphrase=${encodeURIComponent(passphrase).replace(/%20/g, "+")}`
 
-  // Add passphrase to the end
-  if (PAYFAST_PASSPHRASE) {
-    dataString = `${dataString}&passphrase=${encodeURIComponent(PAYFAST_PASSPHRASE).replace(/%20/g, "+")}`
-  }
-
+  // MD5 hash the string
   return crypto.createHash("md5").update(dataString).digest("hex")
 }
 
 /**
- * Creates the necessary form fields for PayFast checkout.
- * @param options Checkout options including order details and URLs.
- * @returns An object containing the PayFast URL and the form fields.
+ * Verifies the incoming ITN signature from PayFast.
+ * @param data The received ITN data.
+ * @param signature The signature received from PayFast.
+ * @param passphrase The PayFast passphrase.
+ * @returns True if the signature is valid, false otherwise.
  */
-export function createPayFastFormFields({
-  orderId,
-  totalAmount,
-  userId,
-  cartItems,
-  returnUrl,
-  cancelUrl,
-  notifyUrl,
-}: PayFastCheckoutOptions) {
-  const itemNames = cartItems.map((item) => item.product_name).join(", ")
-  const itemDescriptions = cartItems
-    .map((item) => `${item.quantity}x ${item.product_name} (R${item.price.toFixed(2)})`)
+export function verifyPayFastSignature(data: Record<string, string>, signature: string, passphrase: string): boolean {
+  // For ITN verification, PayFast typically sends parameters alphabetically.
+  // We need to reconstruct the string in alphabetical order, excluding the signature itself.
+  const sortedKeys = Object.keys(data)
+    .filter((key) => key !== "signature")
+    .sort()
+
+  let dataString = ""
+  for (const key of sortedKeys) {
+    const value = data[key]
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      const encodedValue = encodeURIComponent(String(value).trim()).replace(/%20/g, "+")
+      dataString += `${key}=${encodedValue}&`
+    }
+  }
+  dataString += `passphrase=${encodeURIComponent(passphrase).replace(/%20/g, "+")}`
+
+  const generatedSignature = crypto.createHash("md5").update(dataString).digest("hex")
+  return generatedSignature === signature
+}
+
+/**
+ * Verifies if the incoming request IP address is from PayFast.
+ * In a real production environment, you would fetch the latest IP list from PayFast.
+ * For sandbox, these are known IPs.
+ * @param ip The IP address of the incoming request.
+ * @returns True if the IP is a valid PayFast IP, false otherwise.
+ */
+export function verifyPayFastIp(ip: string): boolean {
+  // These are example sandbox IPs. In production, fetch from PayFast API.
+  const PAYFAST_IPS = ["196.46.20.10", "196.46.20.11", "196.46.20.12", "196.46.20.13"] // Example sandbox IPs
+  return PAYFAST_IPS.includes(ip)
+}
+
+/**
+ * Creates the form fields required for a PayFast payment.
+ * @param totalAmount The total amount of the transaction in Rands.
+ * @param orderId The unique ID of the order.
+ * @param userId The ID of the user making the purchase.
+ * @param items An array of cart items.
+ * @returns An object containing all PayFast form fields, including the generated signature.
+ */
+export function createPayFastFormFields(
+  totalAmount: number,
+  orderId: string,
+  userId: string,
+  items: Array<{ product_id: string; product_name: string; quantity: number; price: number; product_image?: string }>,
+): Record<string, string> {
+  const merchantReference = `ORDER-${orderId}` // Unique reference for your system
+
+  // PayFast requires item details to be passed as separate parameters
+  // For simplicity, we'll just pass the total amount and a generic item name.
+  // For this integration, we'll use a single item for the total.
+  const itemNames = items.map((item) => `${item.product_name} (x${item.quantity})`).join(", ")
+  const itemDescriptions = items
+    .map((item) => `${item.product_name} (Qty: ${item.quantity}, Price: R${item.price.toFixed(2)})`)
     .join("; ")
 
-  // Define fields in the exact order required by PayFast for signature generation
-  // This order is inferred from common PayFast integration examples and the structure of the form.
-  const fields: Record<string, string | number> = {
+  const data: Record<string, string | number | undefined> = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
-    return_url: returnUrl,
-    cancel_url: cancelUrl,
-    notify_url: notifyUrl,
-    name_first: "Customer", // Placeholder, ideally from user profile
-    name_last: "User", // Placeholder, ideally from user profile
-    email_address: "customer@example.com", // Placeholder, ideally from user profile
-    m_payment_id: orderId, // Your unique order ID
-    amount: totalAmount.toFixed(2),
-    item_name: itemNames.substring(0, 100), // Max 100 chars
-    item_description: itemDescriptions.substring(0, 255), // Max 255 chars
-    custom_str1: userId || "", // Ensure it's an empty string if userId is falsy
-    custom_str2: orderId || "", // Ensure it's an empty string if orderId is falsy
-    // Add other custom fields as needed
+    return_url: `${SITE_URL}/payfast/return`,
+    cancel_url: `${SITE_URL}/payfast/cancel`,
+    notify_url: `${SITE_URL}/api/payfast/notify`,
+    name_first: "", // Optional, can be populated from user profile
+    name_last: "", // Optional
+    email_address: "", // Optional
+    m_payment_id: merchantReference, // Your unique order ID
+    amount: totalAmount.toFixed(2), // Total amount in Rands, 2 decimal places
+    item_name: `EliteGowns Order ${merchantReference}`,
+    item_description: `Purchase from EliteGowns: ${itemNames}`,
+    custom_str1: userId || "", // Pass userId as custom string
+    custom_str2: orderId || "", // Pass orderId as custom string
+    // custom_str3, custom_str4, custom_str5 are also available
+    // custom_int1 to custom_int5 are also available
+    email_confirmation: "1", // Send email confirmation to buyer
+    confirmation_address: "", // Optional: specific email for confirmation
+    payment_method: "", // Optional: 'cc' for credit card, 'eft' for EFT etc.
   }
 
-  // Explicitly define the order of keys for signature generation
+  // Define the exact order of fields for signature generation as per PayFast documentation
+  // This order is crucial and must match PayFast's internal expectation.
+  // This list should be as exhaustive as possible for all fields you might send.
   const orderedKeysForSignature = [
     "merchant_id",
     "merchant_key",
@@ -108,88 +163,40 @@ export function createPayFastFormFields({
     "item_description",
     "custom_str1",
     "custom_str2",
+    "custom_str3",
+    "custom_str4",
+    "custom_str5",
+    "custom_int1",
+    "custom_int2",
+    "custom_int3",
+    "custom_int4",
+    "custom_int5",
+    "email_confirmation",
+    "confirmation_address",
+    "payment_method",
   ]
 
-  const signature = generatePayFastSignature(fields, orderedKeysForSignature)
-
-  return {
-    payfastUrl: PAYFAST_SANDBOX_URL,
-    payfastFields: {
-      ...fields,
-      signature,
-    },
+  // Filter out undefined/null values and ensure empty strings for optional fields
+  // This filteredData is what will be used to generate the signature.
+  const filteredData: Record<string, string | number | undefined> = {}
+  for (const key of orderedKeysForSignature) {
+    const value = data[key]
+    filteredData[key] = value !== undefined && value !== null ? value : ""
   }
+
+  const signature = generatePayFastSignature(filteredData, PAYFAST_PASSPHRASE, orderedKeysForSignature)
+
+  // The final form fields sent to PayFast should only include non-blank values
+  const finalFormFields: Record<string, string> = {}
+  for (const key in filteredData) {
+    const value = filteredData[key]
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      finalFormFields[key] = String(value)
+    }
+  }
+  finalFormFields.signature = signature
+
+  return finalFormFields
 }
 
-/**
- * Verifies the PayFast ITN (Instant Transaction Notification) signature.
- * @param data The ITN data received from PayFast.
- * @returns True if the signature is valid, false otherwise.
- */
-export function verifyPayFastSignature(data: Record<string, string | number>): boolean {
-  const receivedSignature = String(data.signature)
-  const dataWithoutSignature = { ...data }
-  delete dataWithoutSignature.signature // Remove signature before generating hash
-
-  // For ITN verification, PayFast typically uses alphabetical sorting for the data string
-  // unless specified otherwise for ITN. Sticking to alphabetical for ITN as it's common.
-  const sortedKeys = Object.keys(dataWithoutSignature).sort()
-  const generatedSignature = generatePayFastSignature(dataWithoutSignature, sortedKeys)
-
-  return receivedSignature === generatedSignature
-}
-
-/**
- * Verifies the PayFast ITN (Instant Transaction Notification) IP address.
- * @param ip The IP address of the incoming request.
- * @returns True if the IP is a valid PayFast IP, false otherwise.
- */
-export function verifyPayFastIp(ip: string): boolean {
-  const validPayFastIps = [
-    "197.249.2.192",
-    "197.249.2.193",
-    "197.249.2.194",
-    "197.249.2.195",
-    "197.249.2.196",
-    "197.249.2.197",
-    "197.249.2.198",
-    "197.249.2.199",
-    "197.249.2.200",
-    "197.249.2.201",
-    "197.249.2.202",
-    "197.249.2.203",
-    "197.249.2.204",
-    "197.249.2.205",
-    "197.249.2.206",
-    "197.249.2.207",
-    "197.249.2.208",
-    "197.249.2.209",
-    "197.249.2.210",
-    "197.249.2.211",
-    "197.249.2.212",
-    "197.249.2.213",
-    "197.249.3.192",
-    "197.249.3.193",
-    "197.249.3.194",
-    "197.249.3.195",
-    "197.249.3.196",
-    "197.249.3.197",
-    "197.249.3.198",
-    "197.249.3.199",
-    "197.249.3.200",
-    "197.249.3.201",
-    "197.249.3.202",
-    "197.249.3.203",
-    "197.249.3.204",
-    "197.249.3.205",
-    "197.249.3.206",
-    "197.249.3.207",
-    "197.249.3.208",
-    "197.249.3.209",
-    "197.249.3.210",
-    "197.249.3.211",
-    "197.249.3.212",
-    "197.249.3.213",
-  ]
-  return validPayFastIps.includes(ip)
-}
+export const PAYFAST_URL = PAYFAST_SANDBOX_URL
