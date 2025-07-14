@@ -24,25 +24,28 @@ const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || "This1is2Elite3Gown
 const PAYFAST_SANDBOX_URL = process.env.PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process"
 
 /**
- * Generates the PayFast signature for the given data.
+ * Generates the PayFast signature for the given data, following PayFast's specific ordering and encoding rules.
  * @param data The data object to sign.
+ * @param orderedKeys An array of keys in the exact order required by PayFast for signature generation.
  * @returns The MD5 hash signature.
  */
-function generatePayFastSignature(data: Record<string, string | number>): string {
-  // Sort the data by key
-  const sortedKeys = Object.keys(data).sort()
+function generatePayFastSignature(data: Record<string, string | number>, orderedKeys: string[]): string {
   let dataString = ""
 
-  for (const key of sortedKeys) {
-    if (data[key] !== null && data[key] !== undefined) {
-      dataString += `${key}=${encodeURIComponent(String(data[key]).trim()).replace(/%20/g, "+")}&`
+  for (const key of orderedKeys) {
+    const value = data[key]
+    // Only include non-blank variables
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      // Encode values, replace spaces with '+'
+      // Ensure URL encoding is uppercase (encodeURIComponent does this by default for hex)
+      dataString += `${key}=${encodeURIComponent(String(value)).replace(/%20/g, "+")}&`
     }
   }
 
   // Remove trailing '&'
   dataString = dataString.slice(0, -1)
 
-  // Add passphrase if it exists
+  // Add passphrase to the end
   if (PAYFAST_PASSPHRASE) {
     dataString = `${dataString}&passphrase=${encodeURIComponent(PAYFAST_PASSPHRASE).replace(/%20/g, "+")}`
   }
@@ -69,6 +72,8 @@ export function createPayFastFormFields({
     .map((item) => `${item.quantity}x ${item.product_name} (R${item.price.toFixed(2)})`)
     .join("; ")
 
+  // Define fields in the exact order required by PayFast for signature generation
+  // This order is inferred from common PayFast integration examples and the structure of the form.
   const fields: Record<string, string | number> = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
@@ -82,12 +87,30 @@ export function createPayFastFormFields({
     amount: totalAmount.toFixed(2),
     item_name: itemNames.substring(0, 100), // Max 100 chars
     item_description: itemDescriptions.substring(0, 255), // Max 255 chars
-    custom_str1: userId, // Custom field to pass user ID
-    custom_str2: orderId, // Custom field to pass order ID
+    custom_str1: userId || "", // Ensure it's an empty string if userId is falsy
+    custom_str2: orderId || "", // Ensure it's an empty string if orderId is falsy
     // Add other custom fields as needed
   }
 
-  const signature = generatePayFastSignature(fields)
+  // Explicitly define the order of keys for signature generation
+  const orderedKeysForSignature = [
+    "merchant_id",
+    "merchant_key",
+    "return_url",
+    "cancel_url",
+    "notify_url",
+    "name_first",
+    "name_last",
+    "email_address",
+    "m_payment_id",
+    "amount",
+    "item_name",
+    "item_description",
+    "custom_str1",
+    "custom_str2",
+  ]
+
+  const signature = generatePayFastSignature(fields, orderedKeysForSignature)
 
   return {
     payfastUrl: PAYFAST_SANDBOX_URL,
@@ -108,7 +131,11 @@ export function verifyPayFastSignature(data: Record<string, string | number>): b
   const dataWithoutSignature = { ...data }
   delete dataWithoutSignature.signature // Remove signature before generating hash
 
-  const generatedSignature = generatePayFastSignature(dataWithoutSignature)
+  // For ITN verification, PayFast typically uses alphabetical sorting for the data string
+  // unless specified otherwise for ITN. Sticking to alphabetical for ITN as it's common.
+  const sortedKeys = Object.keys(dataWithoutSignature).sort()
+  const generatedSignature = generatePayFastSignature(dataWithoutSignature, sortedKeys)
+
   return receivedSignature === generatedSignature
 }
 

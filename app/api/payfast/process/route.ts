@@ -1,82 +1,87 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase"
 import { createPayFastFormFields } from "@/lib/payfast"
-import { supabase } from "@/lib/supabase"
 
-const toNumber = (value: string | number) => (typeof value === "number" ? value : Number.parseFloat(value))
+export async function POST(req: Request) {
+  const supabase = createClient()
 
-const toCents = (rands: string | number) =>
-  Math.round(typeof rands === "number" ? rands * 100 : Number.parseFloat(rands) * 100)
-
-export async function POST(request: NextRequest) {
   try {
-    const raw = await request.json()
-    const cartItems = raw.cartItems as any[]
-    const userId = raw.userId
-    const totalAmountNum = toNumber(raw.totalAmount) // rands as number
+    const { cartItems, userId } = await req.json()
 
-    if (!totalAmountNum || !userId || !cartItems || cartItems.length === 0) {
-      return NextResponse.json({ error: "Missing required fields for checkout" }, { status: 400 })
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      return NextResponse.json({ error: "Cart items are required" }, { status: 400 })
+    }
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
     }
 
-    // incoming totalAmount is a string/number in rands → store cents in DB
-    const totalAmountCents = toCents(totalAmountNum)
+    // Calculate total amount in cents
+    const totalAmountCents = cartItems.reduce(
+      (sum, item) => sum + Math.round(Number(item.price) * 100) * Number(item.quantity),
+      0,
+    )
+    const totalAmountRands = totalAmountCents / 100
 
-    // 1. Create an order in your database
-    const { data: orderData, error: orderError } = await supabase
+    // 1. Create a new order in the database
+    const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
         user_id: userId,
-        total_amount: totalAmountCents, // ← integer cents
+        total_amount: totalAmountCents, // Store in cents
         status: "pending", // Initial status
       })
       .select()
       .single()
 
-    if (orderError || !orderData) {
+    if (orderError || !order) {
       console.error("Error creating order:", orderError)
-      return NextResponse.json({ error: orderError?.message || "Failed to create order." }, { status: 500 })
+      return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
     }
 
-    const orderId = orderData.id
-
     // 2. Add order items
-    const itemsToInsert = cartItems.map((item: any) => ({
-      order_id: orderId,
-      product_id: item.product_id,
-      product_name: item.product_name,
+    const orderItemsToInsert = cartItems.map((item: any) => ({
+      order_id: order.id,
+      product_id: item.id,
       quantity: item.quantity,
-      price: toCents(item.price), // ← integer cents
-      product_image: item.product_image || null,
+      price: Math.round(Number(item.price) * 100), // Store in cents
+      product_name: item.name,
+      product_image: item.image,
     }))
 
-    const { error: orderItemsError } = await supabase.from("order_items").insert(itemsToInsert)
+    const { error: orderItemsError } = await supabase.from("order_items").insert(orderItemsToInsert)
 
     if (orderItemsError) {
       console.error("Error adding order items:", orderItemsError)
-      return NextResponse.json({ error: orderItemsError.message || "Failed to add order items." }, { status: 500 })
+      // Optionally, roll back the order creation here
+      return NextResponse.json({ error: "Failed to add order items" }, { status: 500 })
     }
 
-    // 3. Generate PayFast form fields
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000" // Ensure this env var is set
+    // 3. Prepare PayFast checkout form fields
+    const NEXT_PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
-    const payfastCartItems = cartItems.map((item) => ({
-      ...item,
-      price: toNumber(item.price), // ensure number for toFixed(2)
-    }))
+    const returnUrl = `${NEXT_PUBLIC_SITE_URL}/payfast/return`
+    const cancelUrl = `${NEXT_PUBLIC_SITE_URL}/payfast/cancel`
+    const notifyUrl = `${NEXT_PUBLIC_SITE_URL}/api/payfast/notify` // PayFast ITN URL
 
     const { payfastUrl, payfastFields } = createPayFastFormFields({
-      orderId,
-      totalAmount: totalAmountNum, // number, not string
-      userId,
-      cartItems: payfastCartItems,
-      returnUrl: `${siteUrl}/payfast/return`,
-      cancelUrl: `${siteUrl}/payfast/cancel`,
-      notifyUrl: `${siteUrl}/api/payfast/notify`,
+      orderId: order.id,
+      totalAmount: totalAmountRands, // Send to PayFast in Rands
+      userId: userId,
+      cartItems: cartItems.map((item: any) => ({
+        product_id: item.id,
+        product_name: item.name,
+        quantity: item.quantity,
+        price: Number(item.price), // Ensure this is a number for toFixed in lib/payfast.ts
+        image_url: item.image,
+      })),
+      returnUrl,
+      cancelUrl,
+      notifyUrl,
     })
 
-    return NextResponse.json({ payfastUrl, payfastFields })
+    return NextResponse.json({ payfastUrl, payfastFields }, { status: 200 })
   } catch (error) {
     console.error("Error in /api/payfast/process:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }
