@@ -263,12 +263,15 @@ export function useCart() {
   const vat = subtotal * 0.15
   const total = subtotal + vat
 
+  const cartTotal = total // alias so components expecting `cartTotal` keep working
+
   return {
     cartItems,
     cartCount,
     subtotal,
     vat,
     total,
+    cartTotal, // NEW: alias for backward compatibility
     loading,
     addToCart,
     updateQuantity,

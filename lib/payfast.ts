@@ -1,215 +1,168 @@
 import crypto from "crypto"
 
-// ---------------------------------------------------------------------------
-// Environment variables (recommended to be set in Vercel → Project Settings)
-// ---------------------------------------------------------------------------
+interface PayFastItem {
+  product_id: string
+  product_name: string
+  quantity: number
+  price: number
+  image_url?: string
+}
+
+interface PayFastCheckoutOptions {
+  orderId: string
+  totalAmount: number
+  userId: string
+  cartItems: PayFastItem[]
+  returnUrl: string
+  cancelUrl: string
+  notifyUrl: string
+}
+
 const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || "10040412"
 const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || "hplfynw1fkm14"
 const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || "This1is2Elite3Gowns45678"
 const PAYFAST_SANDBOX_URL = process.env.PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process"
-const PAYFAST_LIVE_URL = process.env.PAYFAST_LIVE_URL || "https://www.payfast.co.za/eng/process"
-const NEXT_PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-interface PayFastFormField {
-  name: string
-  value: string
-}
-
-interface PayFastCheckoutForm {
-  url: string
-  fields: PayFastFormField[]
-}
 
 /**
- * Generates the PayFast signature for a given set of data.
- * The data must be sorted alphabetically by key.
+ * Generates the PayFast signature for the given data.
  * @param data The data object to sign.
- * @returns The generated SHA256 signature.
+ * @returns The MD5 hash signature.
  */
-function generateSignature(data: Record<string, string | number>): string {
-  // Sort keys alphabetically
+function generatePayFastSignature(data: Record<string, string | number>): string {
+  // Sort the data by key
   const sortedKeys = Object.keys(data).sort()
+  let dataString = ""
 
-  // Create the query string
-  const queryString = sortedKeys
-    .map((key) => {
-      const value = data[key]
-      // Encode values, replace spaces with '+'
-      return `${key}=${encodeURIComponent(String(value)).replace(/%20/g, "+")}`
-    })
-    .join("&")
+  for (const key of sortedKeys) {
+    if (data[key] !== null && data[key] !== undefined) {
+      dataString += `${key}=${encodeURIComponent(String(data[key]).trim()).replace(/%20/g, "+")}&`
+    }
+  }
+
+  // Remove trailing '&'
+  dataString = dataString.slice(0, -1)
 
   // Add passphrase if it exists
-  const dataToHash = PAYFAST_PASSPHRASE ? `${queryString}&passphrase=${PAYFAST_PASSPHRASE}` : queryString
+  if (PAYFAST_PASSPHRASE) {
+    dataString = `${dataString}&passphrase=${encodeURIComponent(PAYFAST_PASSPHRASE).replace(/%20/g, "+")}`
+  }
 
-  // Generate SHA256 hash
-  return crypto.createHash("md5").update(dataToHash).digest("hex")
+  return crypto.createHash("md5").update(dataString).digest("hex")
 }
 
 /**
- * Verifies a PayFast signature against provided data.
- * @param data The data received from PayFast.
- * @param signature The signature to verify.
- * @returns True if the signature is valid, false otherwise.
+ * Creates the necessary form fields for PayFast checkout.
+ * @param options Checkout options including order details and URLs.
+ * @returns An object containing the PayFast URL and the form fields.
  */
-export function verifySignature(data: Record<string, string | number>, signature: string): boolean {
-  const generatedSignature = generateSignature(data)
-  return generatedSignature === signature
-}
+export function createPayFastFormFields({
+  orderId,
+  totalAmount,
+  userId,
+  cartItems,
+  returnUrl,
+  cancelUrl,
+  notifyUrl,
+}: PayFastCheckoutOptions) {
+  const itemNames = cartItems.map((item) => item.product_name).join(", ")
+  const itemDescriptions = cartItems
+    .map((item) => `${item.quantity}x ${item.product_name} (R${item.price.toFixed(2)})`)
+    .join("; ")
 
-/**
- * Prepares the form fields for PayFast checkout.
- * @param orderId Your internal order ID.
- * @param amount The total amount to be paid.
- * @param itemName The name of the item/order.
- * @param userEmail The user's email address.
- * @param returnUrl URL for successful payment.
- * @param cancelUrl URL for cancelled payment.
- * @param notifyUrl URL for ITN (Instant Transaction Notification).
- * @returns An object containing the PayFast URL and an array of form fields.
- */
-export function getPayFastCheckoutForm(
-  orderId: string,
-  amount: number,
-  itemName: string,
-  userEmail: string,
-  returnUrl: string,
-  cancelUrl: string,
-  notifyUrl: string,
-): PayFastCheckoutForm {
-  const data: Record<string, string | number> = {
+  const fields: Record<string, string | number> = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
     return_url: returnUrl,
     cancel_url: cancelUrl,
     notify_url: notifyUrl,
-    name_first: "", // Optional: Customer's first name
-    name_last: "", // Optional: Customer's last name
-    email_address: userEmail,
-    m_payment_id: orderId, // Your custom payment ID (order ID)
-    amount: amount.toFixed(2), // Amount must be a string with 2 decimal places
-    item_name: itemName,
-    item_description: `Order ${orderId} from Elite Gowns`,
-    // Optional fields
-    custom_str1: "",
-    custom_str2: "",
-    custom_str3: "",
-    custom_str4: "",
-    custom_str5: "",
-    custom_int1: "",
-    custom_int2: "",
-    custom_int3: "",
-    custom_int4: "",
-    custom_int5: "",
-    email_confirmation: "1", // Send email confirmation to customer
-    confirmation_address: userEmail, // Email address for confirmation
-    payment_method: "", // Leave empty for all available payment methods
+    name_first: "Customer", // Placeholder, ideally from user profile
+    name_last: "User", // Placeholder, ideally from user profile
+    email_address: "customer@example.com", // Placeholder, ideally from user profile
+    m_payment_id: orderId, // Your unique order ID
+    amount: totalAmount.toFixed(2),
+    item_name: itemNames.substring(0, 100), // Max 100 chars
+    item_description: itemDescriptions.substring(0, 255), // Max 255 chars
+    custom_str1: userId, // Custom field to pass user ID
+    custom_str2: orderId, // Custom field to pass order ID
+    // Add other custom fields as needed
   }
 
-  const signature = generateSignature(data)
-
-  const formFields: PayFastFormField[] = Object.keys(data).map((key) => ({
-    name: key,
-    value: String(data[key]),
-  }))
-
-  formFields.push({ name: "signature", value: signature })
+  const signature = generatePayFastSignature(fields)
 
   return {
-    url: PAYFAST_SANDBOX_URL,
-    fields: formFields,
+    payfastUrl: PAYFAST_SANDBOX_URL,
+    payfastFields: {
+      ...fields,
+      signature,
+    },
   }
 }
 
 /**
- * Helper to get just the form fields for direct use in a form.
- * @param orderId Your internal order ID.
- * @param amount The total amount to be paid.
- * @param itemName The name of the item/order.
- * @param userEmail The user's email address.
- * @param returnUrl URL for successful payment.
- * @param cancelUrl URL for cancelled payment.
- * @param notifyUrl URL for ITN (Instant Transaction Notification).
- * @returns An array of form fields.
+ * Verifies the PayFast ITN (Instant Transaction Notification) signature.
+ * @param data The ITN data received from PayFast.
+ * @returns True if the signature is valid, false otherwise.
  */
-export function getPayFastFormFields(
-  orderId: string,
-  amount: number,
-  itemName: string,
-  userEmail: string,
-  returnUrl: string,
-  cancelUrl: string,
-  notifyUrl: string,
-): PayFastFormField[] {
-  const { fields } = getPayFastCheckoutForm(orderId, amount, itemName, userEmail, returnUrl, cancelUrl, notifyUrl)
-  return fields
+export function verifyPayFastSignature(data: Record<string, string | number>): boolean {
+  const receivedSignature = String(data.signature)
+  const dataWithoutSignature = { ...data }
+  delete dataWithoutSignature.signature // Remove signature before generating hash
+
+  const generatedSignature = generatePayFastSignature(dataWithoutSignature)
+  return receivedSignature === generatedSignature
 }
 
-// ---------------------------------------------------------------------------
-// Client-side helper – creates a PayFast session via our API route
-// ---------------------------------------------------------------------------
-
 /**
- * Create a PayFast checkout session and either:
- *  • auto-submit a form (preferred – preserves POST requirements), or
- *  • return the PayFast URL so the caller can redirect manually.
- *
- * This helper is intended for use inside Client Components (e.g. cart-drawer).
- *
- * @param cartItems Items currently in the cart
- * @param userId    Supabase user ID
- * @returns         PayFast redirect URL (string) or null when the form is auto-submitted
+ * Verifies the PayFast ITN (Instant Transaction Notification) IP address.
+ * @param ip The IP address of the incoming request.
+ * @returns True if the IP is a valid PayFast IP, false otherwise.
  */
-export async function createCheckoutSession(
-  cartItems: Array<{ id: string; name: string; quantity: number; price: number; image?: string }>,
-  userId: string,
-): Promise<string | null> {
-  try {
-    const res = await fetch("/api/payfast/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cartItems, userId }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to create PayFast session")
-    }
-
-    const { payfastUrl, payfastFields } = data as {
-      payfastUrl: string
-      payfastFields?: Array<{ name: string; value: string }>
-    }
-
-    // If the API returned form fields, build a hidden form and POST it (required by PayFast)
-    if (Array.isArray(payfastFields) && payfastFields.length > 0 && typeof window !== "undefined") {
-      const form = document.createElement("form")
-      form.method = "POST"
-      form.action = payfastUrl
-      form.target = "_self"
-
-      payfastFields.forEach((field) => {
-        const input = document.createElement("input")
-        input.type = "hidden"
-        input.name = field.name
-        input.value = field.value
-        form.appendChild(input)
-      })
-
-      document.body.appendChild(form)
-      form.submit()
-
-      return null // navigation already triggered
-    }
-
-    // Fallback: let the caller handle the redirect
-    return payfastUrl
-  } catch (error) {
-    console.error("createCheckoutSession error:", error)
-    return null
-  }
+export function verifyPayFastIp(ip: string): boolean {
+  const validPayFastIps = [
+    "197.249.2.192",
+    "197.249.2.193",
+    "197.249.2.194",
+    "197.249.2.195",
+    "197.249.2.196",
+    "197.249.2.197",
+    "197.249.2.198",
+    "197.249.2.199",
+    "197.249.2.200",
+    "197.249.2.201",
+    "197.249.2.202",
+    "197.249.2.203",
+    "197.249.2.204",
+    "197.249.2.205",
+    "197.249.2.206",
+    "197.249.2.207",
+    "197.249.2.208",
+    "197.249.2.209",
+    "197.249.2.210",
+    "197.249.2.211",
+    "197.249.2.212",
+    "197.249.2.213",
+    "197.249.3.192",
+    "197.249.3.193",
+    "197.249.3.194",
+    "197.249.3.195",
+    "197.249.3.196",
+    "197.249.3.197",
+    "197.249.3.198",
+    "197.249.3.199",
+    "197.249.3.200",
+    "197.249.3.201",
+    "197.249.3.202",
+    "197.249.3.203",
+    "197.249.3.204",
+    "197.249.3.205",
+    "197.249.3.206",
+    "197.249.3.207",
+    "197.249.3.208",
+    "197.249.3.209",
+    "197.249.3.210",
+    "197.249.3.211",
+    "197.249.3.212",
+    "197.249.3.213",
+  ]
+  return validPayFastIps.includes(ip)
 }

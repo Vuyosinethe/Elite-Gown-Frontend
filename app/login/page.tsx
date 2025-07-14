@@ -27,15 +27,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false) // Local loading state for form submission
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
+  const [formInitialized, setFormInitialized] = useState(false)
   const mountedRef = useRef(true)
 
   // Initialize form state properly on mount and navigation
   useEffect(() => {
     mountedRef.current = true
-    console.log("LoginPage: Component mounted. Resetting form state.")
 
     // Reset form state
     setEmail("")
@@ -45,58 +45,57 @@ export default function LoginPage() {
     setError("")
     setMessage("")
 
+    // Initialize form immediately
+    setFormInitialized(true)
+
     return () => {
       mountedRef.current = false
-      console.log("LoginPage: Component unmounted.")
     }
   }, []) // Only run on mount
 
   // Handle URL parameters
   useEffect(() => {
+    if (!formInitialized) return
+
     const verified = searchParams.get("verified")
     const urlMessage = searchParams.get("message")
 
     if (verified === "true" && urlMessage) {
       setMessage(decodeURIComponent(urlMessage))
-      console.log("LoginPage: Set message from URL:", decodeURIComponent(urlMessage))
     }
-  }, [searchParams])
+  }, [searchParams, formInitialized])
 
   // Handle user redirect - only redirect if user is authenticated and not loading
   useEffect(() => {
-    console.log("LoginPage: User effect - user:", user, "authLoading:", authLoading)
-    if (user && !authLoading) {
-      console.log("LoginPage: User is authenticated and auth not loading, redirecting to account...")
+    if (user && !authLoading && formInitialized) {
+      console.log("User is authenticated, redirecting to account...")
       router.push("/account")
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, formInitialized])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    console.log("LoginPage: handleSubmit triggered.")
-    console.log("LoginPage: Current states - loading (local):", loading, "authLoading (context):", authLoading)
-
-    if (loading || authLoading) {
-      console.log("LoginPage: Form not ready for submission (disabled state conditions met).")
+    if (!formInitialized || loading || authLoading) {
+      console.log("Form not ready for submission")
       return
     }
 
-    console.log("LoginPage: Starting login process for email:", email)
+    console.log("Starting login process...")
     setError("")
     setMessage("")
-    setLoading(true) // Set local loading state for form submission
+    setLoading(true)
 
     try {
       const { error } = await signIn(email, password)
 
       if (!mountedRef.current) {
-        console.log("LoginPage: Component unmounted during sign-in attempt, aborting post-login actions.")
+        console.log("Component unmounted, aborting login")
         return
       }
 
       if (error) {
-        console.error("LoginPage: Sign-in failed:", error)
+        console.error("Login failed:", error)
 
         let errorMessage = "Login failed. Please try again."
 
@@ -109,57 +108,42 @@ export default function LoginPage() {
         }
 
         setError(errorMessage)
-        setLoading(false) // Reset local loading state on error
+        setLoading(false)
       } else {
-        console.log("LoginPage: Sign-in successful, handling post-login actions...")
+        console.log("Login successful, handling post-login actions...")
 
         // Success - handle pending items
         try {
           addPendingCartItem()
           addPendingWishlistItem()
-          console.log("LoginPage: Pending cart/wishlist items processed.")
         } catch (err) {
-          console.warn("LoginPage: Error adding pending items:", err)
+          console.warn("Error adding pending items:", err)
         }
 
         // Handle redirect
         const redirectUrl = localStorage.getItem("redirectAfterLogin")
         if (redirectUrl) {
           localStorage.removeItem("redirectAfterLogin")
-          console.log("LoginPage: Redirecting to stored URL:", redirectUrl)
+          console.log("Redirecting to stored URL:", redirectUrl)
           router.push(redirectUrl)
         } else {
-          console.log("LoginPage: Redirecting to account page.")
+          console.log("Redirecting to account page")
           router.push("/account")
         }
 
-        // Do NOT set local loading to false here, as we are redirecting immediately.
-        // The component will unmount or re-render, resetting its state naturally.
+        // Don't set loading to false here since we're redirecting
       }
     } catch (err) {
-      console.error("LoginPage: Sign-in exception:", err)
+      console.error("Login exception:", err)
       if (mountedRef.current) {
         setError("An unexpected error occurred. Please try again.")
-        setLoading(false) // Reset local loading state on exception
+        setLoading(false)
       }
     }
   }
 
   // Determine if button should be disabled
-  const isButtonDisabled = loading || authLoading || !email.trim() || !password.trim()
-  console.log(
-    "LoginPage: isButtonDisabled:",
-    isButtonDisabled,
-    " (localLoading:",
-    loading,
-    "authLoading:",
-    authLoading,
-    "emailEmpty:",
-    !email.trim(),
-    "passwordEmpty:",
-    !password.trim(),
-    ")",
-  )
+  const isButtonDisabled = !formInitialized || loading || authLoading || !email.trim() || !password.trim()
 
   return (
     <Layout>
@@ -290,19 +274,19 @@ export default function LoginPage() {
                       </Link>
                       <Link
                         href="/embroidered-merchandise?sale=true&type=polo"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                       >
                         Polo Shirts
                       </Link>
                       <Link
                         href="/embroidered-merchandise?sale=true&type=tshirts"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                       >
                         T-Shirts
                       </Link>
                       <Link
                         href="/embroidered-merchandise?sale=true&type=hoodies"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                       >
                         Hoodies
                       </Link>
@@ -509,7 +493,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm"
                       placeholder="Email address"
-                      disabled={loading || authLoading}
+                      disabled={!formInitialized || loading}
                     />
                   </div>
 
@@ -525,13 +509,13 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
-                        disabled={loading || authLoading}
+                        disabled={!formInitialized || loading}
                       />
                       <button
                         type="button"
                         className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading || authLoading}
+                        disabled={!formInitialized || loading}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4 text-gray-400" />
@@ -556,7 +540,7 @@ export default function LoginPage() {
                       disabled={isButtonDisabled}
                       className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading || authLoading ? "Signing in..." : "Sign in"}
+                      {loading ? "Signing in..." : "Sign in"}
                     </Button>
                   </div>
 

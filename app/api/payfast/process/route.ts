@@ -1,81 +1,82 @@
-import { NextResponse } from "next/server"
-import { getPayFastCheckoutForm } from "@/lib/payfast"
+import { type NextRequest, NextResponse } from "next/server"
+import { createPayFastFormFields } from "@/lib/payfast"
 import { supabase } from "@/lib/supabase"
 
-export async function POST(req: Request) {
-  try {
-    const { orderId, totalAmount, userId, userEmail, cartItems } = await req.json()
+const toNumber = (value: string | number) => (typeof value === "number" ? value : Number.parseFloat(value))
 
-    if (!orderId || !totalAmount || !userId || !userEmail || !cartItems || cartItems.length === 0) {
-      return NextResponse.json({ error: "Missing required order details" }, { status: 400 })
+const toCents = (rands: string | number) =>
+  Math.round(typeof rands === "number" ? rands * 100 : Number.parseFloat(rands) * 100)
+
+export async function POST(request: NextRequest) {
+  try {
+    const raw = await request.json()
+    const cartItems = raw.cartItems as any[]
+    const userId = raw.userId
+    const totalAmountNum = toNumber(raw.totalAmount) // rands as number
+
+    if (!totalAmountNum || !userId || !cartItems || cartItems.length === 0) {
+      return NextResponse.json({ error: "Missing required fields for checkout" }, { status: 400 })
     }
 
-    // 1. Create the order in the database
-    const { data: order, error: orderError } = await supabase
+    // incoming totalAmount is a string/number in rands → store cents in DB
+    const totalAmountCents = toCents(totalAmountNum)
+
+    // 1. Create an order in your database
+    const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .insert({
-        id: orderId,
         user_id: userId,
-        total_amount: totalAmount,
+        total_amount: totalAmountCents, // ← integer cents
         status: "pending", // Initial status
       })
       .select()
       .single()
 
-    if (orderError) {
+    if (orderError || !orderData) {
       console.error("Error creating order:", orderError)
-      return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
+      return NextResponse.json({ error: orderError?.message || "Failed to create order." }, { status: 500 })
     }
 
-    // 2. Insert order items
-    const orderItemsToInsert = cartItems.map((item: any) => ({
-      order_id: order.id,
-      product_id: item.id,
-      name: item.name,
+    const orderId = orderData.id
+
+    // 2. Add order items
+    const itemsToInsert = cartItems.map((item: any) => ({
+      order_id: orderId,
+      product_id: item.product_id,
+      product_name: item.product_name,
       quantity: item.quantity,
-      price: item.price,
-      image_url: item.image,
+      price: toCents(item.price), // ← integer cents
+      product_image: item.product_image || null,
     }))
 
-    const { error: orderItemsError } = await supabase.from("order_items").insert(orderItemsToInsert)
+    const { error: orderItemsError } = await supabase.from("order_items").insert(itemsToInsert)
 
     if (orderItemsError) {
-      console.error("Error inserting order items:", orderItemsError)
-      // Optionally, roll back the order creation here
-      return NextResponse.json({ error: "Failed to insert order items" }, { status: 500 })
+      console.error("Error adding order items:", orderItemsError)
+      return NextResponse.json({ error: orderItemsError.message || "Failed to add order items." }, { status: 500 })
     }
 
     // 3. Generate PayFast form fields
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000" // Fallback for local development
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000" // Ensure this env var is set
 
-    const returnUrl = `${siteUrl}/payfast/return`
-    const cancelUrl = `${siteUrl}/payfast/cancel`
-    const notifyUrl = `${siteUrl}/api/payfast/notify`
+    const payfastCartItems = cartItems.map((item) => ({
+      ...item,
+      price: toNumber(item.price), // ensure number for toFixed(2)
+    }))
 
-    const { url, fields } = getPayFastCheckoutForm(
-      order.id,
-      totalAmount,
-      `Elite Gowns Order ${order.id}`,
-      userEmail,
-      returnUrl,
-      cancelUrl,
-      notifyUrl,
-    )
+    const { payfastUrl, payfastFields } = createPayFastFormFields({
+      orderId,
+      totalAmount: totalAmountNum, // number, not string
+      userId,
+      cartItems: payfastCartItems,
+      returnUrl: `${siteUrl}/payfast/return`,
+      cancelUrl: `${siteUrl}/payfast/cancel`,
+      notifyUrl: `${siteUrl}/api/payfast/notify`,
+    })
 
-    // 4. Update the order with the PayFast order ID (m_payment_id)
-    const { error: updateOrderError } = await supabase
-      .from("orders")
-      .update({ payfast_order_id: order.id }) // m_payment_id is our order.id
-      .eq("id", order.id)
-
-    if (updateOrderError) {
-      console.error("Error updating order with PayFast ID:", updateOrderError)
-      return NextResponse.json({ error: "Failed to update order with PayFast ID" }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, payfastUrl: url, payfastFields: fields })
+    return NextResponse.json({ payfastUrl, payfastFields })
   } catch (error) {
-    console.error("Checkout process error:", error)
-    return NextResponse.json({ error: "Internal server error during checkout" }, { status: 500 })
+    console.error("Error in /api/payfast/process:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

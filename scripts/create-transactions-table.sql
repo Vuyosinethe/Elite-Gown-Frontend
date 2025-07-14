@@ -1,49 +1,57 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create transactions table
 CREATE TABLE IF NOT EXISTS public.transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
-  payfast_transaction_id TEXT UNIQUE NOT NULL,
-  status TEXT NOT NULL, -- e.g., 'COMPLETE', 'FAILED', 'PENDING', 'CANCELLED'
-  amount_gross NUMERIC NOT NULL,
-  amount_fee NUMERIC NOT NULL,
-  amount_net NUMERIC NOT NULL,
-  item_name TEXT,
-  item_description TEXT,
-  merchant_id TEXT,
-  signature TEXT NOT NULL,
-  payment_status TEXT, -- PayFast specific status
-  m_payment_id TEXT, -- Custom payment ID from PayFast
-  pf_payment_id TEXT, -- PayFast payment ID
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL, -- Link to user who made the transaction
+    status TEXT NOT NULL, -- e.g., 'success', 'failed', 'pending', 'cancelled', 'unknown'
+    payment_status TEXT, -- e.g., 'COMPLETE', 'FAILED', 'PENDING', 'CANCELLED' from PayFast
+    amount_gross NUMERIC(10, 2), -- Gross amount of the transaction
+    pf_payment_id TEXT, -- PayFast's unique payment ID
+    pf_transaction_id TEXT UNIQUE, -- PayFast's unique transaction ID (for ITN)
+    pf_item_name TEXT,
+    pf_item_description TEXT,
+    pf_signature TEXT, -- Stored for audit/verification
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Set up Row Level Security (RLS)
+-- Add indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON public.transactions (order_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions (user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_pf_transaction_id ON public.transactions (pf_transaction_id);
+
+-- Enable Row Level Security (RLS)
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they exist to prevent errors on re-run
-DROP POLICY IF EXISTS "Users can view their own transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Admins can view all transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Admins can manage all transactions." ON public.transactions;
-
 -- Create RLS policies
-CREATE POLICY "Users can view their own transactions." ON public.transactions FOR SELECT USING (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid()));
-CREATE POLICY "Admins can view all transactions." ON public.transactions FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY "Admins can manage all transactions." ON public.transactions FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+-- Policy for users to view their own transactions
+DROP POLICY IF EXISTS "Users can view their own transactions." ON public.transactions;
+CREATE POLICY "Users can view their own transactions." ON public.transactions
+FOR SELECT USING (auth.uid() = user_id);
 
--- Create a function to update updated_at timestamp
+-- Policy for users to insert transactions (e.g., after payment gateway callback)
+DROP POLICY IF EXISTS "Users can insert transactions." ON public.transactions;
+CREATE POLICY "Users can insert transactions." ON public.transactions
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Policy for users to update their own transactions (e.g., status updates from ITN)
+DROP POLICY IF EXISTS "Users can update their own transactions." ON public.transactions;
+CREATE POLICY "Users can update their own transactions." ON public.transactions
+FOR UPDATE USING (auth.uid() = user_id);
+
+-- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_transactions_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
--- Drop existing trigger if it exists to prevent errors on re-run
+-- Trigger to update updated_at on each update
 DROP TRIGGER IF EXISTS set_transactions_updated_at ON public.transactions;
-
--- Create trigger to update updated_at on transaction changes
 CREATE TRIGGER set_transactions_updated_at
 BEFORE UPDATE ON public.transactions
-FOR EACH ROW
-EXECUTE FUNCTION update_transactions_updated_at_column();
+FOR EACH ROW EXECUTE FUNCTION update_transactions_updated_at_column();
