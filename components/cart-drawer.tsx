@@ -1,16 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { MinusCircle, PlusCircle, Trash2 } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { useAuth } from "@/contexts/auth-context"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { X, Minus, Plus, ShoppingCart } from "lucide-react"
+import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
+import { createCheckoutSession } from "@/lib/payfast"
 
 interface CartDrawerProps {
   isOpen: boolean
@@ -18,14 +17,21 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  const { cartItems, updateCartItemQuantity, removeCartItem, cartTotal, clearCart } = useCart()
   const { user } = useAuth()
-  const { cartItems, cartCount, total, updateQuantity, removeFromCart, clearCart } = useCart()
   const router = useRouter()
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false)
 
+  const handleQuantityChange = (itemId: string, newQuantity: number) => {
+    if (newQuantity > 0) {
+      updateCartItemQuantity(itemId, newQuantity)
+    } else {
+      removeCartItem(itemId)
+    }
+  }
+
   const handleCheckout = async () => {
     if (!user) {
-      // keep intended destination
       localStorage.setItem("redirectAfterLogin", "/checkout")
       router.push("/login")
       onClose()
@@ -39,37 +45,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
     setIsProcessingCheckout(true)
     try {
-      const res = await fetch("/api/payfast/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cartItems, userId: user.id }),
-      })
-
-      if (!res.ok) throw new Error((await res.json()).error || "Payment init failed")
-
-      const { url, fields } = await res.json()
-
-      // dynamically build a form & post to PayFast
-      const form = document.createElement("form")
-      form.method = "POST"
-      form.action = url
-
-      fields.forEach((f: { name: string; value: string }) => {
-        const input = document.createElement("input")
-        input.type = "hidden"
-        input.name = f.name
-        input.value = f.value
-        form.appendChild(input)
-      })
-
-      document.body.appendChild(form)
-      form.submit()
-
-      clearCart()
-      onClose()
-    } catch (err: any) {
-      console.error("Checkout error", err)
-      alert(`Checkout failed: ${err.message}`)
+      const checkoutUrl = await createCheckoutSession(cartItems, user.id)
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl // Redirect to PayFast
+      } else {
+        alert("Failed to initiate checkout. Please try again.")
+      }
+    } catch (error) {
+      console.error("Checkout error:", error)
+      alert("An error occurred during checkout. Please try again.")
     } finally {
       setIsProcessingCheckout(false)
     }
@@ -77,75 +61,85 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="flex w-full flex-col sm:w-[400px]">
+      <SheetContent className="w-full sm:w-[400px] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Your Cart ({cartCount})</SheetTitle>
+          <SheetTitle className="flex items-center justify-between">
+            Your Cart ({cartItems.length})
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </SheetTitle>
         </SheetHeader>
-        <Separator />
-        {cartItems.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-gray-500">
-            <Image src="/placeholder.svg" alt="Empty cart" width={100} height={100} className="mb-2" />
-            <p className="text-lg">Your cart is empty.</p>
-            <Button onClick={onClose}>Continue Shopping</Button>
-          </div>
-        ) : (
-          <>
-            <ScrollArea className="flex-1 py-4">
-              <div className="grid gap-4 pr-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4">
-                    <Image
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.name}
-                      width={80}
-                      height={80}
-                      className="rounded-md object-cover"
-                    />
-                    <div className="grid flex-1 gap-1">
-                      <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-500">R {(item.price ?? 0) / 100}</p>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6 bg-transparent"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <MinusCircle className="h-4 w-4" />
-                        </Button>
-                        <span className="text-sm font-medium">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6 bg-transparent"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
-                      <Trash2 className="h-5 w-5 text-red-500" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-
-            <Separator className="my-4" />
-            <div className="flex items-center justify-between text-lg font-medium">
-              <span>Total:</span>
-              <span>R {(total / 100).toFixed(2)}</span>
+        <div className="flex-1 overflow-y-auto py-4">
+          {cartItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+              <ShoppingCart className="h-16 w-16 mb-4" />
+              <p className="text-lg">Your cart is empty.</p>
+              <Button variant="link" onClick={onClose} className="mt-4">
+                Continue Shopping
+              </Button>
             </div>
-
-            <Button onClick={handleCheckout} disabled={isProcessingCheckout} className="mt-4 w-full">
-              {isProcessingCheckout ? "Processing…" : "Proceed to Checkout"}
+          ) : (
+            <div className="space-y-4">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex items-center space-x-4">
+                  <Image
+                    src={item.image || "/placeholder.svg"}
+                    alt={item.name}
+                    width={80}
+                    height={80}
+                    className="rounded-md object-cover"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">{item.name}</h3>
+                    <p className="text-sm text-gray-600">${item.price.toFixed(2)}</p>
+                    <div className="flex items-center mt-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 bg-transparent"
+                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityChange(item.id, Number.parseInt(e.target.value))}
+                        className="w-14 text-center mx-2 h-7"
+                        min="1"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 bg-transparent"
+                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => removeCartItem(item.id)}>
+                    <X className="h-5 w-5 text-gray-400 hover:text-red-500" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {cartItems.length > 0 && (
+          <div className="border-t pt-4">
+            <div className="flex justify-between text-lg font-medium mb-4">
+              <span>Total:</span>
+              <span>${cartTotal.toFixed(2)}</span>
+            </div>
+            <Button className="w-full" onClick={handleCheckout} disabled={isProcessingCheckout}>
+              {isProcessingCheckout ? "Processing..." : "Proceed to Checkout"}
             </Button>
-            <Button variant="outline" onClick={onClose} className="mt-2 w-full bg-transparent">
-              Continue Shopping
+            <Button variant="outline" className="w-full mt-2 bg-transparent" onClick={clearCart}>
+              Clear Cart
             </Button>
-          </>
+          </div>
         )}
       </SheetContent>
     </Sheet>

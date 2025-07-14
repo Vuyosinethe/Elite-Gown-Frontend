@@ -147,3 +147,69 @@ export function getPayFastFormFields(
   const { fields } = getPayFastCheckoutForm(orderId, amount, itemName, userEmail, returnUrl, cancelUrl, notifyUrl)
   return fields
 }
+
+// ---------------------------------------------------------------------------
+// Client-side helper – creates a PayFast session via our API route
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a PayFast checkout session and either:
+ *  • auto-submit a form (preferred – preserves POST requirements), or
+ *  • return the PayFast URL so the caller can redirect manually.
+ *
+ * This helper is intended for use inside Client Components (e.g. cart-drawer).
+ *
+ * @param cartItems Items currently in the cart
+ * @param userId    Supabase user ID
+ * @returns         PayFast redirect URL (string) or null when the form is auto-submitted
+ */
+export async function createCheckoutSession(
+  cartItems: Array<{ id: string; name: string; quantity: number; price: number; image?: string }>,
+  userId: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch("/api/payfast/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cartItems, userId }),
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data?.error || "Failed to create PayFast session")
+    }
+
+    const { payfastUrl, payfastFields } = data as {
+      payfastUrl: string
+      payfastFields?: Array<{ name: string; value: string }>
+    }
+
+    // If the API returned form fields, build a hidden form and POST it (required by PayFast)
+    if (Array.isArray(payfastFields) && payfastFields.length > 0 && typeof window !== "undefined") {
+      const form = document.createElement("form")
+      form.method = "POST"
+      form.action = payfastUrl
+      form.target = "_self"
+
+      payfastFields.forEach((field) => {
+        const input = document.createElement("input")
+        input.type = "hidden"
+        input.name = field.name
+        input.value = field.value
+        form.appendChild(input)
+      })
+
+      document.body.appendChild(form)
+      form.submit()
+
+      return null // navigation already triggered
+    }
+
+    // Fallback: let the caller handle the redirect
+    return payfastUrl
+  } catch (error) {
+    console.error("createCheckoutSession error:", error)
+    return null
+  }
+}
