@@ -10,9 +10,6 @@ import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
 import Layout from "@/components/layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useRouter } from "next/navigation"
-import { useCart } from "@/hooks/use-cart"
-import { useWishlist } from "@/hooks/use-wishlist"
 
 export default function MedicalScrubsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -22,74 +19,8 @@ export default function MedicalScrubsPage() {
   const [selectedSize, setSelectedSize] = useState("M")
   const [selectedColor, setSelectedColor] = useState("Navy Blue")
 
-  const sizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL"]
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
   const colors = ["Navy Blue", "Ceil Blue", "Black", "Wine", "Hunter Green"]
-
-  const router = useRouter()
-  const {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    addPendingCartItem,
-  } = useCart()
-
-  const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
-    useWishlist()
-
-  const product = {
-    id: 2,
-    name: "Complete Scrub Set",
-    category: "Medical Scrubs",
-    price: 899,
-    image: "/placeholder.svg?height=600&width=600",
-    description: "Antimicrobial, moisture-wicking fabric with multiple utility pockets",
-    rating: 4.8,
-    reviews: 89,
-    link: "/medical-scrubs",
-  }
-
-  const handleAddToCart = () => {
-    try {
-      addToCart({
-        id: 2,
-        name: "Complete Scrub Set",
-        details: `Size: ${selectedSize}, Color: ${selectedColor}`,
-        price: 899,
-        image: "/placeholder.svg?height=80&width=80",
-      })
-    } catch (error: any) {
-      if (error.message === "REDIRECT_TO_LOGIN") {
-        // Store current page for redirect after login
-        localStorage.setItem("redirectAfterLogin", window.location.pathname)
-        router.push("/login")
-      }
-    }
-  }
-
-  const handleAddToWishlist = async () => {
-    const success = await addToWishlist({
-      id: product.id,
-      name: product.name,
-      category: product.category,
-      price: product.price,
-      image: product.image,
-      description: product.description,
-      rating: product.rating,
-      reviews: product.reviews,
-      link: product.link,
-    })
-
-    if (!success && !user) {
-      // Store the item they wanted to add for after login
-      localStorage.setItem("pendingWishlistItem", JSON.stringify(product))
-    }
-  }
 
   return (
     <Layout>
@@ -250,7 +181,7 @@ export default function MedicalScrubsPage() {
                     onClick={() => setCartOpen(true)}
                     className="text-gray-700 hover:text-black transition-colors"
                   >
-                    {user ? `Cart (${cartCount})` : "Cart"}
+                    {user ? "Cart (0)" : "Cart"}
                   </button>
                   {user ? (
                     <Link
@@ -278,7 +209,7 @@ export default function MedicalScrubsPage() {
               {/* Mobile Navigation Button */}
               <div className="flex items-center space-x-4 md:hidden">
                 <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? `Cart (${cartCount})` : "Cart"}
+                  {user ? "Cart (0)" : "Cart"}
                 </button>
                 <Image
                   src="/elite-gowns-logo.png"
@@ -525,19 +456,13 @@ export default function MedicalScrubsPage() {
 
               {/* Actions */}
               <div className="space-y-3">
-                <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg" onClick={handleAddToCart}>
+                <Button className="w-full bg-black hover:bg-gray-800 text-white py-3 text-lg">
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   Add to Cart
                 </Button>
-                <Button
-                  variant="outline"
-                  className={`w-full py-3 text-lg bg-transparent ${
-                    isInWishlist(product.id) ? "text-red-500 border-red-500" : ""
-                  }`}
-                  onClick={handleAddToWishlist}
-                >
-                  <Heart className={`w-5 h-5 mr-2 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
-                  {isInWishlist(product.id) ? "Added to Wishlist" : "Add to Wishlist"}
+                <Button variant="outline" className="w-full py-3 text-lg bg-transparent">
+                  <Heart className="w-5 h-5 mr-2" />
+                  Add to Wishlist
                 </Button>
               </div>
             </div>
@@ -641,42 +566,36 @@ export default function MedicalScrubsPage() {
                       </thead>
                       <tbody>
                         <tr className="bg-white">
-                          <td className="px-6 py-4 font-semibold text-gray-900">XXS</td>
-                          <td className="px-6 py-4 text-gray-600">76-81</td>
-                          <td className="px-6 py-4 text-gray-600">61-66</td>
-                          <td className="px-6 py-4 text-gray-600">84-89</td>
-                        </tr>
-                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">XS</td>
                           <td className="px-6 py-4 text-gray-600">81-86</td>
                           <td className="px-6 py-4 text-gray-600">66-71</td>
                           <td className="px-6 py-4 text-gray-600">89-94</td>
                         </tr>
-                        <tr className="bg-white">
+                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">S</td>
                           <td className="px-6 py-4 text-gray-600">86-91</td>
                           <td className="px-6 py-4 text-gray-600">71-76</td>
                           <td className="px-6 py-4 text-gray-600">94-99</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-white">
                           <td className="px-6 py-4 font-semibold text-gray-900">M</td>
                           <td className="px-6 py-4 text-gray-600">91-97</td>
                           <td className="px-6 py-4 text-gray-600">76-81</td>
                           <td className="px-6 py-4 text-gray-600">99-104</td>
                         </tr>
-                        <tr className="bg-white">
+                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">L</td>
                           <td className="px-6 py-4 text-gray-600">97-102</td>
                           <td className="px-6 py-4 text-gray-600">81-86</td>
                           <td className="px-6 py-4 text-gray-600">104-109</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-white">
                           <td className="px-6 py-4 font-semibold text-gray-900">XL</td>
                           <td className="px-6 py-4 text-gray-600">102-107</td>
                           <td className="px-6 py-4 text-gray-600">86-91</td>
                           <td className="px-6 py-4 text-gray-600">109-114</td>
                         </tr>
-                        <tr className="bg-white">
+                        <tr className="bg-gray-50">
                           <td className="px-6 py-4 font-semibold text-gray-900">XXL</td>
                           <td className="px-6 py-4 text-gray-600">107-112</td>
                           <td className="px-6 py-4 text-gray-600">91-97</td>
@@ -775,13 +694,7 @@ export default function MedicalScrubsPage() {
                   </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-900">
-                      {i === 1
-                        ? "Medical Scrub Top"
-                        : i === 2
-                          ? "Medical Scrub Pants"
-                          : i === 3
-                            ? "Medical Lab Coat"
-                            : "Medical Scrub Set"}
+                      Medical Scrub {i === 1 ? "Top" : i === 2 ? "Pants" : i === 3 ? "Lab Coat" : "Set"}
                     </h3>
                     <p className="text-gray-600 text-sm mb-2">Professional medical wear</p>
                     <p className="font-bold text-black">

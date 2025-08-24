@@ -1,187 +1,140 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import Layout from "@/components/layout"
-import { AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Eye, EyeOff, Lock, AlertCircle, CheckCircle } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isValidating, setIsValidating] = useState(true)
-  const [hasValidTokens, setHasValidTokens] = useState(false)
-
-  const searchParams = useSearchParams()
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
-
-  // Get tokens from URL fragments (Supabase sends them as URL fragments)
-  const [tokens, setTokens] = useState<{ access_token?: string; refresh_token?: string }>({})
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Check for tokens in URL hash (Supabase redirects with fragments)
-    const hash = window.location.hash
-    const params = new URLSearchParams(hash.substring(1))
-
-    const access_token = params.get("access_token")
-    const refresh_token = params.get("refresh_token")
-    const error_description = params.get("error_description")
-
-    if (error_description) {
-      setError(decodeURIComponent(error_description))
-      setIsValidating(false)
-      return
+    // Handle the auth callback
+    const handleAuthCallback = async () => {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) {
+        setError("Invalid or expired reset link")
+      }
     }
 
-    if (access_token && refresh_token) {
-      setTokens({ access_token, refresh_token })
-      setHasValidTokens(true)
-    } else {
-      setError("Invalid or missing reset token")
-    }
-
-    setIsValidating(false)
+    handleAuthCallback()
   }, [])
+
+  const validatePassword = (password: string) => {
+    const minLength = 8
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumbers = /\d/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+
+    if (password.length < minLength) {
+      return "Password must be at least 8 characters long"
+    }
+    if (!hasUpperCase) {
+      return "Password must contain at least one uppercase letter"
+    }
+    if (!hasLowerCase) {
+      return "Password must contain at least one lowercase letter"
+    }
+    if (!hasNumbers) {
+      return "Password must contain at least one number"
+    }
+    if (!hasSpecialChar) {
+      return "Password must contain at least one special character"
+    }
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setLoading(true)
+    setSuccess("")
+
+    if (!password || !confirmPassword) {
+      setError("Please fill in all fields")
+      return
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
-      setLoading(false)
       return
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long")
-      setLoading(false)
+    const passwordError = validatePassword(password)
+    if (passwordError) {
+      setError(passwordError)
       return
     }
+
+    setLoading(true)
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          password,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-        }),
+      const { error } = await supabase.auth.updateUser({
+        password: password,
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Failed to reset password")
+      if (error) {
+        setError(error.message)
       } else {
-        setSuccess(true)
-        // Clear the URL hash
-        window.history.replaceState(null, "", window.location.pathname)
+        setSuccess("Password updated successfully! Redirecting to login...")
         setTimeout(() => {
           router.push("/login")
-        }, 3000)
+        }, 2000)
       }
-    } catch (err) {
-      setError("Failed to reset password. Please try again.")
+    } catch (error) {
+      setError("Failed to update password")
     } finally {
       setLoading(false)
     }
   }
 
-  if (isValidating) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-600">Verifying reset link...</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    )
-  }
-
-  if (!hasValidTokens) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-red-600">Invalid Reset Link</CardTitle>
-              <CardDescription>{error || "This password reset link is invalid or has expired."}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Link href="/forgot-password">
-                  <Button className="w-full bg-black hover:bg-gray-800 text-white">Request New Reset Link</Button>
-                </Link>
-                <Link href="/login">
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Back to Login
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    )
-  }
-
-  if (success) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-green-600">Password Reset Successful</CardTitle>
-              <CardDescription>
-                Your password has been successfully updated. You will be redirected to the login page in a few seconds.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/login">
-                <Button className="w-full bg-black hover:bg-gray-800 text-white">Go to Login</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    )
-  }
-
   return (
-    <Layout>
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
+          <Link href="/">
+            <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={80} height={80} className="h-20 w-20" />
+          </Link>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">Set new password</h2>
+        <p className="mt-2 text-center text-sm text-gray-600">Enter your new password below.</p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Set New Password</CardTitle>
-            <CardDescription className="text-center">Enter your new password below</CardDescription>
+            <CardTitle className="text-center">Reset Password</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {success}
+                </div>
+              )}
+
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   New Password
@@ -189,21 +142,30 @@ export default function ResetPasswordPage() {
                 <div className="mt-1 relative">
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
+                    className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
                     placeholder="Enter new password"
                   />
+                  <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
                   <button
                     type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
                   </button>
                 </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Must be at least 8 characters with uppercase, lowercase, number, and special character
+                </p>
               </div>
 
               <div>
@@ -213,43 +175,36 @@ export default function ResetPasswordPage() {
                 <div className="mt-1 relative">
                   <input
                     id="confirmPassword"
+                    name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
+                    className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
                     placeholder="Confirm new password"
                   />
+                  <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
                   <button
                     type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
                   </button>
                 </div>
               </div>
 
-              {error && (
-                <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-3 rounded">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{error}</span>
-                </div>
-              )}
-
               <Button type="submit" disabled={loading} className="w-full bg-black hover:bg-gray-800 text-white">
-                {loading ? "Updating Password..." : "Update Password"}
+                {loading ? "Updating..." : "Update password"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <Link href="/login" className="text-sm text-black hover:underline">
-                Back to Login
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   )
 }

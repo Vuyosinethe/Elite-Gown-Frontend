@@ -9,31 +9,12 @@ import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Heart, Menu, X, Star, ChevronDown, User } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
-import { useRouter } from "next/navigation"
-import { useCart } from "@/hooks/use-cart"
-import { useWishlist } from "@/hooks/use-wishlist"
 
 export default function ProductsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
 
   const { user } = useAuth()
-  const router = useRouter()
-  const {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    addPendingCartItem,
-  } = useCart()
-
-  const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
-    useWishlist()
 
   const products = [
     {
@@ -57,7 +38,7 @@ export default function ProductsPage() {
       price: 899,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Medical Grade",
-      badgeColor: "bg-black",
+      badgeColor: "bg-blue-600",
       description: "Antimicrobial scrubs for medical students and professionals",
       rating: 4.8,
       reviews: 89,
@@ -70,7 +51,7 @@ export default function ProductsPage() {
       price: 299,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Custom Design",
-      badgeColor: "bg-black",
+      badgeColor: "bg-purple-600",
       description: "High-quality polo shirts with custom embroidery for clubs and organizations",
       rating: 4.7,
       reviews: 156,
@@ -83,7 +64,7 @@ export default function ProductsPage() {
       price: 499,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Popular",
-      badgeColor: "bg-black",
+      badgeColor: "bg-green-600",
       description: "Comfortable hoodies with professional embroidery services",
       rating: 4.6,
       reviews: 73,
@@ -96,7 +77,7 @@ export default function ProductsPage() {
       price: 499,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Individual Item",
-      badgeColor: "bg-black",
+      badgeColor: "bg-gray-600",
       description: "Professional scrub top with antimicrobial treatment",
       rating: 4.5,
       reviews: 45,
@@ -109,7 +90,7 @@ export default function ProductsPage() {
       price: 449,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Individual Item",
-      badgeColor: "bg-black",
+      badgeColor: "bg-gray-600",
       description: "Comfortable scrub pants with multiple pockets",
       rating: 4.4,
       reviews: 38,
@@ -122,7 +103,7 @@ export default function ProductsPage() {
       price: 199,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Affordable",
-      badgeColor: "bg-black",
+      badgeColor: "bg-orange-600",
       description: "Quality caps with custom embroidery for teams and clubs",
       rating: 4.3,
       reviews: 92,
@@ -135,7 +116,7 @@ export default function ProductsPage() {
       price: 699,
       image: "/placeholder.svg?height=400&width=400",
       badge: "Premium",
-      badgeColor: "bg-black",
+      badgeColor: "bg-red-600",
       description: "Professional jackets with high-quality embroidery",
       rating: 4.8,
       reviews: 34,
@@ -149,7 +130,7 @@ export default function ProductsPage() {
       priceNote: "per day",
       image: "/placeholder.svg?height=400&width=400",
       badge: "Rental",
-      badgeColor: "bg-black",
+      badgeColor: "bg-yellow-600",
       description: "Complete graduation set available for daily rental",
       rating: 4.2,
       reviews: 67,
@@ -162,43 +143,6 @@ export default function ProductsPage() {
 
   const filteredProducts =
     selectedCategory === "All" ? products : products.filter((product) => product.category === selectedCategory)
-
-  const handleAddToCart = (product: any) => {
-    try {
-      addToCart({
-        id: product.id,
-        name: product.name,
-        details: `Category: ${product.category}`,
-        price: product.price,
-        image: product.image,
-      })
-    } catch (error: any) {
-      if (error.message === "REDIRECT_TO_LOGIN") {
-        // Store current page for redirect after login
-        localStorage.setItem("redirectAfterLogin", window.location.pathname)
-        router.push("/login")
-      }
-    }
-  }
-
-  const handleAddToWishlist = async (product: any) => {
-    const success = await addToWishlist({
-      id: product.id,
-      name: product.name,
-      category: product.category,
-      price: product.price,
-      image: product.image,
-      description: product.description,
-      rating: product.rating,
-      reviews: product.reviews,
-      link: product.link,
-    })
-
-    if (!success && !user) {
-      // Store the item they wanted to add for after login
-      localStorage.setItem("pendingWishlistItem", JSON.stringify(product))
-    }
-  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -253,102 +197,21 @@ export default function ProductsPage() {
                     >
                       Embroidered merchandise
                     </Link>
-                  </div>
-                </div>
-                <div className="relative group">
-                  <Link
-                    href="/products?sale=true"
-                    className="text-gray-700 hover:text-[#39FF14] transition-colors flex items-center space-x-1"
-                  >
-                    <span>Sale</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </Link>
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-80 overflow-y-auto">
-                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
-                      Graduation Gowns
-                    </div>
                     <Link
-                      href="/graduation-gowns?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      href="/products?sale=true"
+                      className="block px-4 py-2 text-sm text-black hover:bg-gray-50 hover:text-black transition-colors"
+                      style={{ borderColor: "#00ff00", border: "1px solid #00ff00" }}
                     >
-                      All Graduation Gowns
-                    </Link>
-                    <Link
-                      href="/graduation-gowns?sale=true&type=bachelor"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Bachelor Gowns
-                    </Link>
-                    <Link
-                      href="/graduation-gowns?sale=true&type=master"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Master Gowns
-                    </Link>
-                    <Link
-                      href="/graduation-gowns?sale=true&type=doctoral"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Doctoral Gowns
-                    </Link>
-
-                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
-                      Medical Scrubs
-                    </div>
-                    <Link
-                      href="/medical-scrubs?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      All Medical Scrubs
-                    </Link>
-                    <Link
-                      href="/medical-scrubs?sale=true&type=tops"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Scrub Tops Only
-                    </Link>
-                    <Link
-                      href="/medical-scrubs?sale=true&type=pants"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Scrub Pants Only
-                    </Link>
-                    <Link
-                      href="/medical-scrubs?sale=true&type=sets"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Scrub Sets
-                    </Link>
-
-                    <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100 mt-2">
-                      Merchandise
-                    </div>
-                    <Link
-                      href="/embroidered-merchandise?sale=true"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      All Merchandise
-                    </Link>
-                    <Link
-                      href="/embroidered-merchandise?sale=true&type=polo"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Polo Shirts
-                    </Link>
-                    <Link
-                      href="/embroidered-merchandise?sale=true&type=tshirts"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      T-Shirts
-                    </Link>
-                    <Link
-                      href="/embroidered-merchandise?sale=true&type=hoodies"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-                    >
-                      Hoodies
+                      Sale
                     </Link>
                   </div>
                 </div>
+                <Link
+                  href="/products?sale=true"
+                  className="text-[#39FF14] hover:text-[#32E610] px-3 py-2 text-sm font-medium"
+                >
+                  Sale
+                </Link>
                 <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                   About
                 </Link>
@@ -357,8 +220,8 @@ export default function ProductsPage() {
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
-                <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? `Cart (${cartCount})` : "Cart"}
+                <button onClick={() => cartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+                  {user ? "Cart (0)" : "Cart"}
                 </button>
                 {user ? (
                   <Link
@@ -385,14 +248,14 @@ export default function ProductsPage() {
 
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
-              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                {user ? `Cart (${cartCount})` : "Cart"}
+              <button onClick={() => cartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
+                {user ? "Cart (0)" : "Cart"}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button
                 type="button"
                 className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={() => mobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? (
@@ -412,14 +275,14 @@ export default function ProductsPage() {
               <Link
                 href="/"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 href="/products"
                 className="block px-3 py-2 rounded-md text-base font-medium text-black bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 Shop
               </Link>
@@ -436,21 +299,21 @@ export default function ProductsPage() {
                   <Link
                     href="/graduation-gowns?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => mobileMenuOpen(false)}
                   >
                     Graduation gowns on sale
                   </Link>
                   <Link
                     href="/medical-scrubs?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => mobileMenuOpen(false)}
                   >
                     Medical scrubs on sale
                   </Link>
                   <Link
                     href="/embroidered-merchandise?sale=true"
                     className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => mobileMenuOpen(false)}
                   >
                     Merchandise on sale
                   </Link>
@@ -459,14 +322,14 @@ export default function ProductsPage() {
               <Link
                 href="/about"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 About
               </Link>
               <Link
                 href="/contact"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => mobileMenuOpen(false)}
               >
                 Contact
               </Link>
@@ -474,7 +337,7 @@ export default function ProductsPage() {
                 <Link
                   href="/account"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => mobileMenuOpen(false)}
                 >
                   My Account
                 </Link>
@@ -482,7 +345,7 @@ export default function ProductsPage() {
                 <Link
                   href="/login"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => mobileMenuOpen(false)}
                 >
                   Sign In
                 </Link>
@@ -533,6 +396,11 @@ export default function ProductsPage() {
                     />
                   </div>
                   <Badge className={`absolute top-4 left-4 ${product.badgeColor} text-white`}>{product.badge}</Badge>
+                  {product.originalPrice && (
+                    <Badge className="absolute top-4 right-4 bg-red-600 text-white">
+                      Save R{product.originalPrice - product.price}
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="p-6">
@@ -563,6 +431,11 @@ export default function ProductsPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       <span className="text-2xl font-bold text-black">R {product.price.toLocaleString()}</span>
+                      {product.originalPrice && (
+                        <span className="text-lg text-gray-500 line-through">
+                          R {product.originalPrice.toLocaleString()}
+                        </span>
+                      )}
                       {product.priceNote && <span className="text-sm text-gray-600">{product.priceNote}</span>}
                     </div>
                   </div>
@@ -573,23 +446,12 @@ export default function ProductsPage() {
                       <Button className="w-full bg-black hover:bg-gray-800 text-white">View Details</Button>
                     </Link>
                     <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 hover:bg-black hover:text-white bg-transparent"
-                        onClick={() => handleAddToCart(product)}
-                      >
+                      <Button variant="outline" className="flex-1 hover:bg-black hover:text-white bg-transparent">
                         <ShoppingCart className="w-4 h-4 mr-2" />
                         Add to Cart
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`hover:bg-gray-100 bg-transparent ${
-                          isInWishlist(product.id) ? "text-red-500 border-red-500" : ""
-                        }`}
-                        onClick={() => handleAddToWishlist(product)}
-                      >
-                        <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
+                      <Button variant="outline" size="sm" className="hover:bg-gray-100 bg-transparent">
+                        <Heart className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

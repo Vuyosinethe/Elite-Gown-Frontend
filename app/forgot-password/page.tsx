@@ -1,153 +1,114 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import Layout from "@/components/layout"
-import { AlertCircle, CheckCircle, Mail } from "lucide-react"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Mail, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState("")
+  const [loading, setLoading] = useState(false)
+  const { forgotPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setLoading(true)
+    setSuccess("")
 
     if (!email) {
-      setError("Email is required")
-      setLoading(false)
+      setError("Please enter your email address")
       return
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address")
-      setLoading(false)
-      return
+    setLoading(true)
+    const { error } = await forgotPassword(email)
+    setLoading(false)
+
+    if (error) {
+      // error can be a string or an object → standardise to a string
+      const msg = typeof error === "string" ? error : error?.message || "Failed to send reset email"
+      setError(msg)
+    } else {
+      setSuccess("Password-reset email sent! Please check your inbox.")
     }
-
-    try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Failed to send reset email")
-      } else {
-        setSuccess(true)
-      }
-    } catch (err) {
-      setError("Failed to send reset email. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (success) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-green-600">Check Your Email</CardTitle>
-              <CardDescription>
-                If an account with this email exists, you will receive a password reset link shortly.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-center text-sm text-gray-600">
-                  <p>Didn't receive the email? Check your spam folder or</p>
-                </div>
-                <Button
-                  onClick={() => {
-                    setSuccess(false)
-                    setEmail("")
-                  }}
-                  variant="outline"
-                  className="w-full bg-transparent"
-                >
-                  Try Again
-                </Button>
-                <Link href="/login">
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Back to Login
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    )
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
+          <Link href="/">
+            <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={80} height={80} className="h-20 w-20" />
+          </Link>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">Reset your password</h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <Card>
           <CardHeader>
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
-              <Mail className="h-6 w-6 text-blue-600" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-center">Forgot Password</CardTitle>
-            <CardDescription className="text-center">
-              Enter your email address and we'll send you a link to reset your password.
-            </CardDescription>
+            <CardTitle className="text-center">Forgot Password</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
-                  placeholder="Enter your email address"
-                />
-              </div>
-
+            <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-3 rounded">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{error}</span>
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  {error}
                 </div>
               )}
 
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {success}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <div className="mt-1 relative">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+                    placeholder="Enter your email"
+                  />
+                  <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
               <Button type="submit" disabled={loading} className="w-full bg-black hover:bg-gray-800 text-white">
-                {loading ? "Sending..." : "Send Reset Link"}
+                {loading ? "Sending..." : "Send reset email"}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
-              <Link href="/login" className="text-sm text-black hover:underline">
-                Back to Login
+              <Link href="/login" className="inline-flex items-center text-sm font-medium text-black hover:underline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to sign in
               </Link>
             </div>
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   )
 }
