@@ -18,7 +18,6 @@ export default function MedicalScrubsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const { user } = useAuth()
-  const [shopOpen, setShopOpen] = useState(false)
   const [selectedSize, setSelectedSize] = useState("M")
   const [selectedColor, setSelectedColor] = useState("Navy Blue")
 
@@ -26,18 +25,7 @@ export default function MedicalScrubsPage() {
   const colors = ["Navy Blue", "Ceil Blue", "Black", "Wine", "Hunter Green"]
 
   const router = useRouter()
-  const {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    addPendingCartItem,
-  } = useCart()
+  const { cartCount, addToCart } = useCart()
 
   const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
     useWishlist()

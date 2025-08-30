@@ -19,18 +19,7 @@ export default function ProductsPage() {
 
   const { user } = useAuth()
   const router = useRouter()
-  const {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    addPendingCartItem,
-  } = useCart()
+  const { cartCount, addToCart } = useCart()
 
   const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
     useWishlist()
@@ -349,8 +338,16 @@ export default function ProductsPage() {
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
-                <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? `Cart (${cartCount})` : "Cart"}
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className="text-gray-700 hover:text-black transition-colors relative"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
                 </button>
                 {user ? (
                   <Link
@@ -377,8 +374,16 @@ export default function ProductsPage() {
 
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
-              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                {user ? `Cart (${cartCount})` : "Cart"}
+              <button
+                onClick={() => setCartOpen(true)}
+                className="text-gray-700 hover:text-black transition-colors relative"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button

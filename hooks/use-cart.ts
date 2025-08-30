@@ -11,76 +11,46 @@ interface CartItem {
   product_image: string
   price: number
   quantity: number
-  user_id?: string
-  session_id?: string
   created_at: string
   updated_at: string
-}
-
-// Generate a session ID for guest users
-function generateSessionId(): string {
-  return "session_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36)
 }
 
 export function useCart() {
   const { user } = useAuth()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
-  const [sessionId, setSessionId] = useState<string>("")
 
-  // Initialize session ID for guest users
-  useEffect(() => {
+  // Load cart items from localStorage
+  const loadCartFromStorage = useCallback(() => {
     if (typeof window !== "undefined") {
-      let storedSessionId = localStorage.getItem("cart_session_id")
-      if (!storedSessionId) {
-        storedSessionId = generateSessionId()
-        localStorage.setItem("cart_session_id", storedSessionId)
+      try {
+        const storedCart = localStorage.getItem("cart_items")
+        if (storedCart) {
+          const parsedCart = JSON.parse(storedCart)
+          setCartItems(parsedCart)
+        }
+      } catch (error) {
+        console.error("Error loading cart from storage:", error)
+        setCartItems([])
       }
-      setSessionId(storedSessionId)
     }
   }, [])
 
-  // Fetch cart items from database
-  const fetchCartItems = useCallback(async () => {
-    if (!user && !sessionId) return
-
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (!user && sessionId) {
-        params.append("sessionId", sessionId)
+  // Save cart items to localStorage
+  const saveCartToStorage = useCallback((items: CartItem[]) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("cart_items", JSON.stringify(items))
+      } catch (error) {
+        console.error("Error saving cart to storage:", error)
       }
-
-      const headers: HeadersInit = {}
-      if (user) {
-        // Get the session token for authenticated requests
-        const {
-          data: { session },
-        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-        if (session?.access_token) {
-          headers.authorization = `Bearer ${session.access_token}`
-        }
-      }
-
-      const response = await fetch(`/api/cart?${params.toString()}`, { headers })
-      const data = await response.json()
-
-      if (response.ok) {
-        setCartItems(data.items || [])
-      } else {
-        console.error("Error fetching cart items:", data.error)
-      }
-    } catch (error) {
-      console.error("Error fetching cart items:", error)
-    } finally {
-      setLoading(false)
     }
-  }, [user, sessionId])
+  }, [])
 
-  // Load cart items when user or sessionId changes
+  // Load cart items on component mount
   useEffect(() => {
-    fetchCartItems()
-  }, [fetchCartItems])
+    loadCartFromStorage()
+  }, [loadCartFromStorage])
 
   // Add item to cart
   const addToCart = async (item: {
@@ -92,47 +62,41 @@ export function useCart() {
     quantity?: number
   }) => {
     try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      }
-
-      if (user) {
-        const {
-          data: { session },
-        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-        if (session?.access_token) {
-          headers.authorization = `Bearer ${session.access_token}`
-        }
-      }
-
-      const requestBody = {
-        productId: item.id,
-        productName: item.name,
-        productDetails: item.details,
-        productImage: item.image,
+      const newItem: CartItem = {
+        id: Date.now(), // Use timestamp as unique ID for frontend-only cart
+        product_id: item.id,
+        product_name: item.name,
+        product_details: item.details,
+        product_image: item.image,
         price: item.price,
         quantity: item.quantity || 1,
-        sessionId: !user ? sessionId : undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
 
-      console.log("Sending add to cart request:", requestBody)
+      // Check if item already exists in cart
+      const existingItemIndex = cartItems.findIndex(
+        (cartItem) => cartItem.product_id === item.id && cartItem.product_details === item.details,
+      )
 
-      const response = await fetch("/api/cart", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(requestBody),
-      })
+      let updatedCart: CartItem[]
 
-      const data = await response.json()
-      console.log("Add to cart response:", data)
-
-      if (response.ok) {
-        await fetchCartItems() // Refresh cart items
-        return { success: true, message: data.message }
+      if (existingItemIndex >= 0) {
+        // Update quantity of existing item
+        updatedCart = cartItems.map((cartItem, index) =>
+          index === existingItemIndex
+            ? { ...cartItem, quantity: cartItem.quantity + (item.quantity || 1), updated_at: new Date().toISOString() }
+            : cartItem,
+        )
       } else {
-        console.error("Error adding to cart:", data.error)
-        return { success: false, error: data.error }
+        // Add new item to cart
+        updatedCart = [...cartItems, newItem]
       }
+
+      setCartItems(updatedCart)
+      saveCartToStorage(updatedCart)
+
+      return { success: true, message: "Item added to cart successfully" }
     } catch (error) {
       console.error("Error adding to cart:", error)
       return { success: false, error: "Failed to add item to cart" }
@@ -141,48 +105,19 @@ export function useCart() {
 
   // Update item quantity
   const updateQuantity = async (itemId: number, newQuantity: number) => {
-    if (newQuantity < 1) {
-      return removeFromCart(itemId)
-    }
-
     try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
+      if (newQuantity < 1) {
+        return removeFromCart(itemId)
       }
 
-      if (user) {
-        const {
-          data: { session },
-        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-        if (session?.access_token) {
-          headers.authorization = `Bearer ${session.access_token}`
-        }
-      }
+      const updatedCart = cartItems.map((item) =>
+        item.id === itemId ? { ...item, quantity: newQuantity, updated_at: new Date().toISOString() } : item,
+      )
 
-      const response = await fetch(`/api/cart/${itemId}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ quantity: newQuantity }),
-      })
+      setCartItems(updatedCart)
+      saveCartToStorage(updatedCart)
 
-      // --- NEW: robust JSON handling ---
-      const contentType = response.headers.get("content-type") ?? ""
-      let data: any = null
-      if (contentType.includes("application/json")) {
-        try {
-          data = await response.json()
-        } catch {
-          /* malformed JSON – leave data as null */
-        }
-      }
-
-      if (response.ok) {
-        await fetchCartItems() // Refresh cart items
-        return { success: true }
-      } else {
-        console.error("Error updating quantity:", data?.error || response.statusText)
-        return { success: false, error: data?.error || "Unexpected response format" }
-      }
+      return { success: true }
     } catch (error) {
       console.error("Error updating quantity:", error)
       return { success: false, error: "Failed to update quantity" }
@@ -192,31 +127,11 @@ export function useCart() {
   // Remove item from cart
   const removeFromCart = async (itemId: number) => {
     try {
-      const headers: HeadersInit = {}
+      const updatedCart = cartItems.filter((item) => item.id !== itemId)
+      setCartItems(updatedCart)
+      saveCartToStorage(updatedCart)
 
-      if (user) {
-        const {
-          data: { session },
-        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-        if (session?.access_token) {
-          headers.authorization = `Bearer ${session.access_token}`
-        }
-      }
-
-      const response = await fetch(`/api/cart/${itemId}`, {
-        method: "DELETE",
-        headers,
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        await fetchCartItems() // Refresh cart items
-        return { success: true }
-      } else {
-        console.error("Error removing from cart:", data.error)
-        return { success: false, error: data.error }
-      }
+      return { success: true }
     } catch (error) {
       console.error("Error removing from cart:", error)
       return { success: false, error: "Failed to remove item from cart" }
@@ -226,36 +141,11 @@ export function useCart() {
   // Clear entire cart
   const clearCart = async () => {
     try {
-      const params = new URLSearchParams()
-      if (!user && sessionId) {
-        params.append("sessionId", sessionId)
+      setCartItems([])
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("cart_items")
       }
-
-      const headers: HeadersInit = {}
-
-      if (user) {
-        const {
-          data: { session },
-        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-        if (session?.access_token) {
-          headers.authorization = `Bearer ${session.access_token}`
-        }
-      }
-
-      const response = await fetch(`/api/cart?${params.toString()}`, {
-        method: "DELETE",
-        headers,
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setCartItems([])
-        return { success: true }
-      } else {
-        console.error("Error clearing cart:", data.error)
-        return { success: false, error: data.error }
-      }
+      return { success: true }
     } catch (error) {
       console.error("Error clearing cart:", error)
       return { success: false, error: "Failed to clear cart" }
@@ -279,7 +169,7 @@ export function useCart() {
     updateQuantity,
     removeFromCart,
     clearCart,
-    refreshCart: fetchCartItems,
+    refreshCart: loadCartFromStorage,
     isAuthenticated: !!user,
   }
 }

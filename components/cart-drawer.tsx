@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { X, Minus, Plus, ShoppingCart, User, Trash2 } from "lucide-react"
+import { X, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/hooks/use-cart"
-import { useState } from "react" // Import useState
 
 interface CartDrawerProps {
   isOpen: boolean
@@ -17,19 +16,7 @@ interface CartDrawerProps {
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { user } = useAuth()
   const router = useRouter()
-  const {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    loading,
-    refreshCart,
-  } = useCart()
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false) // New state for payment processing
+  const { cartItems, cartCount, subtotal, vat, total, updateQuantity, removeFromCart, clearCart, loading } = useCart()
 
   const handleSignInClick = () => {
     onClose()
@@ -50,9 +37,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     }
   }
 
-  const handleProceedToCheckout = async () => {
+  const handleProceedToCheckout = () => {
     if (!user) {
-      router.push("/login") // Redirect to login if not authenticated
+      // Store current cart for after login
+      if (typeof window !== "undefined") {
+        localStorage.setItem("redirectAfterLogin", "/checkout")
+      }
+      router.push("/login")
       return
     }
 
@@ -61,61 +52,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       return
     }
 
-    setIsProcessingPayment(true)
-    try {
-      const {
-        data: { session },
-      } = await (await import("@/lib/supabase")).supabase.auth.getSession()
-      const accessToken = session?.access_token
-
-      if (!accessToken) {
-        alert("Authentication error. Please log in again.")
-        router.push("/login")
-        return
-      }
-
-      const response = await fetch("/api/payfast/process", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ cartItems, subtotal, vat, total }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        // Dynamically create and submit a form to PayFast
-        const form = document.createElement("form")
-        form.method = "POST"
-        form.action = result.payfastUrl
-        form.target = "_self" // Open in the same tab
-
-        for (const key in result.payfastFields) {
-          if (Object.prototype.hasOwnProperty.call(result.payfastFields, key)) {
-            const hiddenField = document.createElement("input")
-            hiddenField.type = "hidden"
-            hiddenField.name = key
-            hiddenField.value = result.payfastFields[key]
-            form.appendChild(hiddenField)
-          }
-        }
-
-        document.body.appendChild(form)
-        form.submit()
-        onClose() // Close the cart drawer
-        await clearCart() // Clear the cart after initiating payment
-      } else {
-        alert(`Checkout failed: ${result.error || "Unknown error"}`)
-        console.error("Checkout error:", result.error)
-      }
-    } catch (error) {
-      console.error("Error during checkout:", error)
-      alert("An unexpected error occurred during checkout. Please try again.")
-    } finally {
-      setIsProcessingPayment(false)
-    }
+    // For now, just show an alert since we're not integrating with backend
+    alert("Checkout functionality will be implemented with backend integration. For now, this is a frontend-only cart.")
   }
 
   if (!isOpen) return null
@@ -157,34 +95,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
               </div>
-            ) : !user ? (
-              // Not logged in state
-              <div className="text-center py-12">
-                <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <User className="w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view your cart</h3>
-                <p className="text-gray-600 mb-6">
-                  Create an account or sign in to save items to your cart and track your orders.
-                </p>
-                <div className="space-y-3">
-                  <Button className="w-full bg-black hover:bg-gray-800 text-white" onClick={handleSignInClick}>
-                    Sign In
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full bg-transparent"
-                    onClick={() => {
-                      onClose()
-                      router.push("/register")
-                    }}
-                  >
-                    Create Account
-                  </Button>
-                </div>
-              </div>
             ) : cartItems.length === 0 ? (
-              // Empty cart state (logged in)
+              // Empty cart state
               <div className="text-center py-12">
                 <div className="bg-gray-100 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                   <ShoppingCart className="w-8 h-8" />
@@ -245,7 +157,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                 <Plus className="w-3 h-3" />
                               </Button>
                             </div>
-                            <p className="font-semibold text-sm">R {((item.price * item.quantity) / 100).toFixed(2)}</p>
+                            <p className="font-semibold text-sm">R {(item.price * item.quantity).toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -262,11 +174,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>R {(subtotal / 100).toFixed(2)}</span>
+                  <span>R {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>VAT (15%)</span>
-                  <span>R {(vat / 100).toFixed(2)}</span>
+                  <span>R {vat.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Shipping</span>
@@ -275,17 +187,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>R {(total / 100).toFixed(2)}</span>
+                    <span>R {total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
-              <Button
-                className="w-full bg-black hover:bg-gray-800 text-white"
-                onClick={handleProceedToCheckout}
-                disabled={isProcessingPayment}
-              >
-                {isProcessingPayment ? "Processing Payment..." : "Proceed to Checkout"}
+              <Button className="w-full bg-black hover:bg-gray-800 text-white" onClick={handleProceedToCheckout}>
+                {!user ? "Sign In to Checkout" : "Proceed to Checkout"}
               </Button>
 
               <div className="text-center">

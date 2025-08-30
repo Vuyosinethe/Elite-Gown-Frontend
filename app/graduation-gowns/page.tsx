@@ -31,7 +31,7 @@ export default function GraduationGownsPage() {
         id: 1,
         name: "Complete Graduation Set",
         details: `Size: ${selectedSize}, Faculty: ${selectedFaculty}`,
-        price: 129900, // Price in cents
+        price: 1299, // Price in regular format
         image: "/placeholder.svg?height=80&width=80",
       })
 
