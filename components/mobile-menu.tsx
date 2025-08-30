@@ -1,72 +1,85 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
-import { Menu, X } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { useCart } from "@/hooks/use-cart"
+import { ShoppingCart, User, Heart } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CartDrawer } from "@/components/cart-drawer"
 
-interface MobileMenuProps {
-  logo?: boolean
-}
-
-export default function MobileMenu({ logo = true }: MobileMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function MobileMenu() {
+  const { user } = useAuth()
+  const { items } = useCart()
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <>
-      {/* Mobile Menu Button */}
-      <div className="flex items-center space-x-4 md:hidden">
-        <Link href="/cart" className="text-gray-700 hover:text-black transition-colors">
-          Cart (0)
-        </Link>
-        {logo && (
-          <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
-        )}
-        <button
-          type="button"
-          className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle menu"
-        >
-          {isOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
-        </button>
-      </div>
+    <div className="flex flex-col space-y-4 p-4">
+      <Link href="/" className="text-lg font-medium">
+        Home
+      </Link>
+      <Link href="/products" className="text-lg font-medium">
+        Products
+      </Link>
+      <Link href="/graduation-gowns" className="text-lg font-medium">
+        Graduation Gowns
+      </Link>
+      <Link href="/medical-scrubs" className="text-lg font-medium">
+        Medical Scrubs
+      </Link>
+      <Link href="/embroidered-merchandise" className="text-lg font-medium">
+        Embroidered Merchandise
+      </Link>
+      <Link href="/rental" className="text-lg font-medium">
+        Rental
+      </Link>
+      <Link href="/about" className="text-lg font-medium">
+        About
+      </Link>
+      <Link href="/contact" className="text-lg font-medium">
+        Contact
+      </Link>
 
-      {/* Mobile Menu Panel */}
-      {isOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link
-              href="/"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              Home
+      <div className="border-t pt-4 mt-4">
+        <div className="flex items-center space-x-4">
+          {/* User Account */}
+          {user ? (
+            <Link href="/account">
+              <Button variant="ghost" size="sm">
+                <User className="h-5 w-5" />
+                <span className="ml-2">Account</span>
+              </Button>
             </Link>
-            <Link
-              href="/products"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              Products
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                <User className="h-5 w-5" />
+                <span className="ml-2">Login</span>
+              </Button>
             </Link>
-            <Link
-              href="/about"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              About
-            </Link>
-            <Link
-              href="/contact"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              Contact
-            </Link>
-          </div>
+          )}
+
+          {/* Wishlist */}
+          <Link href="/wishlist">
+            <Button variant="ghost" size="sm">
+              <Heart className="h-5 w-5" />
+              <span className="ml-2">Wishlist</span>
+            </Button>
+          </Link>
+
+          {/* Cart */}
+          <CartDrawer>
+            <Button variant="ghost" size="sm" className="relative">
+              <ShoppingCart className="h-5 w-5" />
+              <span className="ml-2">Cart</span>
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </Button>
+          </CartDrawer>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   )
 }
