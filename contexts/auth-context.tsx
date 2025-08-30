@@ -1,13 +1,12 @@
 "use client"
 
 import type React from "react"
-
-import { createContext, useContext, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import type { User, Session } from "@supabase/supabase-js"
+import { supabase, type Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import type { AuthApiError } from "@supabase/supabase-js"
 
-type User = {
+interface AuthUser {
   id: string
   email: string
   firstName?: string
@@ -16,189 +15,169 @@ type User = {
   avatar?: string
 }
 
-type AuthContextType = {
-  user: User | null
+interface AuthContextType {
+  user: AuthUser | null
+  profile: Profile | null
+  session: Session | null
   loading: boolean
   signUp: (
     email: string,
     password: string,
     firstName: string,
     lastName: string,
-    phone: string,
+    phone?: string,
   ) => Promise<{ error: any }>
-  signIn: (email: string, password: string, rememberMe: boolean) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
-  forgotPassword: (email: string) => Promise<{ error: any }>
-  resetPassword: (password: string) => Promise<{ error: any }>
-  updateProfile: (data: Partial<User>) => Promise<{ error: any }>
-  refreshProfile: () => Promise<void>
-  resendConfirmationEmail: (email: string) => Promise<{ error: AuthApiError | null }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<AuthUser>) => Promise<{ error: any }>
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
 
-  // Function to load user profile data
-  const loadUserProfile = async (authUser: any) => {
+  // Memoized function to load user with profile
+  const loadUserWithProfile = useCallback(async (authUser: User) => {
     try {
-      console.log("Loading profile for user:", authUser.id, authUser.email)
+      // Fetch profile from database
+      const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
 
-      // Try to get profile from profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .single()
-
-      let userData: User
-
-      if (profileError || !profile) {
-        console.log("Profile not found, creating from auth metadata:", profileError)
-
-        // Create user data from auth metadata
-        userData = {
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 is "not found" error
+        console.error("Error fetching profile:", error)
+        // Use auth user data as fallback
+        setUser({
           id: authUser.id,
-          email: authUser.email,
-          firstName: authUser.user_metadata?.first_name || "User",
+          email: authUser.email || "",
+          firstName: authUser.user_metadata?.first_name || "",
           lastName: authUser.user_metadata?.last_name || "",
           phone: authUser.user_metadata?.phone || "",
           avatar: authUser.user_metadata?.avatar_url || "",
-        }
-
-        // Try to create the missing profile
-        try {
-          console.log("Creating missing profile for authenticated user")
-          const { error: createError } = await supabase.from("profiles").insert({
-            id: authUser.id,
-            email: authUser.email,
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            phone: userData.phone,
-            avatar_url: userData.avatar,
-            created_at: new Date().toISOString(),
-          })
-
-          if (createError) {
-            console.error("Failed to create profile:", createError)
-            // Continue anyway - we have the user data from metadata
-          } else {
-            console.log("Successfully created missing profile")
-          }
-        } catch (createError) {
-          console.error("Exception creating profile:", createError)
-          // Continue anyway - we have the user data from metadata
-        }
-      } else {
-        console.log("Profile data found:", profile)
-
-        userData = {
-          id: authUser.id,
-          email: authUser.email,
-          firstName: profile.first_name || authUser.user_metadata?.first_name || "User",
-          lastName: profile.last_name || authUser.user_metadata?.last_name || "",
-          phone: profile.phone || authUser.user_metadata?.phone || "",
-          avatar: profile.avatar_url || authUser.user_metadata?.avatar_url || "",
-        }
+        })
+        setProfile(null)
+        return
       }
 
-      console.log("Setting user data:", userData)
-      setUser(userData)
+      if (profileData) {
+        // Set profile data
+        setProfile(profileData)
+
+        // Create user object with profile data
+        setUser({
+          id: authUser.id,
+          email: authUser.email || profileData.email || "",
+          firstName: profileData.first_name || authUser.user_metadata?.first_name || "",
+          lastName: profileData.last_name || authUser.user_metadata?.last_name || "",
+          phone: profileData.phone || authUser.user_metadata?.phone || "",
+          avatar: profileData.avatar_url || authUser.user_metadata?.avatar_url || "",
+        })
+      } else {
+        // No profile found, use auth user data
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          firstName: authUser.user_metadata?.first_name || "",
+          lastName: authUser.user_metadata?.last_name || "",
+          phone: authUser.user_metadata?.phone || "",
+          avatar: authUser.user_metadata?.avatar_url || "",
+        })
+        setProfile(null)
+      }
     } catch (error) {
       console.error("Error loading user profile:", error)
-
-      // Final fallback - use auth data
+      // Fallback to auth user data
       setUser({
         id: authUser.id,
-        email: authUser.email,
-        firstName: authUser.user_metadata?.first_name || "User",
+        email: authUser.email || "",
+        firstName: authUser.user_metadata?.first_name || "",
         lastName: authUser.user_metadata?.last_name || "",
         phone: authUser.user_metadata?.phone || "",
-        avatar: "",
+        avatar: authUser.user_metadata?.avatar_url || "",
       })
+      setProfile(null)
     }
-  }
+  }, [])
 
-  // Function to refresh profile data
-  const refreshProfile = async () => {
-    try {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
-
-      if (authUser) {
-        await loadUserProfile(authUser)
-      }
-    } catch (error) {
-      console.error("Error refreshing profile:", error)
-    }
-  }
-
-  // Check for active session on mount
   useEffect(() => {
     let mounted = true
 
-    const initializeAuth = async () => {
+    // Get initial session immediately without timeout
+    const getInitialSession = async () => {
       try {
-        console.log("Initializing auth...")
-
+        console.log("Getting initial session...")
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession()
 
-        if (error) {
-          console.error("Session check error:", error)
-        }
+        console.log("Initial session result:", { session: !!session, error })
 
-        if (mounted) {
-          if (session?.user) {
-            console.log("Found existing session for:", session.user.email)
-            await loadUserProfile(session.user)
-          } else {
-            console.log("No existing session found")
-            setUser(null)
-          }
+        if (!mounted) return
 
-          setLoading(false)
-          setInitialized(true)
+        if (session?.user) {
+          console.log("Found valid session, loading user profile...")
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        } else {
+          console.log("No valid session found")
+          setUser(null)
+          setProfile(null)
+          setSession(null)
         }
       } catch (error) {
-        console.error("Error initializing auth:", error)
+        console.error("Error getting initial session:", error)
         if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setSession(null)
+        }
+      } finally {
+        if (mounted) {
+          console.log("Auth initialization complete")
           setLoading(false)
           setInitialized(true)
         }
       }
     }
 
-    initializeAuth()
+    getInitialSession()
 
-    // Set up auth state change listener
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email)
-
       if (!mounted) return
 
-      try {
-        if (event === "SIGNED_OUT" || !session?.user) {
-          console.log("User signed out or no session")
-          setUser(null)
-          setLoading(false)
-        } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          console.log("User signed in or token refreshed")
-          await loadUserProfile(session.user)
-          setLoading(false)
+      console.log("Auth state change:", event, session?.user?.id)
+
+      // Handle different auth events
+      if (event === "SIGNED_OUT") {
+        setUser(null)
+        setProfile(null)
+        setSession(null)
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
         }
-      } catch (error) {
-        console.error("Error handling auth state change:", error)
+      } else if (event === "USER_UPDATED") {
+        if (session?.user) {
+          setSession(session)
+          await loadUserWithProfile(session.user)
+        }
+      }
+
+      // Ensure loading is false after any auth event
+      if (!initialized) {
         setLoading(false)
+        setInitialized(true)
       }
     })
 
@@ -206,273 +185,156 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [loadUserWithProfile, initialized])
 
-  // Sign up with email and password
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, phone: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
-      console.log("Starting signup process for:", email, "with names:", firstName, lastName, "phone:", phone)
-
-      // Check if Supabase is properly configured
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
-        setTimeout(() => {
-          setUser({
-            id: "mock-id",
-            email,
-            firstName,
-            lastName,
-            phone,
-          })
-          router.push("/account")
-        }, 1000)
-        return { error: null }
-      }
-
-      // Create user in Supabase Auth with metadata and email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login?verified=true`,
+          emailRedirectTo: `${window.location.origin}/login?verified=true&message=Your email has been verified! You can now sign in.`,
           data: {
             first_name: firstName,
             last_name: lastName,
-            phone: phone,
-            full_name: `${firstName} ${lastName}`,
+            phone: phone || "",
           },
         },
       })
 
       if (error) {
-        console.error("Supabase auth signup error:", error)
-        return { error: { message: error.message } }
+        return { error }
       }
-
-      console.log("Auth signup successful for:", data.user?.email)
 
       return { error: null }
     } catch (error) {
-      console.error("Signup process failed:", error)
-      return { error: { message: "Registration failed. Please try again." } }
+      return { error }
     }
   }
 
-  // Sign in with email and password
-  const signIn = async (email: string, password: string, rememberMe: boolean) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      console.log("Starting signin process for:", email)
+      console.log("Attempting sign in for:", email)
 
-      // Check if Supabase is properly configured
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.warn("⚠️ Supabase environment variables not configured. Using mock authentication.")
-        setTimeout(() => {
-          setUser({
-            id: "mock-id",
-            email,
-            firstName: "Mock",
-            lastName: "User",
-            phone: "",
-          })
-          router.push("/account")
-        }, 1000)
-        return { error: null }
-      }
-
-      // Just attempt the login directly - let Supabase handle the validation
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log("Sign in result:", { user: !!data?.user, error })
+
       if (error) {
-        console.error("Supabase auth signin error:", error)
-
-        // Check if it's an invalid credentials error
-        if (error.message.includes("Invalid login credentials")) {
-          // For invalid credentials, we should assume it's a wrong password
-          // rather than checking the profiles table, since the user might exist
-          // in auth but not have a profile record yet
-          return { error: { message: "Incorrect email or password. Please try again." } }
-        }
-
-        // For other types of errors (email not confirmed, etc.)
-        if (error.message.includes("Email not confirmed")) {
-          return { error: { message: "Please check your email and click the confirmation link before signing in." } }
-        }
-
-        // For any other auth errors, return the original message
-        return { error: { message: error.message } }
+        console.error("Sign in error:", error)
+        return { error }
       }
 
-      console.log("Auth signin successful for:", data.user?.email)
+      if (data?.user) {
+        console.log("Sign in successful, user:", data.user.id)
+        // The auth state change listener will handle the redirect
+        return { error: null }
+      }
 
-      // The auth state change listener will handle loading the profile
-      return { error: null }
+      return { error: new Error("Unknown sign in error") }
     } catch (error) {
-      console.error("Error signing in:", error)
-      return { error: { message: "Login failed. Please check your credentials." } }
+      console.error("Sign in exception:", error)
+      return { error }
     }
   }
 
-  // Sign out
   const signOut = async () => {
     try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        setUser(null)
-        router.push("/")
-        return
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Error signing out:", error)
       }
-
-      await supabase.auth.signOut()
+      // Clear local state immediately
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+      router.push("/")
     } catch (error) {
       console.error("Error signing out:", error)
     }
   }
 
-  // Forgot password
-  const forgotPassword = async (email: string) => {
+  const resetPassword = async (email: string) => {
     try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.warn("⚠️ Supabase environment variables not configured.")
-        return { error: null }
-      }
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
-      if (error) {
-        console.error("Password reset error:", error)
-        return { error: { message: error.message } }
-      }
-
-      return { error: null }
+      return { error }
     } catch (error) {
-      console.error("Error resetting password:", error)
-      return { error: { message: "Password reset failed. Please try again." } }
+      return { error }
     }
   }
 
-  // Reset password
-  const resetPassword = async (password: string) => {
-    try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.warn("⚠️ Supabase environment variables not configured.")
-        return { error: null }
-      }
-
-      const { error } = await supabase.auth.updateUser({
-        password,
-      })
-
-      if (error) {
-        console.error("Password update error:", error)
-        return { error: { message: error.message } }
-      }
-
-      return { error: null }
-    } catch (error) {
-      console.error("Error updating password:", error)
-      return { error: { message: "Password update failed. Please try again." } }
+  const updateProfile = async (updates: Partial<AuthUser>) => {
+    if (!user) {
+      return { error: new Error("No user logged in") }
     }
-  }
 
-  // Update profile
-  const updateProfile = async (data: Partial<User>) => {
     try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.warn("⚠️ Supabase environment variables not configured.")
-        setUser((prev) => (prev ? { ...prev, ...data } : null))
-        return { error: null }
-      }
-
-      if (!user) {
-        return { error: { message: "User not authenticated" } }
-      }
-
-      const updates = {
-        first_name: data.firstName || user.firstName,
-        last_name: data.lastName || user.lastName,
-        phone: data.phone || user.phone,
-        full_name: `${data.firstName || user.firstName} ${data.lastName || user.lastName}`,
-        avatar_url: data.avatar || user.avatar,
+      // Convert camelCase to snake_case for database
+      const dbUpdates: any = {
         updated_at: new Date().toISOString(),
       }
 
-      // Update profile in database
-      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id)
-
-      if (error) {
-        console.error("Profile update error:", error)
-        return { error: { message: error.message } }
+      if (updates.firstName !== undefined) {
+        dbUpdates.first_name = updates.firstName
+      }
+      if (updates.lastName !== undefined) {
+        dbUpdates.last_name = updates.lastName
+      }
+      if (updates.phone !== undefined) {
+        dbUpdates.phone = updates.phone
+      }
+      if (updates.avatar !== undefined) {
+        dbUpdates.avatar_url = updates.avatar
       }
 
-      // Also update auth metadata
-      await supabase.auth.updateUser({
-        data: {
-          first_name: data.firstName,
-          last_name: data.lastName,
-          phone: data.phone,
-          full_name: `${data.firstName} ${data.lastName}`,
-        },
-      })
+      const { error } = await supabase.from("profiles").update(dbUpdates).eq("id", user.id)
 
-      // Update local state
-      setUser((prev) => (prev ? { ...prev, ...data } : null))
+      if (error) {
+        return { error }
+      }
+
+      // Refresh user and profile data
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
+      if (authUser) {
+        await loadUserWithProfile(authUser)
+      }
 
       return { error: null }
     } catch (error) {
-      console.error("Error updating profile:", error)
-      return { error: { message: "Profile update failed. Please try again." } }
+      return { error }
     }
   }
 
-  // Resend confirmation email
-  const resendConfirmationEmail = async (email: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return { error: { message: "Email confirmation unavailable in mock mode." } }
-    }
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email,
-    })
-    return { error }
+  const value = {
+    user,
+    profile,
+    session,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    resetPassword,
+    updateProfile,
   }
 
-  // Don't render children until auth is initialized
-  if (!initialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-      </div>
-    )
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signUp,
-        signIn,
-        signOut,
-        forgotPassword,
-        resetPassword,
-        updateProfile,
-        refreshProfile,
-        resendConfirmationEmail,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
+
+// Re-export the context so "import { AuthContext } …" works.
+export { AuthContext }

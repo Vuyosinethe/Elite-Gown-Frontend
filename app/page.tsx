@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CreditCard, Smartphone, Building2, Menu, X, User, ChevronDown } from "lucide-react"
+import { CreditCard, Smartphone, Building2, Menu, X, User, ChevronDown, ShoppingCart } from "lucide-react"
 import CartDrawer from "@/components/cart-drawer"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/hooks/use-cart"
@@ -172,8 +172,16 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
-                <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  {user ? `Cart (${cartCount})` : "Cart"}
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className="relative text-gray-700 hover:text-black transition-colors"
+                >
+                  <ShoppingCart className="w-6 h-6" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
                 </button>
                 {user ? (
                   <Link
@@ -200,8 +208,16 @@ export default function HomePage() {
 
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
-              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                {user ? `Cart (${cartCount})` : "Cart"}
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative text-gray-700 hover:text-black transition-colors"
+              >
+                <ShoppingCart className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button

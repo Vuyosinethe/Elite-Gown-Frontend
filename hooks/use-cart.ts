@@ -1,98 +1,268 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 interface CartItem {
   id: number
-  name: string
-  details: string
+  product_id: number
+  product_name: string
+  product_details: string
+  product_image: string
   price: number
   quantity: number
-  image: string
+  user_id?: string
+  session_id?: string
+  created_at: string
+  updated_at: string
+}
+
+// Generate a session ID for guest users
+function generateSessionId(): string {
+  return "session_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36)
 }
 
 export function useCart() {
   const { user } = useAuth()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState<string>("")
 
-  // Load cart items from localStorage when user logs in
+  // Initialize session ID for guest users
   useEffect(() => {
-    if (user) {
-      const savedCart = localStorage.getItem(`elite-gowns-cart-${user.id}`)
-      if (savedCart) {
-        setCartItems(JSON.parse(savedCart))
+    if (typeof window !== "undefined") {
+      let storedSessionId = localStorage.getItem("cart_session_id")
+      if (!storedSessionId) {
+        storedSessionId = generateSessionId()
+        localStorage.setItem("cart_session_id", storedSessionId)
+      }
+      setSessionId(storedSessionId)
+    }
+  }, [])
+
+  // Fetch cart items from database
+  const fetchCartItems = useCallback(async () => {
+    if (!user && !sessionId) return
+
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (!user && sessionId) {
+        params.append("sessionId", sessionId)
+      }
+
+      const headers: HeadersInit = {}
+      if (user) {
+        // Get the session token for authenticated requests
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart?${params.toString()}`, { headers })
+      const data = await response.json()
+
+      if (response.ok) {
+        setCartItems(data.items || [])
       } else {
-        // Mock cart items for demo - remove in production
-        setCartItems([
-          {
-            id: 1,
-            name: "Complete Graduation Set",
-            details: "Size: M, Faculty: Commerce (Red)",
-            price: 1299,
-            quantity: 1,
-            image: "/placeholder.svg?height=80&width=80",
-          },
-          {
-            id: 2,
-            name: "Professional Medical Scrubs Set",
-            details: "Size: L, Color: Navy Blue",
-            price: 899,
-            quantity: 1,
-            image: "/placeholder.svg?height=80&width=80",
-          },
-        ])
+        console.error("Error fetching cart items:", data.error)
       }
-    } else {
-      // Clear cart when user logs out
-      setCartItems([])
+    } catch (error) {
+      console.error("Error fetching cart items:", error)
+    } finally {
+      setLoading(false)
     }
-  }, [user])
+  }, [user, sessionId])
 
-  // Save cart to localStorage whenever it changes
+  // Load cart items when user or sessionId changes
   useEffect(() => {
-    if (user && cartItems.length > 0) {
-      localStorage.setItem(`elite-gowns-cart-${user.id}`, JSON.stringify(cartItems))
-    }
-  }, [cartItems, user])
+    fetchCartItems()
+  }, [fetchCartItems])
 
-  const addToCart = (item: Omit<CartItem, "quantity">) => {
-    if (!user) {
-      throw new Error("User must be logged in to add items to cart")
-    }
-
-    setCartItems((prev) => {
-      const existingItem = prev.find((cartItem) => cartItem.id === item.id)
-      if (existingItem) {
-        return prev.map((cartItem) =>
-          cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem,
-        )
+  // Add item to cart
+  const addToCart = async (item: {
+    id: number
+    name: string
+    details: string
+    price: number
+    image: string
+    quantity?: number
+  }) => {
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
       }
-      return [...prev, { ...item, quantity: 1 }]
-    })
-  }
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (!user) return
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
 
-    if (newQuantity === 0) {
-      setCartItems((prev) => prev.filter((item) => item.id !== id))
-    } else {
-      setCartItems((prev) => prev.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
+      const requestBody = {
+        productId: item.id,
+        productName: item.name,
+        productDetails: item.details,
+        productImage: item.image,
+        price: item.price,
+        quantity: item.quantity || 1,
+        sessionId: !user ? sessionId : undefined,
+      }
+
+      console.log("Sending add to cart request:", requestBody)
+
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+      })
+
+      const data = await response.json()
+      console.log("Add to cart response:", data)
+
+      if (response.ok) {
+        await fetchCartItems() // Refresh cart items
+        return { success: true, message: data.message }
+      } else {
+        console.error("Error adding to cart:", data.error)
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      return { success: false, error: "Failed to add item to cart" }
     }
   }
 
-  const removeFromCart = (id: number) => {
-    if (!user) return
-    setCartItems((prev) => prev.filter((item) => item.id !== id))
+  // Update item quantity
+  const updateQuantity = async (itemId: number, newQuantity: number) => {
+    if (newQuantity < 1) {
+      return removeFromCart(itemId)
+    }
+
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ quantity: newQuantity }),
+      })
+
+      // --- NEW: robust JSON handling ---
+      const contentType = response.headers.get("content-type") ?? ""
+      let data: any = null
+      if (contentType.includes("application/json")) {
+        try {
+          data = await response.json()
+        } catch {
+          /* malformed JSON – leave data as null */
+        }
+      }
+
+      if (response.ok) {
+        await fetchCartItems() // Refresh cart items
+        return { success: true }
+      } else {
+        console.error("Error updating quantity:", data?.error || response.statusText)
+        return { success: false, error: data?.error || "Unexpected response format" }
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error)
+      return { success: false, error: "Failed to update quantity" }
+    }
   }
 
-  const clearCart = () => {
-    if (!user) return
-    setCartItems([])
-    localStorage.removeItem(`elite-gowns-cart-${user.id}`)
+  // Remove item from cart
+  const removeFromCart = async (itemId: number) => {
+    try {
+      const headers: HeadersInit = {}
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: "DELETE",
+        headers,
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        await fetchCartItems() // Refresh cart items
+        return { success: true }
+      } else {
+        console.error("Error removing from cart:", data.error)
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.error("Error removing from cart:", error)
+      return { success: false, error: "Failed to remove item from cart" }
+    }
   }
 
+  // Clear entire cart
+  const clearCart = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (!user && sessionId) {
+        params.append("sessionId", sessionId)
+      }
+
+      const headers: HeadersInit = {}
+
+      if (user) {
+        const {
+          data: { session },
+        } = await (await import("@/lib/supabase")).supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.authorization = `Bearer ${session.access_token}`
+        }
+      }
+
+      const response = await fetch(`/api/cart?${params.toString()}`, {
+        method: "DELETE",
+        headers,
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setCartItems([])
+        return { success: true }
+      } else {
+        console.error("Error clearing cart:", data.error)
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.error("Error clearing cart:", error)
+      return { success: false, error: "Failed to clear cart" }
+    }
+  }
+
+  // Calculate totals
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const vat = subtotal * 0.15
@@ -104,10 +274,12 @@ export function useCart() {
     subtotal,
     vat,
     total,
+    loading,
     addToCart,
     updateQuantity,
     removeFromCart,
     clearCart,
+    refreshCart: fetchCartItems,
     isAuthenticated: !!user,
   }
 }

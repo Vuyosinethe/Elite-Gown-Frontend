@@ -1,18 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, Mail, Clock, User, Menu, X, ChevronDown } from "lucide-react"
-import CartDrawer from "@/components/cart-drawer"
+import Image from "next/image"
+import { ChevronDown, User, X, Menu, ShoppingCart, Mail, Phone, MapPin, Clock } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useCart } from "@/hooks/use-cart"
+import CartDrawer from "@/components/cart-drawer"
 
 export default function ContactPage() {
+  const { user } = useAuth()
+  const { cartCount } = useCart()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-  const { user } = useAuth()
 
   return (
     <div className="min-h-screen bg-white">
@@ -163,13 +163,21 @@ export default function ContactPage() {
                 <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
                   About
                 </Link>
-                <Link href="/contact" className="text-black font-semibold">
+                <Link href="/contact" className="text-gray-700 hover:text-black transition-colors">
                   Contact
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
-                <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                  Cart (0)
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className="relative text-gray-700 hover:text-black transition-colors p-2"
+                >
+                  <ShoppingCart className="w-6 h-6" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
                 </button>
                 {user ? (
                   <Link
@@ -196,8 +204,16 @@ export default function ContactPage() {
 
             {/* Mobile Navigation Button */}
             <div className="flex items-center space-x-4 md:hidden">
-              <button onClick={() => setCartOpen(true)} className="text-gray-700 hover:text-black transition-colors">
-                {user ? "Cart (0)" : "Cart"}
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative text-gray-700 hover:text-black transition-colors p-2"
+              >
+                <ShoppingCart className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </button>
               <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
               <button
@@ -276,7 +292,7 @@ export default function ContactPage() {
               </Link>
               <Link
                 href="/contact"
-                className="block px-3 py-2 rounded-md text-base font-medium text-black bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Contact
@@ -303,103 +319,82 @@ export default function ContactPage() {
         )}
       </nav>
 
+      {/* Contact Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-black mb-4">Contact Elite Gowns</h1>
-          <p className="text-xl text-gray-600">An Elite Moment - Get in touch with us</p>
-        </div>
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl font-bold text-gray-900 mb-8">Contact Us</h1>
 
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Contact Information */}
-          <div className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="w-5 h-5" />
-                  <span>Leadership</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-lg">Mandisa Bhengu</h3>
-                    <p className="text-gray-600">Chief Executive Officer</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Contact Information */}
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Get in Touch</h2>
+              <p className="text-gray-700 mb-8">
+                We're here to help! Whether you have questions about our products, need assistance with sizing, or want
+                to discuss custom orders, our team is ready to assist you.
+              </p>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-black text-white p-3 rounded-full">
-                    <Phone className="w-5 h-5" />
+              <div className="space-y-6">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <Mail className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Phone</h3>
-                    <p className="text-gray-600">081 424 3721</p>
+                    <h3 className="text-lg font-medium text-gray-900">Email</h3>
+                    <p className="text-gray-700">info@elitegowns.co.za</p>
+                    <p className="text-gray-700">support@elitegowns.co.za</p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="bg-black text-white p-3 rounded-full">
-                    <Mail className="w-5 h-5" />
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <Phone className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Email</h3>
-                    <p className="text-gray-600">mandisa@elitegowns.co.za</p>
+                    <h3 className="text-lg font-medium text-gray-900">Phone</h3>
+                    <p className="text-gray-700">+27 11 123 4567</p>
+                    <p className="text-gray-700">+27 82 987 6543</p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="bg-black text-white p-3 rounded-full">
-                    <Mail className="w-5 h-5" />
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">General Info</h3>
-                    <p className="text-gray-600">info@elitegowns.co.za</p>
+                    <h3 className="text-lg font-medium text-gray-900">Address</h3>
+                    <p className="text-gray-700">
+                      123 Fashion Street
+                      <br />
+                      Johannesburg, 2000
+                      <br />
+                      South Africa
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="bg-black text-white p-3 rounded-full">
-                    <Image src="/instagram-logo.png" alt="Instagram" width={20} height={20} className="w-5 h-5" />
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <Clock className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Instagram</h3>
-                    <p className="text-gray-600">@elite_gowns24</p>
+                    <h3 className="text-lg font-medium text-gray-900">Business Hours</h3>
+                    <p className="text-gray-700">
+                      Monday - Friday: 8:00 AM - 6:00 PM
+                      <br />
+                      Saturday: 9:00 AM - 4:00 PM
+                      <br />
+                      Sunday: Closed
+                    </p>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="bg-black text-white p-3 rounded-full">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Business Hours</h3>
-                    <div className="text-gray-600 space-y-1">
-                      <p>Monday - Friday: 8:00 AM - 6:00 PM</p>
-                      <p>Saturday: 9:00 AM - 2:00 PM</p>
-                      <p>Sunday: Closed</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Contact Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Send us a Message</CardTitle>
-            </CardHeader>
-            <CardContent>
+            {/* Contact Form */}
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Send us a Message</h2>
               <form className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                       First Name
@@ -407,7 +402,8 @@ export default function ContactPage() {
                     <input
                       type="text"
                       id="firstName"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      name="firstName"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
                       required
                     />
                   </div>
@@ -418,7 +414,8 @@ export default function ContactPage() {
                     <input
                       type="text"
                       id="lastName"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      name="lastName"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
                       required
                     />
                   </div>
@@ -431,19 +428,21 @@ export default function ContactPage() {
                   <input
                     type="email"
                     id="email"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    name="email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
                     required
                   />
                 </div>
 
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
+                    Phone Number (Optional)
                   </label>
                   <input
                     type="tel"
                     id="phone"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    name="phone"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
                   />
                 </div>
 
@@ -453,14 +452,17 @@ export default function ContactPage() {
                   </label>
                   <select
                     id="subject"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    name="subject"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                    required
                   >
                     <option value="">Select a subject</option>
-                    <option value="graduation">Graduation Gowns Inquiry</option>
-                    <option value="medical">Medical Scrubs Inquiry</option>
-                    <option value="embroidery">Custom Embroidery Quote</option>
-                    <option value="bulk">Bulk Order Request</option>
-                    <option value="other">Other</option>
+                    <option value="general">General Inquiry</option>
+                    <option value="product">Product Question</option>
+                    <option value="sizing">Sizing Help</option>
+                    <option value="custom">Custom Order</option>
+                    <option value="return">Returns & Exchanges</option>
+                    <option value="complaint">Complaint</option>
                   </select>
                 </div>
 
@@ -470,43 +472,68 @@ export default function ContactPage() {
                   </label>
                   <textarea
                     id="message"
-                    rows={5}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                    placeholder="Tell us about your requirements..."
+                    name="message"
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"
+                    placeholder="Please provide details about your inquiry..."
                     required
                   ></textarea>
                 </div>
 
-                <Button className="w-full bg-black hover:bg-gray-800 text-white py-3">Send Message</Button>
+                <div>
+                  <button
+                    type="submit"
+                    className="w-full bg-yellow-600 text-white px-6 py-3 rounded-md font-medium hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                  >
+                    Send Message
+                  </button>
+                </div>
               </form>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        {/* Additional Information */}
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold text-black mb-8">Why Choose Elite Gowns?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-8 h-8" />
+          {/* Additional Information */}
+          <div className="mt-16 bg-gray-50 rounded-lg p-8">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Frequently Asked Questions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">How do I determine my size?</h3>
+                <p className="text-gray-700">
+                  We provide detailed size guides for all our products. You can find the size guide on each product page
+                  or visit our dedicated{" "}
+                  <Link href="/size-guide" className="text-yellow-600 hover:underline">
+                    Size Guide
+                  </Link>{" "}
+                  page.
+                </p>
               </div>
-              <h3 className="font-semibold mb-2">Expert Leadership</h3>
-              <p className="text-gray-600">Led by CEO Mandisa Bhengu with years of industry experience</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-8 h-8" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">What is your return policy?</h3>
+                <p className="text-gray-700">
+                  We offer a 30-day return policy for unused items in original condition. Visit our{" "}
+                  <Link href="/returns" className="text-yellow-600 hover:underline">
+                    Returns
+                  </Link>{" "}
+                  page for full details.
+                </p>
               </div>
-              <h3 className="font-semibold mb-2">Personal Service</h3>
-              <p className="text-gray-600">Direct communication with our team for personalized assistance</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-black text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Do you offer custom embroidery?</h3>
+                <p className="text-gray-700">
+                  Yes! We offer custom embroidery services for bulk orders. Contact us for pricing and minimum order
+                  quantities.
+                </p>
               </div>
-              <h3 className="font-semibold mb-2">Quick Response</h3>
-              <p className="text-gray-600">Fast turnaround times and responsive customer service</p>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">How long does shipping take?</h3>
+                <p className="text-gray-700">
+                  Standard shipping takes 3-5 business days within South Africa. Check our{" "}
+                  <Link href="/shipping" className="text-yellow-600 hover:underline">
+                    Shipping
+                  </Link>{" "}
+                  page for more details.
+                </p>
+              </div>
             </div>
           </div>
         </div>
