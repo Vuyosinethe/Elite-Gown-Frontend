@@ -2,186 +2,159 @@
 
 import type React from "react"
 
-import { Inter } from "next/font/google"
 import "./globals.css"
+import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
-import Link from "next/link"
-import { ShoppingCart, Menu, ChevronDown, User, Heart } from "lucide-react"
+import { CartDrawer } from "@/components/cart-drawer"
+import { MobileMenu } from "@/components/mobile-menu"
+import { useCart } from "@/hooks/use-cart"
+import { ShoppingCart, Menu, User, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { MobileMenu } from "@/components/mobile-menu"
-import { CartDrawer } from "@/components/cart-drawer"
-import { useCart } from "@/hooks/use-cart"
-import { useAuth } from "@/contexts/auth-context"
+import Link from "next/link"
 import Image from "next/image"
+import { useState } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 
 function Header() {
-  const { items } = useCart()
-  const { user } = useAuth()
+  const { items, toggleCart } = useCart()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <header className="border-b">
+    <header className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={40} height={40} className="rounded" />
-            <span className="text-xl font-bold">Elite Gowns</span>
-          </Link>
+          {/* Mobile menu button */}
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu className="h-6 w-6" />
+          </Button>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="hover:text-blue-600">
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/" className="text-lg font-semibold hover:text-gray-600">
               Home
             </Link>
-            <Link href="/products" className="hover:text-blue-600">
-              Products
-            </Link>
-            <Link href="/graduation-gowns" className="hover:text-blue-600">
-              Graduation Gowns
-            </Link>
-            <Link href="/medical-scrubs" className="hover:text-blue-600">
-              Medical Scrubs
-            </Link>
-            <Link href="/embroidered-merchandise" className="hover:text-blue-600">
-              Embroidered Merchandise
-            </Link>
-            <Link href="/rental" className="hover:text-blue-600">
-              Rental
-            </Link>
 
-            {/* Sale Dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center space-x-1 hover:text-blue-600">
-                <span>Sale</span>
-                <ChevronDown className="h-4 w-4" />
+              <DropdownMenuTrigger className="text-lg font-semibold hover:text-green-600 transition-colors">
+                Sale
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 max-h-96 overflow-y-auto">
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=graduation-gowns&sale=true">Graduation Gowns</Link>
+              <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
+                <DropdownMenuItem asChild>
+                  <Link href="/graduation-gowns" className="hover:bg-green-50">
+                    Graduation Gowns
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=medical-scrubs&sale=true">Medical Scrubs</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/medical-scrubs" className="hover:bg-green-50">
+                    Medical Scrubs
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=nursing-uniforms&sale=true">Nursing Uniforms</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/embroidered-merchandise" className="hover:bg-green-50">
+                    Embroidered Merchandise
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=lab-coats&sale=true">Lab Coats</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Academic Regalia
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=surgical-scrubs&sale=true">Surgical Scrubs</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Ceremonial Wear
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=dental-uniforms&sale=true">Dental Uniforms</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Professional Attire
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=veterinary-scrubs&sale=true">Veterinary Scrubs</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Custom Embroidery
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=embroidered-merchandise&sale=true">Embroidered Merchandise</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Accessories
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=accessories&sale=true">Accessories</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Caps & Tassels
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=footwear&sale=true">Medical Footwear</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Stoles & Sashes
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=caps&sale=true">Medical Caps</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Honor Cords
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=masks&sale=true">Face Masks</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/products" className="hover:bg-green-50">
+                    Medals & Awards
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=stethoscopes&sale=true">Stethoscopes</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=badges&sale=true">ID Badges</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-green-100">
-                  <Link href="/products?category=bags&sale=true">Medical Bags</Link>
+                <DropdownMenuItem asChild>
+                  <Link href="/rental" className="hover:bg-green-50">
+                    Rental Services
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link href="/about" className="hover:text-blue-600">
+            <Link href="/about" className="text-lg font-semibold hover:text-gray-600">
               About
             </Link>
-            <Link href="/contact" className="hover:text-blue-600">
+            <Link href="/contact" className="text-lg font-semibold hover:text-gray-600">
               Contact
             </Link>
           </nav>
 
-          {/* Right side icons - moved to far right */}
-          <div className="flex items-center space-x-4 ml-auto">
-            {/* User Account */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem>
-                    <Link href="/account">My Account</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link href="/orders">Orders</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link href="/wishlist">Wishlist</Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  <User className="h-5 w-5" />
-                </Button>
-              </Link>
-            )}
-
-            {/* Wishlist */}
-            <Link href="/wishlist">
-              <Button variant="ghost" size="sm">
-                <Heart className="h-5 w-5" />
-              </Button>
+          {/* Center - Logo */}
+          <div className="flex-1 flex justify-center md:justify-start md:flex-initial">
+            <Link href="/" className="flex items-center">
+              <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={120} height={40} className="h-10 w-auto" />
             </Link>
+          </div>
 
-            {/* Cart */}
-            <CartDrawer>
-              <Button variant="ghost" size="sm" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </Button>
-            </CartDrawer>
+          {/* Right side icons */}
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/account">
+                <Heart className="h-6 w-6" />
+              </Link>
+            </Button>
 
-            {/* Mobile menu */}
-            <Sheet>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="sm">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <MobileMenu />
-              </SheetContent>
-            </Sheet>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/login">
+                <User className="h-6 w-6" />
+              </Link>
+            </Button>
+
+            <Button variant="ghost" size="icon" className="relative" onClick={toggleCart}>
+              <ShoppingCart className="h-6 w-6" />
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
       </div>
+
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
     </header>
   )
 }
@@ -192,12 +165,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <Header />
             <main>{children}</main>
+            <CartDrawer />
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

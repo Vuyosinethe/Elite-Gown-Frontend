@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
 
 export interface CartItem {
   id: string
@@ -12,83 +13,83 @@ export interface CartItem {
   color?: string
 }
 
-export function useCart() {
-  const [items, setItems] = useState<CartItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+interface CartStore {
+  items: CartItem[]
+  isOpen: boolean
+  addItem: (item: Omit<CartItem, "quantity">) => void
+  removeItem: (id: string) => void
+  updateQuantity: (id: string, quantity: number) => void
+  clearCart: () => void
+  toggleCart: () => void
+  getTotalPrice: () => number
+  getTotalItems: () => number
+}
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cart")
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error("Error loading cart from localStorage:", error)
-        localStorage.removeItem("cart")
-      }
-    }
-  }, [])
+export const useCart = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      isOpen: false,
 
-  // Save cart to localStorage whenever items change
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items))
-  }, [items])
-
-  const addItem = async (item: Omit<CartItem, "quantity">) => {
-    setIsLoading(true)
-    try {
-      setItems((currentItems) => {
-        const existingItem = currentItems.find(
-          (i) => i.id === item.id && i.size === item.size && i.color === item.color,
-        )
-
-        if (existingItem) {
-          return currentItems.map((i) =>
-            i.id === item.id && i.size === item.size && i.color === item.color ? { ...i, quantity: i.quantity + 1 } : i,
+      addItem: (newItem) => {
+        set((state) => {
+          const existingItem = state.items.find(
+            (item) => item.id === newItem.id && item.size === newItem.size && item.color === newItem.color,
           )
+
+          if (existingItem) {
+            return {
+              items: state.items.map((item) =>
+                item.id === existingItem.id && item.size === existingItem.size && item.color === existingItem.color
+                  ? { ...item, quantity: item.quantity + 1 }
+                  : item,
+              ),
+            }
+          }
+
+          return {
+            items: [...state.items, { ...newItem, quantity: 1 }],
+          }
+        })
+      },
+
+      removeItem: (id) => {
+        set((state) => ({
+          items: state.items.filter((item) => item.id !== id),
+        }))
+      },
+
+      updateQuantity: (id, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(id)
+          return
         }
 
-        return [...currentItems, { ...item, quantity: 1 }]
-      })
-    } catch (error) {
-      console.error("Error adding item to cart:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+        set((state) => ({
+          items: state.items.map((item) => (item.id === id ? { ...item, quantity } : item)),
+        }))
+      },
 
-  const updateQuantity = async (id: string, quantity: number, size?: string, color?: string) => {
-    if (quantity <= 0) {
-      await removeItem(id, size, color)
-      return
-    }
+      clearCart: () => {
+        set({ items: [] })
+      },
 
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === id && item.size === size && item.color === color ? { ...item, quantity } : item,
-      ),
-    )
-  }
+      toggleCart: () => {
+        set((state) => ({ isOpen: !state.isOpen }))
+      },
 
-  const removeItem = async (id: string, size?: string, color?: string) => {
-    setItems((currentItems) =>
-      currentItems.filter((item) => !(item.id === id && item.size === size && item.color === color)),
-    )
-  }
+      getTotalPrice: () => {
+        const { items } = get()
+        return items.reduce((total, item) => total + item.price * item.quantity, 0)
+      },
 
-  const clearCart = async () => {
-    setItems([])
-  }
-
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-  return {
-    items,
-    addItem,
-    updateQuantity,
-    removeItem,
-    clearCart,
-    total,
-    isLoading,
-  }
-}
+      getTotalItems: () => {
+        const { items } = get()
+        return items.reduce((total, item) => total + item.quantity, 0)
+      },
+    }),
+    {
+      name: "cart-storage",
+    },
+  ),
+)
