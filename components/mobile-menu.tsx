@@ -1,123 +1,79 @@
 "use client"
 
-import Link from "next/link"
-import { ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface MobileMenuProps {
+  isOpen: boolean
   onClose: () => void
 }
 
-export function MobileMenu({ onClose }: MobileMenuProps) {
-  const [isSaleOpen, setIsSaleOpen] = useState(false)
+export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+  if (!isOpen) return null
 
   return (
-    <div className="flex flex-col space-y-4 p-4">
-      <Link href="/" className="text-lg font-medium hover:text-foreground/80" onClick={onClose}>
-        Home
-      </Link>
+    <div className="fixed inset-0 z-50 md:hidden">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
 
-      <div>
-        <Button
-          variant="ghost"
-          className="w-full justify-between p-0 text-lg font-medium hover:text-green-600"
-          onClick={() => setIsSaleOpen(!isSaleOpen)}
-        >
-          Sale
-          <ChevronDown className={`h-4 w-4 transition-transform ${isSaleOpen ? "rotate-180" : ""}`} />
-        </Button>
+      {/* Menu */}
+      <div className="fixed top-0 left-0 h-full w-80 bg-white shadow-lg">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Menu</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
 
-        {isSaleOpen && (
-          <div className="mt-2 ml-4 space-y-2 max-h-60 overflow-y-auto">
-            <Link href="/graduation-gowns" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Graduation Gowns
-            </Link>
-            <Link href="/medical-scrubs" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Medical Scrubs
-            </Link>
-            <Link href="/embroidered-merchandise" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Embroidered Merchandise
-            </Link>
-            <Link href="/products?category=caps" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Graduation Caps
-            </Link>
-            <Link
-              href="/products?category=accessories"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Academic Accessories
-            </Link>
-            <Link
-              href="/products?category=stoles"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Honor Stoles
-            </Link>
-            <Link
-              href="/products?category=tassels"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Graduation Tassels
-            </Link>
-            <Link href="/products?category=hoods" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Academic Hoods
-            </Link>
-            <Link
-              href="/products?category=lab-coats"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Lab Coats
-            </Link>
-            <Link
-              href="/products?category=nursing"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Nursing Uniforms
-            </Link>
-            <Link
-              href="/products?category=surgical"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Surgical Scrubs
-            </Link>
-            <Link
-              href="/products?category=pediatric"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Pediatric Scrubs
-            </Link>
-            <Link
-              href="/products?category=maternity"
-              className="block py-2 text-sm hover:text-green-600"
-              onClick={onClose}
-            >
-              Maternity Scrubs
-            </Link>
-            <Link href="/products?category=shoes" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Medical Shoes
-            </Link>
-            <Link href="/products?category=bags" className="block py-2 text-sm hover:text-green-600" onClick={onClose}>
-              Medical Bags
-            </Link>
+        <div className="p-4 space-y-4">
+          <Link href="/" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
+            Home
+          </Link>
+          <div className="space-y-2">
+            <p className="font-semibold text-green-600">Sale</p>
+            <div className="pl-4 space-y-2">
+              <Link
+                href="/graduation-gowns"
+                onClick={onClose}
+                className="block py-1 text-sm text-gray-600 hover:text-green-600"
+              >
+                Graduation Gowns
+              </Link>
+              <Link
+                href="/medical-scrubs"
+                onClick={onClose}
+                className="block py-1 text-sm text-gray-600 hover:text-green-600"
+              >
+                Medical Scrubs
+              </Link>
+              <Link
+                href="/embroidered-merchandise"
+                onClick={onClose}
+                className="block py-1 text-sm text-gray-600 hover:text-green-600"
+              >
+                Embroidered Merchandise
+              </Link>
+              <Link href="/rental" onClick={onClose} className="block py-1 text-sm text-gray-600 hover:text-green-600">
+                Rental Services
+              </Link>
+              <Link
+                href="/products"
+                onClick={onClose}
+                className="block py-1 text-sm text-gray-600 hover:text-green-600"
+              >
+                All Products
+              </Link>
+            </div>
           </div>
-        )}
+          <Link href="/about" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
+            About
+          </Link>
+          <Link href="/contact" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
+            Contact
+          </Link>
+        </div>
       </div>
-
-      <Link href="/about" className="text-lg font-medium hover:text-foreground/80" onClick={onClose}>
-        About
-      </Link>
-
-      <Link href="/contact" className="text-lg font-medium hover:text-foreground/80" onClick={onClose}>
-        Contact
-      </Link>
     </div>
   )
 }

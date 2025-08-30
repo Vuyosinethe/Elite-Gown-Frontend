@@ -1,175 +1,90 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useAuth } from "@/contexts/auth-context"
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
 
-interface CartItem {
-  id: number
-  product_id: number
-  product_name: string
-  product_details: string
-  product_image: string
+export interface CartItem {
+  id: string
+  name: string
   price: number
+  image?: string
+  size?: string
+  color?: string
   quantity: number
-  created_at: string
-  updated_at: string
 }
 
-export function useCart() {
-  const { user } = useAuth()
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [loading, setLoading] = useState(false)
+interface CartStore {
+  items: CartItem[]
+  cartCount: number
+  addItem: (item: Omit<CartItem, "quantity">) => void
+  removeItem: (id: string) => void
+  updateQuantity: (id: string, quantity: number) => void
+  clearCart: () => void
+  getTotal: () => number
+}
 
-  // Load cart items from localStorage
-  const loadCartFromStorage = useCallback(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const storedCart = localStorage.getItem("cart_items")
-        if (storedCart) {
-          const parsedCart = JSON.parse(storedCart)
-          setCartItems(parsedCart)
+export const useCart = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      cartCount: 0,
+      addItem: (item) => {
+        const items = get().items
+        const existingItem = items.find((i) => i.id === item.id)
+
+        if (existingItem) {
+          set({
+            items: items.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)),
+            cartCount: get().cartCount + 1,
+          })
+        } else {
+          set({
+            items: [...items, { ...item, quantity: 1 }],
+            cartCount: get().cartCount + 1,
+          })
         }
-      } catch (error) {
-        console.error("Error loading cart from storage:", error)
-        setCartItems([])
-      }
-    }
-  }, [])
+      },
+      removeItem: (id) => {
+        const items = get().items
+        const item = items.find((i) => i.id === id)
+        if (item) {
+          set({
+            items: items.filter((i) => i.id !== id),
+            cartCount: get().cartCount - item.quantity,
+          })
+        }
+      },
+      updateQuantity: (id, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(id)
+          return
+        }
 
-  // Save cart items to localStorage
-  const saveCartToStorage = useCallback((items: CartItem[]) => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("cart_items", JSON.stringify(items))
-      } catch (error) {
-        console.error("Error saving cart to storage:", error)
-      }
-    }
-  }, [])
-
-  // Load cart items on component mount
-  useEffect(() => {
-    loadCartFromStorage()
-  }, [loadCartFromStorage])
-
-  // Add item to cart
-  const addToCart = async (item: {
-    id: number
-    name: string
-    details: string
-    price: number
-    image: string
-    quantity?: number
-  }) => {
-    try {
-      const newItem: CartItem = {
-        id: Date.now(), // Use timestamp as unique ID for frontend-only cart
-        product_id: item.id,
-        product_name: item.name,
-        product_details: item.details,
-        product_image: item.image,
-        price: item.price,
-        quantity: item.quantity || 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-
-      // Check if item already exists in cart
-      const existingItemIndex = cartItems.findIndex(
-        (cartItem) => cartItem.product_id === item.id && cartItem.product_details === item.details,
-      )
-
-      let updatedCart: CartItem[]
-
-      if (existingItemIndex >= 0) {
-        // Update quantity of existing item
-        updatedCart = cartItems.map((cartItem, index) =>
-          index === existingItemIndex
-            ? { ...cartItem, quantity: cartItem.quantity + (item.quantity || 1), updated_at: new Date().toISOString() }
-            : cartItem,
-        )
-      } else {
-        // Add new item to cart
-        updatedCart = [...cartItems, newItem]
-      }
-
-      setCartItems(updatedCart)
-      saveCartToStorage(updatedCart)
-
-      return { success: true, message: "Item added to cart successfully" }
-    } catch (error) {
-      console.error("Error adding to cart:", error)
-      return { success: false, error: "Failed to add item to cart" }
-    }
-  }
-
-  // Update item quantity
-  const updateQuantity = async (itemId: number, newQuantity: number) => {
-    try {
-      if (newQuantity < 1) {
-        return removeFromCart(itemId)
-      }
-
-      const updatedCart = cartItems.map((item) =>
-        item.id === itemId ? { ...item, quantity: newQuantity, updated_at: new Date().toISOString() } : item,
-      )
-
-      setCartItems(updatedCart)
-      saveCartToStorage(updatedCart)
-
-      return { success: true }
-    } catch (error) {
-      console.error("Error updating quantity:", error)
-      return { success: false, error: "Failed to update quantity" }
-    }
-  }
-
-  // Remove item from cart
-  const removeFromCart = async (itemId: number) => {
-    try {
-      const updatedCart = cartItems.filter((item) => item.id !== itemId)
-      setCartItems(updatedCart)
-      saveCartToStorage(updatedCart)
-
-      return { success: true }
-    } catch (error) {
-      console.error("Error removing from cart:", error)
-      return { success: false, error: "Failed to remove item from cart" }
-    }
-  }
-
-  // Clear entire cart
-  const clearCart = async () => {
-    try {
-      setCartItems([])
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("cart_items")
-      }
-      return { success: true }
-    } catch (error) {
-      console.error("Error clearing cart:", error)
-      return { success: false, error: "Failed to clear cart" }
-    }
-  }
-
-  // Calculate totals
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const vat = subtotal * 0.15
-  const total = subtotal + vat
-
-  return {
-    cartItems,
-    cartCount,
-    subtotal,
-    vat,
-    total,
-    loading,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    refreshCart: loadCartFromStorage,
-    isAuthenticated: !!user,
-  }
-}
+        const items = get().items
+        const item = items.find((i) => i.id === id)
+        if (item) {
+          const difference = quantity - item.quantity
+          set({
+            items: items.map((i) => (i.id === id ? { ...i, quantity } : i)),
+            cartCount: get().cartCount + difference,
+          })
+        }
+      },
+      clearCart: () => set({ items: [], cartCount: 0 }),
+      getTotal: () => {
+        const items = get().items || []
+        return items.reduce((total, item) => total + item.price * item.quantity, 0)
+      },
+    }),
+    {
+      name: "cart-storage",
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Recalculate cart count from items
+          const count = (state.items || []).reduce((total, item) => total + item.quantity, 0)
+          state.cartCount = count
+        }
+      },
+    },
+  ),
+)

@@ -3,7 +3,8 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import type { User, Session } from "@supabase/supabase-js"
-import { supabase, type Profile } from "@/lib/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
 interface AuthUser {
@@ -33,7 +34,17 @@ interface AuthContextType {
   updateProfile: (updates: Partial<AuthUser>) => Promise<{ error: any }>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  profile: null,
+  session: null,
+  loading: true,
+  signUp: async () => ({ error: null }),
+  signIn: async () => ({ error: null }),
+  signOut: async () => {},
+  resetPassword: async () => ({ error: null }),
+  updateProfile: async () => ({ error: null }),
+})
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -42,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   // Memoized function to load user with profile
   const loadUserWithProfile = useCallback(async (authUser: User) => {

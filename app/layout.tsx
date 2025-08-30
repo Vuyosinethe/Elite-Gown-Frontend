@@ -4,15 +4,14 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
-import { Toaster } from "@/components/ui/toaster"
 import ClientLayout from "./client-layout"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Elite Gowns - Premium Graduation Gowns & Medical Scrubs",
-  description:
-    "Shop premium graduation gowns, medical scrubs, and embroidered merchandise at Elite Gowns. Quality academic and professional attire.",
+  description: "Premium graduation gowns, medical scrubs, and embroidered merchandise for professionals and students.",
     generator: 'v0.app'
 }
 

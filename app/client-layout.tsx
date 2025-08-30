@@ -1,18 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, User, Menu, ChevronDown } from "lucide-react"
+import { ShoppingCart, User, Menu, ChevronDown, Search, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { CartDrawer } from "@/components/cart-drawer"
-import { MobileMenu } from "@/components/mobile-menu"
 import { useCart } from "@/hooks/use-cart"
 import { useAuth } from "@/contexts/auth-context"
+import CartDrawer from "@/components/cart-drawer"
+import MobileMenu from "@/components/mobile-menu"
 
 export default function ClientLayout({
   children,
@@ -21,285 +18,289 @@ export default function ClientLayout({
 }) {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { items } = useCart()
+  const { cartCount } = useCart()
   const { user, signOut } = useAuth()
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          {/* Mobile Menu */}
-          <div className="flex items-center gap-4 md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                <MobileMenu onClose={() => setIsMobileMenuOpen(false)} />
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link href="/" className="transition-colors hover:text-foreground/80">
-              Home
-            </Link>
-            <div className="relative group">
-              <button className="flex items-center space-x-1 transition-colors hover:text-green-600">
-                <span>Sale</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="max-h-80 overflow-y-auto">
-                  <div className="p-2">
-                    <Link
-                      href="/graduation-gowns"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Graduation Gowns
-                    </Link>
-                    <Link
-                      href="/medical-scrubs"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Medical Scrubs
-                    </Link>
-                    <Link
-                      href="/embroidered-merchandise"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Embroidered Merchandise
-                    </Link>
-                    <Link
-                      href="/products?category=caps"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Graduation Caps
-                    </Link>
-                    <Link
-                      href="/products?category=accessories"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Academic Accessories
-                    </Link>
-                    <Link
-                      href="/products?category=stoles"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Honor Stoles
-                    </Link>
-                    <Link
-                      href="/products?category=tassels"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Graduation Tassels
-                    </Link>
-                    <Link
-                      href="/products?category=hoods"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Academic Hoods
-                    </Link>
-                    <Link
-                      href="/products?category=lab-coats"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Lab Coats
-                    </Link>
-                    <Link
-                      href="/products?category=nursing"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Nursing Uniforms
-                    </Link>
-                    <Link
-                      href="/products?category=surgical"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Surgical Scrubs
-                    </Link>
-                    <Link
-                      href="/products?category=pediatric"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Pediatric Scrubs
-                    </Link>
-                    <Link
-                      href="/products?category=maternity"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Maternity Scrubs
-                    </Link>
-                    <Link
-                      href="/products?category=shoes"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Medical Shoes
-                    </Link>
-                    <Link
-                      href="/products?category=bags"
-                      className="block px-3 py-2 text-sm hover:bg-green-50 hover:text-green-600 rounded-md transition-colors"
-                    >
-                      Medical Bags
-                    </Link>
-                  </div>
-                </div>
-              </div>
+      <header className="border-b bg-white sticky top-0 z-30">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(true)} className="p-2">
+                <Menu className="h-5 w-5" />
+              </Button>
             </div>
-            <Link href="/about" className="transition-colors hover:text-foreground/80">
-              About
-            </Link>
-            <Link href="/contact" className="transition-colors hover:text-foreground/80">
-              Contact
-            </Link>
-          </nav>
 
-          {/* Logo - Centered */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 md:static md:transform-none">
-            <Link href="/" className="flex items-center space-x-2">
-              <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={120} height={40} className="h-8 w-auto" />
-            </Link>
-          </div>
+            {/* Logo */}
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="flex items-center space-x-2">
+                <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={40} height={40} className="rounded-full" />
+                <span className="font-bold text-xl hidden sm:block">Elite Gowns</span>
+              </Link>
+            </div>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Cart */}
-            <Button variant="ghost" size="icon" className="relative" onClick={() => setIsCartOpen(true)}>
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-black text-white">
-                  {totalItems}
-                </Badge>
-              )}
-            </Button>
-
-            {/* User Menu */}
-            {user ? (
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link href="/" className="text-gray-700 hover:text-black transition-colors">
+                Home
+              </Link>
               <div className="relative group">
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                </Button>
-                <div className="absolute top-full right-0 mt-1 w-48 bg-white border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="p-2">
-                    <Link
-                      href="/account"
-                      className="block px-3 py-2 text-sm hover:bg-gray-50 rounded-md transition-colors"
-                    >
-                      My Account
-                    </Link>
-                    <button
-                      onClick={() => signOut()}
-                      className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-md transition-colors"
-                    >
-                      Sign Out
-                    </button>
+                <button className="text-gray-700 hover:text-green-600 transition-colors flex items-center space-x-1">
+                  <span>Sale</span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-4 max-h-80 overflow-y-auto">
+                    <div className="space-y-2">
+                      <Link
+                        href="/graduation-gowns"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Graduation Gowns
+                      </Link>
+                      <Link
+                        href="/medical-scrubs"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Medical Scrubs
+                      </Link>
+                      <Link
+                        href="/embroidered-merchandise"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Embroidered Merchandise
+                      </Link>
+                      <Link
+                        href="/rental"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Rental Services
+                      </Link>
+                      <Link
+                        href="/products"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        All Products
+                      </Link>
+                      <Link
+                        href="/products?category=nursing-uniforms"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Nursing Uniforms
+                      </Link>
+                      <Link
+                        href="/products?category=lab-coats"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Lab Coats
+                      </Link>
+                      <Link
+                        href="/products?category=surgical-scrubs"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Surgical Scrubs
+                      </Link>
+                      <Link
+                        href="/products?category=dental-uniforms"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Dental Uniforms
+                      </Link>
+                      <Link
+                        href="/products?category=veterinary-scrubs"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Veterinary Scrubs
+                      </Link>
+                      <Link
+                        href="/products?category=accessories"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Accessories
+                      </Link>
+                      <Link
+                        href="/products?category=footwear"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Medical Footwear
+                      </Link>
+                      <Link
+                        href="/products?category=caps"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
+                      >
+                        Medical Caps
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <Link href="/login">
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                </Button>
+              <Link href="/about" className="text-gray-700 hover:text-black transition-colors">
+                About
               </Link>
-            )}
+              <Link href="/contact" className="text-gray-700 hover:text-black transition-colors">
+                Contact
+              </Link>
+            </nav>
+
+            {/* Right Side Actions - moved to far right */}
+            <div className="flex items-center space-x-4 ml-auto">
+              {/* Search */}
+              <Button variant="ghost" size="sm" className="hidden sm:flex">
+                <Search className="h-5 w-5" />
+              </Button>
+
+              {/* Wishlist */}
+              <Button variant="ghost" size="sm" className="hidden sm:flex">
+                <Heart className="h-5 w-5" />
+              </Button>
+
+              {/* Cart with BLACK badge */}
+              <Button variant="ghost" size="sm" onClick={() => setIsCartOpen(true)} className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+
+              {/* User Menu */}
+              {user ? (
+                <div className="relative group">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span className="hidden sm:block">{user.email}</span>
+                  </Button>
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="p-2">
+                      <Link
+                        href="/account"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        My Account
+                      </Link>
+                      <button
+                        onClick={signOut}
+                        className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span className="hidden sm:block">Sign In</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">{children}</main>
-
-      {/* Cart Drawer */}
-      <CartDrawer open={isCartOpen} onOpenChange={setIsCartOpen} />
+      <main>{children}</main>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/50">
-        <div className="container py-8 md:py-12">
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={120} height={40} className="h-8 w-auto" />
-              <p className="text-sm text-muted-foreground">
-                Premium graduation gowns and medical scrubs for professionals and students.
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={32} height={32} className="rounded-full" />
+                <span className="font-bold text-lg">Elite Gowns</span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Premium graduation gowns, medical scrubs, and embroidered merchandise for professionals and students.
               </p>
             </div>
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold">Products</h4>
-              <ul className="space-y-2 text-sm">
+
+            <div>
+              <h3 className="font-semibold mb-4">Products</h3>
+              <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <Link href="/graduation-gowns" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/graduation-gowns" className="hover:text-white transition-colors">
                     Graduation Gowns
                   </Link>
                 </li>
                 <li>
-                  <Link href="/medical-scrubs" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/medical-scrubs" className="hover:text-white transition-colors">
                     Medical Scrubs
                   </Link>
                 </li>
                 <li>
-                  <Link href="/embroidered-merchandise" className="text-muted-foreground hover:text-foreground">
-                    Embroidered Items
+                  <Link href="/embroidered-merchandise" className="hover:text-white transition-colors">
+                    Embroidered Merchandise
                   </Link>
                 </li>
                 <li>
-                  <Link href="/rental" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/rental" className="hover:text-white transition-colors">
                     Rental Services
                   </Link>
                 </li>
               </ul>
             </div>
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold">Support</h4>
-              <ul className="space-y-2 text-sm">
+
+            <div>
+              <h3 className="font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <Link href="/size-guide" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/size-guide" className="hover:text-white transition-colors">
                     Size Guide
                   </Link>
                 </li>
                 <li>
-                  <Link href="/shipping" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/shipping" className="hover:text-white transition-colors">
                     Shipping Info
                   </Link>
                 </li>
                 <li>
-                  <Link href="/returns" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/returns" className="hover:text-white transition-colors">
                     Returns
                   </Link>
                 </li>
                 <li>
-                  <Link href="/faq" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/faq" className="hover:text-white transition-colors">
                     FAQ
                   </Link>
                 </li>
               </ul>
             </div>
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold">Company</h4>
-              <ul className="space-y-2 text-sm">
+
+            <div>
+              <h3 className="font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <Link href="/about" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/about" className="hover:text-white transition-colors">
                     About Us
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/contact" className="hover:text-white transition-colors">
                     Contact
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
             <p>&copy; 2024 Elite Gowns. All rights reserved.</p>
           </div>
         </div>
       </footer>
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* Mobile Menu */}
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
     </div>
   )
 }
