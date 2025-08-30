@@ -55,6 +55,11 @@ export const useCart = create<CartStore>()(
         }
       },
       updateQuantity: (id, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(id)
+          return
+        }
+
         const items = get().items
         const item = items.find((i) => i.id === id)
         if (item) {
@@ -65,9 +70,7 @@ export const useCart = create<CartStore>()(
           })
         }
       },
-      clearCart: () => {
-        set({ items: [], cartCount: 0 })
-      },
+      clearCart: () => set({ items: [], cartCount: 0 }),
       getTotal: () => {
         return get().items.reduce((total, item) => total + item.price * item.quantity, 0)
       },

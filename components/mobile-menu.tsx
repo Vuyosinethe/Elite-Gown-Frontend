@@ -1,8 +1,7 @@
 "use client"
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Separator } from "@/components/ui/separator"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { X, ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -12,158 +11,107 @@ interface MobileMenuProps {
 }
 
 export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [showSaleDropdown, setShowSaleDropdown] = useState(false)
 
-  const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section)
-  }
+  if (!isOpen) return null
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-full sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
-        </SheetHeader>
+    <div className="fixed inset-0 z-50 md:hidden">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
 
-        <div className="py-4 space-y-4">
-          <Link href="/" className="block py-2 text-lg font-medium" onClick={onClose}>
+      {/* Menu */}
+      <div className="fixed top-0 left-0 h-full w-80 bg-white shadow-lg">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Menu</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <Link href="/" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
             Home
           </Link>
 
           <div>
             <button
-              onClick={() => toggleSection("shop")}
-              className="flex items-center justify-between w-full py-2 text-lg font-medium"
+              onClick={() => setShowSaleDropdown(!showSaleDropdown)}
+              className="flex items-center justify-between w-full py-2 text-gray-700 hover:text-green-600"
             >
-              Shop
-              {expandedSection === "shop" ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <span>Sale</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${showSaleDropdown ? "rotate-180" : ""}`} />
             </button>
-            {expandedSection === "shop" && (
-              <div className="pl-4 space-y-2 mt-2">
+            {showSaleDropdown && (
+              <div className="pl-4 mt-2 space-y-2 max-h-60 overflow-y-auto">
                 <Link
                   href="/graduation-gowns"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
                   Graduation Gowns
                 </Link>
                 <Link
                   href="/medical-scrubs"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
                   Medical Scrubs
                 </Link>
                 <Link
                   href="/embroidered-merchandise"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
                   Embroidered Merchandise
                 </Link>
                 <Link
-                  href="/rental"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
+                  href="/products?category=caps"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
-                  Rental Services
+                  Graduation Caps
                 </Link>
                 <Link
-                  href="/products"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
+                  href="/products?category=accessories"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
-                  All Products
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <button
-              onClick={() => toggleSection("sale")}
-              className="flex items-center justify-between w-full py-2 text-lg font-medium"
-            >
-              Sale
-              {expandedSection === "sale" ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </button>
-            {expandedSection === "sale" && (
-              <div className="pl-4 space-y-2 mt-2">
-                <Link
-                  href="/products?category=nursing-uniforms"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={onClose}
-                >
-                  Nursing Uniforms
+                  Academic Accessories
                 </Link>
                 <Link
                   href="/products?category=lab-coats"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
                   Lab Coats
                 </Link>
                 <Link
-                  href="/products?category=surgical-scrubs"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
+                  href="/products?category=nursing"
                   onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
+                >
+                  Nursing Uniforms
+                </Link>
+                <Link
+                  href="/products?category=surgical"
+                  onClick={onClose}
+                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
                 >
                   Surgical Scrubs
-                </Link>
-                <Link
-                  href="/products?category=dental-uniforms"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={onClose}
-                >
-                  Dental Uniforms
-                </Link>
-                <Link
-                  href="/products?category=veterinary-scrubs"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={onClose}
-                >
-                  Veterinary Scrubs
-                </Link>
-                <Link
-                  href="/products?category=accessories"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={onClose}
-                >
-                  Accessories
-                </Link>
-                <Link
-                  href="/products?category=footwear"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={onClose}
-                >
-                  Medical Footwear
-                </Link>
-                <Link
-                  href="/products?category=caps"
-                  className="block py-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={onClose}
-                >
-                  Medical Caps
                 </Link>
               </div>
             )}
           </div>
 
-          <Link href="/about" className="block py-2 text-lg font-medium" onClick={onClose}>
+          <Link href="/about" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
             About
           </Link>
-
-          <Link href="/contact" className="block py-2 text-lg font-medium" onClick={onClose}>
+          <Link href="/contact" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
             Contact
           </Link>
-
-          <Separator />
-
-          <Link href="/login" className="block py-2 text-lg font-medium" onClick={onClose}>
-            Sign In
-          </Link>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   )
 }
