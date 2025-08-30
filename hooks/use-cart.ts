@@ -152,6 +152,44 @@ export function useCart() {
     }
   }
 
+  // Add pending cart item (for post-login processing)
+  const addPendingCartItem = useCallback(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const pendingItem = localStorage.getItem("pending_cart_item")
+        if (pendingItem) {
+          const item = JSON.parse(pendingItem)
+          addToCart(item)
+          localStorage.removeItem("pending_cart_item")
+          console.log("Added pending cart item after login")
+        }
+      }
+    } catch (error) {
+      console.error("Error adding pending cart item:", error)
+    }
+  }, [])
+
+  // Store item for later addition (when user logs in)
+  const storePendingCartItem = useCallback(
+    (item: {
+      id: number
+      name: string
+      details: string
+      price: number
+      image: string
+      quantity?: number
+    }) => {
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pending_cart_item", JSON.stringify(item))
+        }
+      } catch (error) {
+        console.error("Error storing pending cart item:", error)
+      }
+    },
+    [],
+  )
+
   // Calculate totals
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -170,6 +208,8 @@ export function useCart() {
     removeFromCart,
     clearCart,
     refreshCart: loadCartFromStorage,
+    addPendingCartItem,
+    storePendingCartItem,
     isAuthenticated: !!user,
   }
 }

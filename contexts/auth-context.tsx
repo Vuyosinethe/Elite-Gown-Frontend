@@ -45,6 +45,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
 
+  // Function to clear all local state
+  const clearLocalState = useCallback(() => {
+    console.log("Clearing all local auth state...")
+    setUser(null)
+    setProfile(null)
+    setSession(null)
+
+    // Clear localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("supabase.auth.token")
+        localStorage.removeItem("cart")
+        localStorage.removeItem("wishlist")
+
+        // Clear Supabase auth tokens
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        if (supabaseUrl) {
+          const projectRef = supabaseUrl.split("//")[1]?.split(".")[0]
+          if (projectRef) {
+            localStorage.removeItem(`sb-${projectRef}-auth-token`)
+          }
+        }
+
+        // Clear all supabase related items
+        Object.keys(localStorage).forEach((key) => {
+          if (key.includes("supabase") || key.includes("sb-")) {
+            localStorage.removeItem(key)
+          }
+        })
+      } catch (error) {
+        console.error("Error clearing localStorage:", error)
+      }
+    }
+  }, [])
+
   // Memoized function to load user with profile
   const loadUserWithProfile = useCallback(async (authUser: User) => {
     try {
@@ -135,16 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadUserWithProfile(session.user)
         } else {
           console.log("No valid session found")
-          setUser(null)
-          setProfile(null)
-          setSession(null)
+          clearLocalState()
         }
       } catch (error) {
         console.error("Error getting initial session:", error)
         if (mounted) {
-          setUser(null)
-          setProfile(null)
-          setSession(null)
+          clearLocalState()
         }
       } finally {
         if (mounted) {
@@ -167,11 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Handle different auth events
       if (event === "SIGNED_OUT") {
-        setUser(null)
-        setProfile(null)
-        setSession(null)
+        console.log("User signed out, clearing all state...")
+        clearLocalState()
       } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         if (session?.user) {
+          console.log("User signed in, loading profile...")
           setSession(session)
           await loadUserWithProfile(session.user)
         }
@@ -193,11 +224,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [loadUserWithProfile, initialized])
+  }, [loadUserWithProfile, initialized, clearLocalState])
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
       console.log("Attempting sign up for:", email)
+
+      // Test connection first
+      const { data: testData, error: testError } = await supabase.auth.getSession()
+      if (testError) {
+        console.error("Connection test failed:", testError)
+        return {
+          error: new Error(
+            "Unable to connect to authentication service. Please check your internet connection.",
+          ) as AuthError,
+        }
+      }
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -228,6 +270,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null }
     } catch (error) {
       console.error("Sign up exception:", error)
+
+      // Handle network errors specifically
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        return {
+          error: new Error(
+            "Unable to connect to authentication service. Please check your internet connection and try again.",
+          ) as AuthError,
+        }
+      }
+
       return { error: error as AuthError }
     }
   }
@@ -235,6 +287,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Attempting sign in for:", email)
+
+      // Test connection first
+      try {
+        const { data: testData, error: testError } = await supabase.auth.getSession()
+        if (testError) {
+          console.error("Connection test failed:", testError)
+          return {
+            error: new Error(
+              "Unable to connect to authentication service. Please check your internet connection.",
+            ) as AuthError,
+          }
+        }
+      } catch (testErr) {
+        console.error("Connection test exception:", testErr)
+        return {
+          error: new Error(
+            "Unable to connect to authentication service. Please check your internet connection.",
+          ) as AuthError,
+        }
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -257,24 +329,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: new Error("Unknown sign in error") as AuthError }
     } catch (error) {
       console.error("Sign in exception:", error)
+
+      // Handle network errors specifically
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        return {
+          error: new Error(
+            "Unable to connect to authentication service. Please check your internet connection and try again.",
+          ) as AuthError,
+        }
+      }
+
       return { error: error as AuthError }
     }
   }
 
   const signOut = async () => {
     try {
-      console.log("Signing out...")
+      console.log("Starting comprehensive sign out process...")
+
+      // Step 1: Clear local state immediately
+      clearLocalState()
+
+      // Step 2: Sign out from Supabase
       const { error } = await supabase.auth.signOut()
       if (error) {
-        console.error("Error signing out:", error)
+        console.error("Supabase sign out error:", error)
+        // Continue with cleanup even if Supabase signOut fails
       }
-      // Clear local state immediately
-      setUser(null)
-      setProfile(null)
-      setSession(null)
-      router.push("/")
+
+      // Step 3: Force clear any remaining auth state
+      if (typeof window !== "undefined") {
+        // Clear all possible auth-related localStorage items
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.includes("supabase") || key.includes("sb-") || key.includes("auth"))) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key))
+      }
+
+      console.log("Sign out completed, forcing redirect...")
+
+      // Step 4: Force redirect using window.location for guaranteed navigation
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 100)
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("Error during sign out:", error)
+      // Even if there's an error, clear everything and redirect
+      clearLocalState()
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 100)
     }
   }
 
@@ -292,6 +400,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error }
     } catch (error) {
       console.error("Password reset exception:", error)
+
+      // Handle network errors specifically
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        return {
+          error: new Error(
+            "Unable to connect to authentication service. Please check your internet connection.",
+          ) as AuthError,
+        }
+      }
+
       return { error: error as AuthError }
     }
   }

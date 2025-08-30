@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 
@@ -13,21 +13,32 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, requireAuth = true, redirectTo = "/login", fallback }: AuthGuardProps) {
-  const { user, loading } = useAuth()
+  const { user, loading, session } = useAuth()
   const router = useRouter()
+  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
+    console.log("AuthGuard check:", { user: !!user, loading, requireAuth, session: !!session })
+
     if (!loading) {
-      if (requireAuth && !user) {
+      if (requireAuth && (!user || !session)) {
+        console.log("Auth required but user not authenticated, redirecting to:", redirectTo)
         // Store the current URL for redirect after login
-        localStorage.setItem("redirectAfterLogin", window.location.pathname)
-        router.push(redirectTo)
-      } else if (!requireAuth && user) {
-        // User is logged in but shouldn't be (e.g., on login page)
-        router.push("/account")
+        if (typeof window !== "undefined") {
+          localStorage.setItem("redirectAfterLogin", window.location.pathname)
+        }
+        router.replace(redirectTo)
+        setShouldRender(false)
+      } else if (!requireAuth && user && session) {
+        console.log("User authenticated but shouldn't be, redirecting to account")
+        router.replace("/account")
+        setShouldRender(false)
+      } else {
+        console.log("Auth check passed, rendering content")
+        setShouldRender(true)
       }
     }
-  }, [user, loading, requireAuth, redirectTo, router])
+  }, [user, loading, requireAuth, redirectTo, router, session])
 
   // Show loading state
   if (loading) {
@@ -40,13 +51,13 @@ export function AuthGuard({ children, requireAuth = true, redirectTo = "/login",
     )
   }
 
-  // Show content based on auth requirements
-  if (requireAuth && !user) {
-    return null // Will redirect
-  }
-
-  if (!requireAuth && user) {
-    return null // Will redirect
+  // Don't render if auth requirements not met
+  if (!shouldRender) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    )
   }
 
   return <>{children}</>

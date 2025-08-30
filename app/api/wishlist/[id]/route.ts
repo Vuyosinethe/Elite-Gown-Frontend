@@ -1,5 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
+
+// Use service role for server-side operations
+const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 // DELETE - Remove specific item from wishlist
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
@@ -15,20 +23,31 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(token)
+    } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
+      console.error("Auth error:", authError)
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const productId = params.id
+    const itemId = params.id
 
-    // Remove specific item from wishlist
-    const { error } = await supabase.from("wishlist_items").delete().eq("user_id", user.id).eq("product_id", productId)
+    // Remove specific item from wishlist (can be by product_id or by id)
+    const { error } = await supabaseAdmin
+      .from("wishlist_items")
+      .delete()
+      .eq("user_id", user.id)
+      .or(`product_id.eq.${itemId},id.eq.${itemId}`)
 
     if (error) {
       console.error("Error removing from wishlist:", error)
-      return NextResponse.json({ error: "Failed to remove item from wishlist" }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: "Failed to remove item from wishlist",
+          details: error.message,
+        },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({ message: "Item removed from wishlist successfully" })
