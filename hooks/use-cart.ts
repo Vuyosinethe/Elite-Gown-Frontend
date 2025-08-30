@@ -7,10 +7,10 @@ export interface CartItem {
   id: string
   name: string
   price: number
-  image?: string
+  quantity: number
+  image: string
   size?: string
   color?: string
-  quantity: number
 }
 
 interface CartStore {
@@ -55,34 +55,30 @@ export const useCart = create<CartStore>()(
         }
       },
       updateQuantity: (id, quantity) => {
-        if (quantity <= 0) {
-          get().removeItem(id)
-          return
-        }
-
         const items = get().items
         const item = items.find((i) => i.id === id)
         if (item) {
-          const difference = quantity - item.quantity
+          const diff = quantity - item.quantity
           set({
             items: items.map((i) => (i.id === id ? { ...i, quantity } : i)),
-            cartCount: get().cartCount + difference,
+            cartCount: get().cartCount + diff,
           })
         }
       },
-      clearCart: () => set({ items: [], cartCount: 0 }),
+      clearCart: () => {
+        set({ items: [], cartCount: 0 })
+      },
       getTotal: () => {
-        const items = get().items || []
-        return items.reduce((total, item) => total + item.price * item.quantity, 0)
+        return get().items.reduce((total, item) => total + item.price * item.quantity, 0)
       },
     }),
     {
       name: "cart-storage",
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Recalculate cart count from items
-          const count = (state.items || []).reduce((total, item) => total + item.quantity, 0)
-          state.cartCount = count
+          // Recalculate cart count after rehydration
+          const totalCount = state.items.reduce((sum, item) => sum + item.quantity, 0)
+          state.cartCount = totalCount
         }
       },
     },

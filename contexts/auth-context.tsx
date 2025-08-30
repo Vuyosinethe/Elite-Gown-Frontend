@@ -3,7 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import type { User, Session } from "@supabase/supabase-js"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase"
 import type { Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -17,7 +17,7 @@ interface AuthUser {
 }
 
 interface AuthContextType {
-  user: AuthUser | null
+  user: User | null
   profile: Profile | null
   session: Session | null
   loading: boolean
@@ -47,13 +47,13 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   // Memoized function to load user with profile
   const loadUserWithProfile = useCallback(async (authUser: User) => {

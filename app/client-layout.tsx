@@ -34,22 +34,22 @@ export default function ClientLayout({
               </Button>
             </div>
 
-            {/* Logo */}
+            {/* Logo - Left Side */}
             <div className="flex items-center space-x-4">
               <Link href="/" className="flex items-center space-x-2">
                 <Image src="/elite-gowns-logo.png" alt="Elite Gowns" width={40} height={40} className="rounded-full" />
-                <span className="font-bold text-xl hidden sm:block">Elite Gowns</span>
+                <span className="font-bold text-xl text-orange-500">Elite Gowns</span>
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - Center */}
             <nav className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-gray-700 hover:text-black transition-colors">
                 Home
               </Link>
               <div className="relative group">
                 <button className="text-gray-700 hover:text-green-600 transition-colors flex items-center space-x-1">
-                  <span>Sale</span>
+                  <span>Shop</span>
                   <ChevronDown className="h-4 w-4" />
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -85,6 +85,18 @@ export default function ClientLayout({
                       >
                         All Products
                       </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="relative group">
+                <button className="text-gray-700 hover:text-green-600 transition-colors flex items-center space-x-1">
+                  <span>Sale</span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-4 max-h-80 overflow-y-auto">
+                    <div className="space-y-2">
                       <Link
                         href="/products?category=nursing-uniforms"
                         className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded transition-colors"
@@ -145,8 +157,8 @@ export default function ClientLayout({
               </Link>
             </nav>
 
-            {/* Right Side Actions - moved to far right */}
-            <div className="flex items-center space-x-4 ml-auto">
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-4">
               {/* Search */}
               <Button variant="ghost" size="sm" className="hidden sm:flex">
                 <Search className="h-5 w-5" />
@@ -172,7 +184,7 @@ export default function ClientLayout({
                 <div className="relative group">
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-5 w-5" />
-                    <span className="hidden sm:block">{user.email}</span>
+                    <span className="hidden sm:block">Sign In</span>
                   </Button>
                   <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="p-2">
