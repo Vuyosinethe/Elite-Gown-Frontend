@@ -12,166 +12,173 @@ import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/hooks/use-cart"
 import { useWishlist } from "@/hooks/use-wishlist"
-import { useToast } from "@/hooks/use-toast"
-
-const allProducts = [
-  // Graduation Gowns
-  {
-    id: "grad-gown-1",
-    name: "Classic Bachelor Graduation Gown",
-    price: 299.99,
-    originalPrice: 399.99,
-    image: "/placeholder.svg?height=400&width=400&text=Bachelor+Gown",
-    rating: 4.8,
-    reviews: 124,
-    colors: ["Black", "Navy Blue", "Maroon"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Premium quality bachelor graduation gown made from high-grade polyester fabric.",
-    features: ["Wrinkle-resistant fabric", "Comfortable fit", "Durable construction", "Easy care"],
-    category: "Graduation Gowns",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "grad-gown-2",
-    name: "Masters Graduation Gown with Hood",
-    price: 449.99,
-    originalPrice: 599.99,
-    image: "/placeholder.svg?height=400&width=400&text=Masters+Gown",
-    rating: 4.9,
-    reviews: 89,
-    colors: ["Black", "Navy Blue", "Forest Green"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Elegant masters graduation gown with matching hood, perfect for your special day.",
-    features: ["Includes matching hood", "Premium fabric", "Traditional design", "Professional finish"],
-    category: "Graduation Gowns",
-    inStock: true,
-    isOnSale: true,
-  },
-  // Medical Scrubs
-  {
-    id: "scrub-1",
-    name: "Premium Nursing Scrub Set",
-    price: 89.99,
-    originalPrice: 119.99,
-    image: "/placeholder.svg?height=400&width=400&text=Nursing+Scrubs",
-    rating: 4.8,
-    reviews: 234,
-    colors: ["Navy Blue", "Teal", "Wine", "Black", "Royal Blue"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    description: "Comfortable and durable nursing scrub set made from premium cotton blend.",
-    features: ["Moisture-wicking fabric", "Multiple pockets", "Fade-resistant", "Easy care"],
-    category: "Medical Scrubs",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "scrub-2",
-    name: "Surgical Scrub Top",
-    price: 45.99,
-    originalPrice: 59.99,
-    image: "/placeholder.svg?height=400&width=400&text=Surgical+Top",
-    rating: 4.7,
-    reviews: 189,
-    colors: ["Ceil Blue", "Green", "Navy", "Black"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Professional surgical scrub top with modern fit and functionality.",
-    features: ["V-neck design", "Side vents", "Chest pocket", "Antimicrobial treatment"],
-    category: "Medical Scrubs",
-    inStock: true,
-    isOnSale: true,
-  },
-  // Embroidered Merchandise
-  {
-    id: "embr-1",
-    name: "Custom Embroidered Lab Coat",
-    price: 129.99,
-    originalPrice: 159.99,
-    image: "/placeholder.svg?height=400&width=400&text=Embroidered+Lab+Coat",
-    rating: 4.9,
-    reviews: 67,
-    colors: ["White", "Light Blue"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Professional lab coat with custom embroidery options for your name and title.",
-    features: ["Custom embroidery", "Premium fabric", "Professional appearance", "Multiple pockets"],
-    category: "Embroidered Merchandise",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "embr-2",
-    name: "Personalized Medical Polo Shirt",
-    price: 49.99,
-    originalPrice: 64.99,
-    image: "/placeholder.svg?height=400&width=400&text=Medical+Polo",
-    rating: 4.6,
-    reviews: 143,
-    colors: ["Navy", "White", "Light Blue", "Black"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Comfortable polo shirt with personalized embroidery for medical professionals.",
-    features: ["Moisture-wicking", "Custom embroidery", "Professional fit", "Easy care"],
-    category: "Embroidered Merchandise",
-    inStock: true,
-    isOnSale: true,
-  },
-]
 
 export default function ProductsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState("All")
-  const [sortBy, setSortBy] = useState("featured")
-  const [selectedProduct, setSelectedProduct] = useState<(typeof allProducts)[0] | null>(null)
-  const [selectedColor, setSelectedColor] = useState("")
-  const [selectedSize, setSelectedSize] = useState("")
 
   const { user } = useAuth()
   const router = useRouter()
-  const { cartCount, addItem } = useCart()
-  const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
-  const { toast } = useToast()
+  const { cartCount, addToCart } = useCart()
+
+  const { wishlistItems, wishlistCount, addToWishlist, removeFromWishlist, isInWishlist, addPendingWishlistItem } =
+    useWishlist()
+
+  const products = [
+    {
+      id: 1,
+      name: "Complete Graduation Set",
+      category: "Graduation Gowns",
+      price: 1299,
+      originalPrice: 1499,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Best Seller",
+      badgeColor: "bg-black",
+      description: "Premium graduation attire including gown, mortarboard, and faculty sash",
+      rating: 4.9,
+      reviews: 127,
+      link: "/graduation-gowns",
+    },
+    {
+      id: 2,
+      name: "Professional Medical Scrubs Set",
+      category: "Medical Scrubs",
+      price: 899,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Medical Grade",
+      badgeColor: "bg-black",
+      description: "Antimicrobial scrubs for medical students and professionals",
+      rating: 4.8,
+      reviews: 89,
+      link: "/medical-scrubs",
+    },
+    {
+      id: 3,
+      name: "Custom Embroidered Polo Shirt",
+      category: "Embroidered Merchandise",
+      price: 299,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Custom Design",
+      badgeColor: "bg-black",
+      description: "High-quality polo shirts with custom embroidery for clubs and organizations",
+      rating: 4.7,
+      reviews: 156,
+      link: "/embroidered-merchandise",
+    },
+    {
+      id: 4,
+      name: "Custom Embroidered Hoodie",
+      category: "Embroidered Merchandise",
+      price: 499,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Popular",
+      badgeColor: "bg-black",
+      description: "Comfortable hoodies with professional embroidery services",
+      rating: 4.6,
+      reviews: 73,
+      link: "/embroidered-merchandise",
+    },
+    {
+      id: 5,
+      name: "Medical Scrubs Top Only",
+      category: "Medical Scrubs",
+      price: 499,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Individual Item",
+      badgeColor: "bg-black",
+      description: "Professional scrub top with antimicrobial treatment",
+      rating: 4.5,
+      reviews: 45,
+      link: "/medical-scrubs",
+    },
+    {
+      id: 6,
+      name: "Medical Scrubs Pants Only",
+      category: "Medical Scrubs",
+      price: 449,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Individual Item",
+      badgeColor: "bg-black",
+      description: "Comfortable scrub pants with multiple pockets",
+      rating: 4.4,
+      reviews: 38,
+      link: "/medical-scrubs",
+    },
+    {
+      id: 7,
+      name: "Custom Embroidered Cap",
+      category: "Embroidered Merchandise",
+      price: 199,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Affordable",
+      badgeColor: "bg-black",
+      description: "Quality caps with custom embroidery for teams and clubs",
+      rating: 4.3,
+      reviews: 92,
+      link: "/embroidered-merchandise",
+    },
+    {
+      id: 8,
+      name: "Custom Embroidered Jacket",
+      category: "Embroidered Merchandise",
+      price: 699,
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Premium",
+      badgeColor: "bg-black",
+      description: "Professional jackets with high-quality embroidery",
+      rating: 4.8,
+      reviews: 34,
+      link: "/embroidered-merchandise",
+    },
+    {
+      id: 9,
+      name: "Graduation Gown Rental",
+      category: "Graduation Gowns",
+      price: 299,
+      priceNote: "per day",
+      image: "/placeholder.svg?height=400&width=400",
+      badge: "Rental",
+      badgeColor: "bg-black",
+      description: "Complete graduation set available for daily rental",
+      rating: 4.2,
+      reviews: 67,
+      link: "/graduation-gowns",
+    },
+  ]
 
   const categories = ["All", "Graduation Gowns", "Medical Scrubs", "Embroidered Merchandise"]
+  const [selectedCategory, setSelectedCategory] = useState("All")
 
-  const filteredProducts = allProducts.filter(
-    (product) => selectedCategory === "All" || product.category === selectedCategory,
-  )
+  const filteredProducts =
+    selectedCategory === "All" ? products : products.filter((product) => product.category === selectedCategory)
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "price-low":
-        return a.price - b.price
-      case "price-high":
-        return b.price - a.price
-      case "rating":
-        return b.rating - a.rating
-      case "name":
-        return a.name.localeCompare(b.name)
-      default:
-        return 0
-    }
-  })
-
-  const handleAddToCart = async (product: (typeof allProducts)[0], color: string, size: string) => {
-    await addItem({
+  const handleAddToCart = (product: any) => {
+    addToCart({
       id: product.id,
       name: product.name,
+      details: `Category: ${product.category}`,
       price: product.price,
       image: product.image,
-      color,
-      size,
-    })
-
-    toast({
-      title: "Added to cart",
-      description: `${product.name} (${color}, ${size}) has been added to your cart.`,
     })
   }
 
-  const openProductDetail = (product: (typeof allProducts)[0]) => {
-    setSelectedProduct(product)
-    setSelectedColor(product.colors[0])
-    setSelectedSize(product.sizes[2])
+  const handleAddToWishlist = async (product: any) => {
+    const success = await addToWishlist({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+      description: product.description,
+      rating: product.rating,
+      reviews: product.reviews,
+      link: product.link,
+    })
+
+    if (!success && !user) {
+      // Store the item they wanted to add for after login
+      localStorage.setItem("pendingWishlistItem", JSON.stringify(product))
+    }
   }
 
   return (
@@ -484,240 +491,137 @@ export default function ProductsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">All Products</h1>
-          <p className="text-lg text-muted-foreground">
-            Browse our complete collection of professional attire and graduation gowns
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-black mb-4">Our Products</h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Discover our complete range of premium graduation gowns, medical scrubs, and custom embroidered merchandise
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* Categories */}
-              <div>
-                <h3 className="font-semibold mb-3">Categories</h3>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`block w-full text-left px-3 py-2 rounded-md text-sm ${
-                        selectedCategory === category ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <h3 className="font-semibold mb-3">Sort By</h3>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="featured">Featured</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="name">Name A-Z</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Product Grid */}
-          <div className="lg:col-span-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {sortedProducts.map((product) => (
-                <Card key={product.id} className="group hover:shadow-lg transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        width={400}
-                        height={400}
-                        className="w-full h-64 object-cover rounded-t-lg"
-                      />
-                      {product.isOnSale && <Badge className="absolute top-2 left-2 bg-red-500">Sale</Badge>}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-transparent"
-                      >
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
-
-                      <div className="flex items-center mb-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-muted-foreground ml-2">({product.reviews})</span>
-                      </div>
-
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg font-bold">R{product.price.toFixed(2)}</span>
-                          {product.isOnSale && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              R{product.originalPrice.toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <Button className="w-full" onClick={() => openProductDetail(product)}>
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+        {/* Category Filter */}
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
+          {categories.map((category) => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              onClick={() => setSelectedCategory(category)}
+              className={selectedCategory === category ? "bg-black text-white" : "hover:bg-gray-100"}
+            >
+              {category}
+            </Button>
+          ))}
         </div>
 
-        {/* Product Detail Modal */}
-        {selectedProduct && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold">{selectedProduct.name}</h2>
-                  <Button variant="outline" onClick={() => setSelectedProduct(null)}>
-                    ×
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
+        {/* Products Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProducts.map((product) => (
+            <Card
+              key={product.id}
+              className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-gray-300"
+            >
+              <CardContent className="p-0">
+                <div className="relative">
+                  <div className="aspect-square relative overflow-hidden">
                     <Image
-                      src={selectedProduct.image || "/placeholder.svg"}
-                      alt={selectedProduct.name}
-                      width={500}
-                      height={500}
-                      className="w-full rounded-lg"
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
+                  <Badge className={`absolute top-4 left-4 ${product.badgeColor} text-white`}>{product.badge}</Badge>
+                </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex items-center mb-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-5 w-5 ${
-                                i < Math.floor(selectedProduct.rating)
-                                  ? "text-yellow-400 fill-current"
-                                  : "text-gray-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="ml-2 text-muted-foreground">({selectedProduct.reviews} reviews)</span>
-                      </div>
+                <div className="p-6">
+                  <div className="text-sm text-gray-500 mb-2">{product.category}</div>
+                  <h3 className="text-xl font-bold text-black mb-2 group-hover:text-gray-700 transition-colors">
+                    {product.name}
+                  </h3>
+                  <p className="text-gray-600 mb-4 text-sm leading-relaxed">{product.description}</p>
 
-                      <div className="flex items-center space-x-3 mb-4">
-                        <span className="text-3xl font-bold">R{selectedProduct.price.toFixed(2)}</span>
-                        {selectedProduct.isOnSale && (
-                          <span className="text-xl text-muted-foreground line-through">
-                            R{selectedProduct.originalPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-muted-foreground mb-4">{selectedProduct.description}</p>
+                  {/* Rating */}
+                  <div className="flex items-center space-x-2 mb-4">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                          }`}
+                        />
+                      ))}
                     </div>
+                    <span className="text-sm text-gray-600">
+                      {product.rating} ({product.reviews} reviews)
+                    </span>
+                  </div>
 
-                    {/* Color Selection */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Color</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedProduct.colors.map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => setSelectedColor(color)}
-                            className={`px-3 py-1 border rounded-md text-sm ${
-                              selectedColor === color
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-gray-300 hover:border-gray-400"
-                            }`}
-                          >
-                            {color}
-                          </button>
-                        ))}
-                      </div>
+                  {/* Price */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl font-bold text-black">R {product.price.toLocaleString()}</span>
+                      {product.priceNote && <span className="text-sm text-gray-600">{product.priceNote}</span>}
                     </div>
+                  </div>
 
-                    {/* Size Selection */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Size</h4>
-                      <div className="grid grid-cols-4 gap-2">
-                        {selectedProduct.sizes.map((size) => (
-                          <button
-                            key={size}
-                            onClick={() => setSelectedSize(size)}
-                            className={`px-3 py-2 border rounded-md text-sm ${
-                              selectedSize === size
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-gray-300 hover:border-gray-400"
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Features */}
-                    <div>
-                      <h4 className="font-semibold mb-2">Features</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                        {selectedProduct.features.map((feature, index) => (
-                          <li key={index}>{feature}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Add to Cart */}
-                    <div className="space-y-3">
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    <Link href={product.link}>
+                      <Button className="w-full bg-black hover:bg-gray-800 text-white">View Details</Button>
+                    </Link>
+                    <div className="flex space-x-2">
                       <Button
-                        className="w-full"
-                        onClick={() => handleAddToCart(selectedProduct, selectedColor, selectedSize)}
+                        variant="outline"
+                        className="flex-1 hover:bg-black hover:text-white bg-transparent"
+                        onClick={() => handleAddToCart(product)}
                       >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        <ShoppingCart className="w-4 h-4 mr-2" />
                         Add to Cart
                       </Button>
-
-                      <Button variant="outline" className="w-full bg-transparent">
-                        <Heart className="h-4 w-4 mr-2" />
-                        Add to Wishlist
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`hover:bg-gray-100 bg-transparent ${
+                          isInWishlist(product.id) ? "text-red-500 border-red-500" : ""
+                        }`}
+                        onClick={() => handleAddToWishlist(product)}
+                      >
+                        <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
                       </Button>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-600">Try selecting a different category</p>
           </div>
         )}
+
+        {/* Call to Action */}
+        <div className="mt-16 text-center bg-gray-50 p-12 rounded-lg">
+          <h2 className="text-3xl font-bold text-black mb-4">Need Something Custom?</h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            We specialize in custom embroidery for Wits social clubs and organizations. Get a personalized quote for
+            your group's needs.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/embroidered-merchandise">
+              <Button className="bg-black hover:bg-gray-800 text-white px-8 py-3">Get Custom Quote</Button>
+            </Link>
+            <Link href="/contact">
+              <Button variant="outline" className="px-8 py-3 hover:bg-gray-100 bg-transparent">
+                Contact Us
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Cart Drawer */}

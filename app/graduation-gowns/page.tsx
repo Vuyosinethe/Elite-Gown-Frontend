@@ -2,390 +2,290 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, Heart, ShoppingCart } from "lucide-react"
+import { ShoppingCart, Heart, Check } from "lucide-react"
 import { useCart } from "@/hooks/use-cart"
-import { useToast } from "@/hooks/use-toast"
-
-const graduationGowns = [
-  {
-    id: "grad-gown-1",
-    name: "Classic Bachelor Graduation Gown",
-    price: 299.99,
-    originalPrice: 399.99,
-    image: "/placeholder.svg?height=400&width=400&text=Bachelor+Gown",
-    rating: 4.8,
-    reviews: 124,
-    colors: ["Black", "Navy Blue", "Maroon"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Premium quality bachelor graduation gown made from high-grade polyester fabric.",
-    features: ["Wrinkle-resistant fabric", "Comfortable fit", "Durable construction", "Easy care"],
-    category: "Bachelor",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "grad-gown-2",
-    name: "Masters Graduation Gown with Hood",
-    price: 449.99,
-    originalPrice: 599.99,
-    image: "/placeholder.svg?height=400&width=400&text=Masters+Gown",
-    rating: 4.9,
-    reviews: 89,
-    colors: ["Black", "Navy Blue", "Forest Green"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Elegant masters graduation gown with matching hood, perfect for your special day.",
-    features: ["Includes matching hood", "Premium fabric", "Traditional design", "Professional finish"],
-    category: "Masters",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "grad-gown-3",
-    name: "PhD Doctoral Graduation Gown",
-    price: 699.99,
-    originalPrice: 899.99,
-    image: "/placeholder.svg?height=400&width=400&text=PhD+Gown",
-    rating: 5.0,
-    reviews: 45,
-    colors: ["Black", "Royal Blue", "Scarlet"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Distinguished PhD doctoral gown with velvet trim and full regalia.",
-    features: ["Velvet trim details", "Full doctoral regalia", "Luxury fabric", "Custom embroidery available"],
-    category: "Doctoral",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "grad-gown-4",
-    name: "High School Graduation Gown",
-    price: 199.99,
-    originalPrice: 249.99,
-    image: "/placeholder.svg?height=400&width=400&text=High+School+Gown",
-    rating: 4.7,
-    reviews: 203,
-    colors: ["Black", "White", "Royal Blue", "Maroon"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Affordable and quality high school graduation gown for your milestone moment.",
-    features: ["Budget-friendly", "Quality construction", "Multiple colors", "Easy to wear"],
-    category: "High School",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "grad-gown-5",
-    name: "University Graduation Gown Set",
-    price: 349.99,
-    originalPrice: 449.99,
-    image: "/placeholder.svg?height=400&width=400&text=University+Set",
-    rating: 4.8,
-    reviews: 156,
-    colors: ["Black", "Navy Blue"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Complete university graduation set including gown, cap, and tassel.",
-    features: ["Complete set", "Cap and tassel included", "University approved", "Perfect fit guarantee"],
-    category: "University",
-    inStock: true,
-    isOnSale: true,
-  },
-  {
-    id: "grad-gown-6",
-    name: "Premium Silk Graduation Gown",
-    price: 899.99,
-    originalPrice: 1199.99,
-    image: "/placeholder.svg?height=400&width=400&text=Silk+Gown",
-    rating: 4.9,
-    reviews: 67,
-    colors: ["Black", "Midnight Blue"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    description: "Luxurious silk graduation gown for the most special occasions.",
-    features: ["100% silk fabric", "Luxury finish", "Exceptional quality", "Lifetime keepsake"],
-    category: "Premium",
-    inStock: true,
-    isOnSale: true,
-  },
-]
+import Layout from "@/components/layout"
 
 export default function GraduationGownsPage() {
-  const [selectedCategory, setSelectedCategory] = useState("All")
-  const [sortBy, setSortBy] = useState("featured")
-  const [selectedProduct, setSelectedProduct] = useState(graduationGowns[0])
-  const [selectedColor, setSelectedColor] = useState(selectedProduct.colors[0])
-  const [selectedSize, setSelectedSize] = useState(selectedProduct.sizes[2])
-  const { addItem } = useCart()
-  const { toast } = useToast()
+  const [selectedSize, setSelectedSize] = useState("")
+  const [selectedFaculty, setSelectedFaculty] = useState("")
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [addedToCart, setAddedToCart] = useState(false)
 
-  const categories = ["All", "Bachelor", "Masters", "Doctoral", "High School", "University", "Premium"]
+  const { addToCart } = useCart()
 
-  const filteredGowns = graduationGowns.filter(
-    (gown) => selectedCategory === "All" || gown.category === selectedCategory,
-  )
-
-  const sortedGowns = [...filteredGowns].sort((a, b) => {
-    switch (sortBy) {
-      case "price-low":
-        return a.price - b.price
-      case "price-high":
-        return b.price - a.price
-      case "rating":
-        return b.rating - a.rating
-      case "name":
-        return a.name.localeCompare(b.name)
-      default:
-        return 0
+  const handleAddToCart = async () => {
+    if (!selectedSize || !selectedFaculty) {
+      alert("Please select both size and faculty color")
+      return
     }
-  })
 
-  const handleAddToCart = async (product: (typeof graduationGowns)[0], color: string, size: string) => {
-    await addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      color,
-      size,
-    })
+    setAddingToCart(true)
 
-    toast({
-      title: "Added to cart",
-      description: `${product.name} (${color}, ${size}) has been added to your cart.`,
-    })
+    try {
+      const result = await addToCart({
+        id: 1,
+        name: "Complete Graduation Set",
+        details: `Size: ${selectedSize}, Faculty: ${selectedFaculty}`,
+        price: 1299, // Price in regular format
+        image: "/placeholder.svg?height=80&width=80",
+      })
+
+      if (result.success) {
+        setAddedToCart(true)
+        setTimeout(() => setAddedToCart(false), 2000) // Reset after 2 seconds
+      } else {
+        alert("Failed to add item to cart: " + (result.error || "Unknown error"))
+      }
+    } catch (error) {
+      console.error("Error in handleAddToCart:", error)
+      alert("Failed to add item to cart")
+    } finally {
+      setAddingToCart(false)
+    }
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4">Graduation Gowns</h1>
-        <p className="text-lg text-muted-foreground">Celebrate your achievement with our premium graduation gowns</p>
-      </div>
+    <Layout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center space-x-2 text-sm text-gray-600 mb-8">
+          <Link href="/" className="hover:text-black">
+            Home
+          </Link>
+          <span>/</span>
+          <span className="text-black">Graduation Gowns</span>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Filters Sidebar */}
-        <div className="lg:col-span-1">
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* Product Images */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
+              <Image
+                src="/placeholder.svg?height=600&width=600"
+                alt="Graduate wearing cap and gown"
+                fill
+                className="object-cover"
+              />
+            </div>
+
+            {/* Thumbnail Gallery */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100 border-2 border-black">
+                <Image src="/placeholder.svg?height=150&width=150" alt="Front view" fill className="object-cover" />
+              </div>
+              <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100 hover:border-2 hover:border-gray-300 cursor-pointer">
+                <Image src="/placeholder.svg?height=150&width=150" alt="Back view" fill className="object-cover" />
+              </div>
+              <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100 hover:border-2 hover:border-gray-300 cursor-pointer">
+                <Image src="/placeholder.svg?height=150&width=150" alt="Side view" fill className="object-cover" />
+              </div>
+              <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100 hover:border-2 hover:border-gray-300 cursor-pointer">
+                <Image src="/placeholder.svg?height=150&width=150" alt="Detail view" fill className="object-cover" />
+              </div>
+            </div>
+          </div>
+
+          {/* Product Details */}
           <div className="space-y-6">
-            {/* Categories */}
             <div>
-              <h3 className="font-semibold mb-3">Categories</h3>
-              <div className="space-y-2">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`block w-full text-left px-3 py-2 rounded-md text-sm ${
-                      selectedCategory === category ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+              <Badge className="mb-2 bg-black text-white">Best Seller</Badge>
+              <h1 className="text-3xl font-bold text-black mb-2">Complete Graduation Set</h1>
+              <p className="text-xl text-gray-600">Premium quality graduation attire for your special day</p>
+            </div>
+
+            <div className="text-3xl font-bold text-black">R 1,299.00</div>
+
+            {/* Product Breakdown */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-lg mb-4">What's Included:</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-black rounded-full"></div>
+                    <span>Premium graduation gown with proper draping</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-black rounded-full"></div>
+                    <span>Traditional mortarboard cap with tassel</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-black rounded-full"></div>
+                    <span>Academic sash (color varies by faculty)</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-black rounded-full"></div>
+                    <span>Professional garment bag for storage</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Size Selection */}
+            <div>
+              <h3 className="font-semibold mb-3">Size</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
+                  <Button
+                    key={size}
+                    variant="outline"
+                    className={`hover:bg-black hover:text-white bg-transparent ${
+                      selectedSize === size ? "bg-black text-white" : ""
                     }`}
+                    onClick={() => setSelectedSize(size)}
                   >
-                    {category}
-                  </button>
+                    {size}
+                  </Button>
                 ))}
               </div>
             </div>
 
-            {/* Sort */}
+            {/* Faculty Color */}
             <div>
-              <h3 className="font-semibold mb-3">Sort By</h3>
+              <h3 className="font-semibold mb-3">Faculty Sash Color</h3>
               <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                value={selectedFaculty}
+                onChange={(e) => setSelectedFaculty(e.target.value)}
               >
-                <option value="featured">Featured</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-                <option value="name">Name A-Z</option>
+                <option value="">Select your faculty</option>
+                <option value="Commerce - Red">Commerce - Red</option>
+                <option value="Engineering - Orange">Engineering - Orange</option>
+                <option value="Medicine - Green">Medicine - Green</option>
+                <option value="Law - Purple">Law - Purple</option>
+                <option value="Arts - White">Arts - White</option>
+                <option value="Science - Yellow">Science - Yellow</option>
               </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button
+                className={`w-full py-3 text-lg transition-all duration-200 ${
+                  addedToCart ? "bg-green-600 hover:bg-green-700 text-white" : "bg-black hover:bg-gray-800 text-white"
+                }`}
+                onClick={handleAddToCart}
+                disabled={addingToCart || !selectedSize || !selectedFaculty}
+              >
+                {addingToCart ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : addedToCart ? (
+                  <>
+                    <Check className="w-5 h-5 mr-2" />
+                    Added to Cart!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Add to Cart
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" className="w-full py-3 text-lg bg-transparent">
+                <Heart className="w-5 h-5 mr-2" />
+                Add to Wishlist
+              </Button>
+            </div>
+
+            {/* Additional Info */}
+            <div className="text-sm text-gray-600 space-y-2">
+              <p>• Free delivery for orders over R500</p>
+              <p>• 30-day return policy</p>
+              <p>• Professional dry cleaning recommended</p>
+              <p>• Available for rental (R299/day)</p>
+            </div>
+
+            {/* Rental Option */}
+            <div className="mt-8 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 className="font-bold text-lg mb-3 text-yellow-800">Rental Option Available</h3>
+              <p className="text-yellow-700 mb-4">
+                Don't want to purchase? Rent this complete graduation set for just R299/day!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/rental">
+                  <Button
+                    variant="outline"
+                    className="border-yellow-600 text-yellow-700 hover:bg-yellow-100 bg-transparent"
+                  >
+                    Learn About Rental
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">Inquire About Rental</Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Product Grid */}
-        <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {sortedGowns.map((gown) => (
-              <Card key={gown.id} className="group hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <Image
-                      src={gown.image || "/placeholder.svg"}
-                      alt={gown.name}
-                      width={400}
-                      height={400}
-                      className="w-full h-64 object-cover rounded-t-lg"
-                    />
-                    {gown.isOnSale && <Badge className="absolute top-2 left-2 bg-red-500">Sale</Badge>}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-transparent"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </div>
+        {/* Product Description */}
+        <div className="mt-16 grid lg:grid-cols-2 gap-12">
+          <div>
+            <h2 className="text-2xl font-bold text-black mb-6">Product Description</h2>
+            <div className="prose prose-gray max-w-none">
+              <p className="text-gray-600 mb-4">
+                Our premium graduation sets are crafted with attention to detail and academic tradition. Made from
+                high-quality polyester fabric, these gowns provide the perfect drape and professional appearance for
+                your graduation ceremony.
+              </p>
+              <p className="text-gray-600 mb-4">
+                Each set includes everything you need for your special day: a properly fitted gown, traditional
+                mortarboard cap with moveable tassel, and faculty-specific colored sash. The gown features traditional
+                academic styling with pointed sleeves and proper length.
+              </p>
+              <p className="text-gray-600">
+                Perfect for university graduations, our sets meet all academic dress code requirements and are available
+                in all standard sizes. Professional pressing and garment bag included.
+              </p>
+            </div>
+          </div>
 
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">{gown.name}</h3>
-
-                    <div className="flex items-center mb-2">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(gown.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground ml-2">({gown.reviews})</span>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold">R{gown.price.toFixed(2)}</span>
-                        {gown.isOnSale && (
-                          <span className="text-sm text-muted-foreground line-through">
-                            R{gown.originalPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <Button className="w-full" onClick={() => setSelectedProduct(gown)}>
-                      View Details
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div>
+            <h2 className="text-2xl font-bold text-black mb-6">Size Guide</h2>
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2">Size</th>
+                    <th className="text-left py-2">Height</th>
+                    <th className="text-left py-2">Chest</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-600">
+                  <tr className="border-b">
+                    <td className="py-2">XS</td>
+                    <td className="py-2">150-160cm</td>
+                    <td className="py-2">80-90cm</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2">S</td>
+                    <td className="py-2">160-170cm</td>
+                    <td className="py-2">90-100cm</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2">M</td>
+                    <td className="py-2">170-180cm</td>
+                    <td className="py-2">100-110cm</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2">L</td>
+                    <td className="py-2">180-190cm</td>
+                    <td className="py-2">110-120cm</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Product Detail Modal/Section */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold">{selectedProduct.name}</h2>
-                <Button variant="outline" onClick={() => setSelectedProduct(null)}>
-                  ×
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <Image
-                    src={selectedProduct.image || "/placeholder.svg"}
-                    alt={selectedProduct.name}
-                    width={500}
-                    height={500}
-                    className="w-full rounded-lg"
-                  />
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-5 w-5 ${
-                              i < Math.floor(selectedProduct.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-2 text-muted-foreground">({selectedProduct.reviews} reviews)</span>
-                    </div>
-
-                    <div className="flex items-center space-x-3 mb-4">
-                      <span className="text-3xl font-bold">R{selectedProduct.price.toFixed(2)}</span>
-                      {selectedProduct.isOnSale && (
-                        <span className="text-xl text-muted-foreground line-through">
-                          R{selectedProduct.originalPrice.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-muted-foreground mb-4">{selectedProduct.description}</p>
-                  </div>
-
-                  {/* Color Selection */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Color</h4>
-                    <div className="flex space-x-2">
-                      {selectedProduct.colors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setSelectedColor(color)}
-                          className={`px-3 py-1 border rounded-md text-sm ${
-                            selectedColor === color
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-gray-300 hover:border-gray-400"
-                          }`}
-                        >
-                          {color}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Size Selection */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Size</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {selectedProduct.sizes.map((size) => (
-                        <button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          className={`px-3 py-2 border rounded-md text-sm ${
-                            selectedSize === size
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-gray-300 hover:border-gray-400"
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Features */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Features</h4>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {selectedProduct.features.map((feature, index) => (
-                        <li key={index}>{feature}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Add to Cart */}
-                  <div className="space-y-3">
-                    <Button
-                      className="w-full"
-                      onClick={() => handleAddToCart(selectedProduct, selectedColor, selectedSize)}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-
-                    <Button variant="outline" className="w-full bg-transparent">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Add to Wishlist
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </Layout>
   )
 }
