@@ -2,9 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
-import type { User, Session } from "@supabase/supabase-js"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Profile } from "@/lib/supabase"
+import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
+import { supabase, type Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
 interface AuthUser {
@@ -28,23 +27,13 @@ interface AuthContextType {
     lastName: string,
     phone?: string,
   ) => Promise<{ error: any }>
-  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: any }>
   updateProfile: (updates: Partial<AuthUser>) => Promise<{ error: any }>
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  session: null,
-  loading: true,
-  signUp: async () => ({ error: null }),
-  signIn: async () => ({ error: null }),
-  signOut: async () => {},
-  resetPassword: async () => ({ error: null }),
-  updateProfile: async () => ({ error: null }),
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -53,10 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   // Memoized function to load user with profile
-  const loadUserWithProfile = useCallback(async (authUser: User) => {
+  const loadUserWithProfile = useCallback(async (authUser: SupabaseUser) => {
     try {
       // Fetch profile from database
       const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
@@ -119,6 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
+
+    // Check for stored user session
+    const storedUser = localStorage.getItem("user")
+    if (storedUser) {
+      setUser(JSON.parse(storedUser))
+    }
 
     // Get initial session immediately without timeout
     const getInitialSession = async () => {
@@ -199,6 +193,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadUserWithProfile, initialized])
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log("Attempting sign in for:", email)
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      console.log("Sign in result:", { user: !!data?.user, error })
+
+      if (error) {
+        console.error("Sign in error:", error)
+        return
+      }
+
+      if (data?.user) {
+        console.log("Sign in successful, user:", data.user.id)
+        setUser({
+          id: data.user.id,
+          email: data.user.email || "",
+          firstName: data.user.user_metadata?.first_name || "",
+          lastName: data.user.user_metadata?.last_name || "",
+        })
+        localStorage.setItem("user", JSON.stringify(data.user))
+      }
+    } catch (error) {
+      console.error("Sign in exception:", error)
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Error signing out:", error)
+      }
+      // Clear local state immediately
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+      localStorage.removeItem("user")
+      router.push("/")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -215,57 +257,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
-        return { error }
-      }
-
-      return { error: null }
-    } catch (error) {
-      return { error }
-    }
-  }
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      console.log("Attempting sign in for:", email)
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      console.log("Sign in result:", { user: !!data?.user, error })
-
-      if (error) {
-        console.error("Sign in error:", error)
+        console.error("Sign up error:", error)
         return { error }
       }
 
       if (data?.user) {
-        console.log("Sign in successful, user:", data.user.id)
-        // The auth state change listener will handle the redirect
-        return { error: null }
+        console.log("Sign up successful, user:", data.user.id)
+        setUser({
+          id: data.user.id,
+          email: data.user.email || "",
+          firstName: data.user.user_metadata?.first_name || "",
+          lastName: data.user.user_metadata?.last_name || "",
+        })
+        localStorage.setItem("user", JSON.stringify(data.user))
       }
 
-      return { error: new Error("Unknown sign in error") }
+      return { error: null }
     } catch (error) {
-      console.error("Sign in exception:", error)
+      console.error("Sign up exception:", error)
       return { error }
-    }
-  }
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error("Error signing out:", error)
-      }
-      // Clear local state immediately
-      setUser(null)
-      setProfile(null)
-      setSession(null)
-      router.push("/")
-    } catch (error) {
-      console.error("Error signing out:", error)
     }
   }
 

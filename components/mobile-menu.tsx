@@ -1,117 +1,72 @@
 "use client"
 
-import { X, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import { useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { Menu, X } from "lucide-react"
 
 interface MobileMenuProps {
-  isOpen: boolean
-  onClose: () => void
+  logo?: boolean
 }
 
-export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
-  const [showSaleDropdown, setShowSaleDropdown] = useState(false)
-
-  if (!isOpen) return null
+export default function MobileMenu({ logo = true }: MobileMenuProps) {
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="fixed inset-0 z-50 md:hidden">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
-
-      {/* Menu */}
-      <div className="fixed top-0 left-0 h-full w-80 bg-white shadow-lg">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Menu</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="p-4 space-y-4">
-          <Link href="/" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
-            Home
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowSaleDropdown(!showSaleDropdown)}
-              className="flex items-center justify-between w-full py-2 text-gray-700 hover:text-green-600"
-            >
-              <span>Sale</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${showSaleDropdown ? "rotate-180" : ""}`} />
-            </button>
-            {showSaleDropdown && (
-              <div className="pl-4 mt-2 space-y-2 max-h-60 overflow-y-auto">
-                <Link
-                  href="/graduation-gowns"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Graduation Gowns
-                </Link>
-                <Link
-                  href="/medical-scrubs"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Medical Scrubs
-                </Link>
-                <Link
-                  href="/embroidered-merchandise"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Embroidered Merchandise
-                </Link>
-                <Link
-                  href="/products?category=caps"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Graduation Caps
-                </Link>
-                <Link
-                  href="/products?category=accessories"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Academic Accessories
-                </Link>
-                <Link
-                  href="/products?category=lab-coats"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Lab Coats
-                </Link>
-                <Link
-                  href="/products?category=nursing"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Nursing Uniforms
-                </Link>
-                <Link
-                  href="/products?category=surgical"
-                  onClick={onClose}
-                  className="block py-1 text-sm text-gray-600 hover:text-green-600"
-                >
-                  Surgical Scrubs
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link href="/about" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
-            About
-          </Link>
-          <Link href="/contact" onClick={onClose} className="block py-2 text-gray-700 hover:text-black">
-            Contact
-          </Link>
-        </div>
+    <>
+      {/* Mobile Menu Button */}
+      <div className="flex items-center space-x-4 md:hidden">
+        <Link href="/cart" className="text-gray-700 hover:text-black transition-colors">
+          Cart (0)
+        </Link>
+        {logo && (
+          <Image src="/elite-gowns-logo.png" alt="Elite Gowns Logo" width={48} height={48} className="h-10 w-10" />
+        )}
+        <button
+          type="button"
+          className="p-2 rounded-md text-gray-700 hover:text-black focus:outline-none"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
+        >
+          {isOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+        </button>
       </div>
-    </div>
+
+      {/* Mobile Menu Panel */}
+      {isOpen && (
+        <div className="md:hidden absolute top-16 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <Link
+              href="/"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              href="/products"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
+              Products
+            </Link>
+            <Link
+              href="/about"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
+              Contact
+            </Link>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

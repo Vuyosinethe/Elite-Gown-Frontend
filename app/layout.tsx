@@ -2,16 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
-import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Elite Gowns - Premium Graduation Gowns & Medical Scrubs",
-  description:
-    "Premium graduation gowns, medical scrubs, and embroidered merchandise. Quality academic and medical apparel for professionals.",
+  title: "Elite Gowns - Premium Academic & Medical Apparel",
+  description: "Premium graduation gowns, medical scrubs, and embroidered merchandise for professionals.",
     generator: 'v0.app'
 }
 
@@ -23,12 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )

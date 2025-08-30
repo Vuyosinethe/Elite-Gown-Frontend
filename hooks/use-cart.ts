@@ -1,89 +1,72 @@
 "use client"
 
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { useState, useEffect } from "react"
 
-export interface CartItem {
+interface CartItem {
   id: string
   name: string
   price: number
   quantity: number
-  image: string
-  size?: string
-  color?: string
+  image?: string
 }
 
-interface CartStore {
-  items: CartItem[]
-  cartCount: number
-  addItem: (item: Omit<CartItem, "quantity">) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
-  getTotal: () => number
+export function useCart() {
+  const [items, setItems] = useState<CartItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Load cart from localStorage
+    const storedCart = localStorage.getItem("cart")
+    if (storedCart) {
+      setItems(JSON.parse(storedCart))
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    // Save cart to localStorage whenever items change
+    if (!loading) {
+      localStorage.setItem("cart", JSON.stringify(items))
+    }
+  }, [items, loading])
+
+  const addItem = (item: Omit<CartItem, "quantity">) => {
+    setItems((prevItems) => {
+      const existingItem = prevItems.find((i) => i.id === item.id)
+      if (existingItem) {
+        return prevItems.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
+      }
+      return [...prevItems, { ...item, quantity: 1 }]
+    })
+  }
+
+  const removeItem = (id: string) => {
+    setItems((prevItems) => prevItems.filter((item) => item.id !== id))
+  }
+
+  const updateQuantity = (id: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItem(id)
+      return
+    }
+    setItems((prevItems) => prevItems.map((item) => (item.id === id ? { ...item, quantity } : item)))
+  }
+
+  const clearCart = () => {
+    setItems([])
+  }
+
+  const cartCount = items.reduce((total, item) => total + item.quantity, 0)
+  const cartTotal = items.reduce((total, item) => total + item.price * item.quantity, 0)
+
+  return {
+    items,
+    loading,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    cartCount,
+    cartTotal,
+  }
 }
-
-export const useCart = create<CartStore>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      cartCount: 0,
-      addItem: (item) => {
-        const items = get().items
-        const existingItem = items.find((i) => i.id === item.id)
-
-        if (existingItem) {
-          set({
-            items: items.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)),
-            cartCount: get().cartCount + 1,
-          })
-        } else {
-          set({
-            items: [...items, { ...item, quantity: 1 }],
-            cartCount: get().cartCount + 1,
-          })
-        }
-      },
-      removeItem: (id) => {
-        const items = get().items
-        const item = items.find((i) => i.id === id)
-        if (item) {
-          set({
-            items: items.filter((i) => i.id !== id),
-            cartCount: get().cartCount - item.quantity,
-          })
-        }
-      },
-      updateQuantity: (id, quantity) => {
-        if (quantity <= 0) {
-          get().removeItem(id)
-          return
-        }
-
-        const items = get().items
-        const item = items.find((i) => i.id === id)
-        if (item) {
-          const diff = quantity - item.quantity
-          set({
-            items: items.map((i) => (i.id === id ? { ...i, quantity } : i)),
-            cartCount: get().cartCount + diff,
-          })
-        }
-      },
-      clearCart: () => set({ items: [], cartCount: 0 }),
-      getTotal: () => {
-        return get().items.reduce((total, item) => total + item.price * item.quantity, 0)
-      },
-    }),
-    {
-      name: "cart-storage",
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Recalculate cart count after rehydration
-          const totalCount = state.items.reduce((sum, item) => sum + item.quantity, 0)
-          state.cartCount = totalCount
-        }
-      },
-    },
-  ),
-)
