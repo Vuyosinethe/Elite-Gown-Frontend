@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
-import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
+import type { User, Session, AuthError } from "@supabase/supabase-js"
 import { supabase, type Profile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -13,6 +13,7 @@ interface AuthUser {
   lastName?: string
   phone?: string
   avatar?: string
+  emailConfirmed?: boolean
 }
 
 interface AuthContextType {
@@ -26,11 +27,12 @@ interface AuthContextType {
     firstName: string,
     lastName: string,
     phone?: string,
-  ) => Promise<{ error: any }>
-  signIn: (email: string, password: string) => Promise<void>
+  ) => Promise<{ error: AuthError | null; needsConfirmation?: boolean }>
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>
   updateProfile: (updates: Partial<AuthUser>) => Promise<{ error: any }>
+  refreshSession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -44,8 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   // Memoized function to load user with profile
-  const loadUserWithProfile = useCallback(async (authUser: SupabaseUser) => {
+  const loadUserWithProfile = useCallback(async (authUser: User) => {
     try {
+      console.log("Loading user profile for:", authUser.id)
+
       // Fetch profile from database
       const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).single()
 
@@ -60,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           lastName: authUser.user_metadata?.last_name || "",
           phone: authUser.user_metadata?.phone || "",
           avatar: authUser.user_metadata?.avatar_url || "",
+          emailConfirmed: authUser.email_confirmed_at !== null,
         })
         setProfile(null)
         return
@@ -77,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           lastName: profileData.last_name || authUser.user_metadata?.last_name || "",
           phone: profileData.phone || authUser.user_metadata?.phone || "",
           avatar: profileData.avatar_url || authUser.user_metadata?.avatar_url || "",
+          emailConfirmed: authUser.email_confirmed_at !== null,
         })
       } else {
         // No profile found, use auth user data
@@ -87,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           lastName: authUser.user_metadata?.last_name || "",
           phone: authUser.user_metadata?.phone || "",
           avatar: authUser.user_metadata?.avatar_url || "",
+          emailConfirmed: authUser.email_confirmed_at !== null,
         })
         setProfile(null)
       }
@@ -100,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastName: authUser.user_metadata?.last_name || "",
         phone: authUser.user_metadata?.phone || "",
         avatar: authUser.user_metadata?.avatar_url || "",
+        emailConfirmed: authUser.email_confirmed_at !== null,
       })
       setProfile(null)
     }
@@ -108,13 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Check for stored user session
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-
-    // Get initial session immediately without timeout
+    // Get initial session immediately
     const getInitialSession = async () => {
       try {
         console.log("Getting initial session...")
@@ -193,56 +195,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadUserWithProfile, initialized])
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      console.log("Attempting sign in for:", email)
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      console.log("Sign in result:", { user: !!data?.user, error })
-
-      if (error) {
-        console.error("Sign in error:", error)
-        return
-      }
-
-      if (data?.user) {
-        console.log("Sign in successful, user:", data.user.id)
-        setUser({
-          id: data.user.id,
-          email: data.user.email || "",
-          firstName: data.user.user_metadata?.first_name || "",
-          lastName: data.user.user_metadata?.last_name || "",
-        })
-        localStorage.setItem("user", JSON.stringify(data.user))
-      }
-    } catch (error) {
-      console.error("Sign in exception:", error)
-    }
-  }
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error("Error signing out:", error)
-      }
-      // Clear local state immediately
-      setUser(null)
-      setProfile(null)
-      setSession(null)
-      localStorage.removeItem("user")
-      router.push("/")
-    } catch (error) {
-      console.error("Error signing out:", error)
-    }
-  }
-
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
+      console.log("Attempting sign up for:", email)
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -261,33 +217,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      if (data?.user) {
-        console.log("Sign up successful, user:", data.user.id)
-        setUser({
-          id: data.user.id,
-          email: data.user.email || "",
-          firstName: data.user.user_metadata?.first_name || "",
-          lastName: data.user.user_metadata?.last_name || "",
-        })
-        localStorage.setItem("user", JSON.stringify(data.user))
+      console.log("Sign up result:", { user: !!data?.user, session: !!data?.session })
+
+      // Check if email confirmation is required
+      if (data?.user && !data?.session) {
+        console.log("Email confirmation required")
+        return { error: null, needsConfirmation: true }
       }
 
       return { error: null }
     } catch (error) {
       console.error("Sign up exception:", error)
-      return { error }
+      return { error: error as AuthError }
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log("Attempting sign in for:", email)
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      console.log("Sign in result:", { user: !!data?.user, error })
+
+      if (error) {
+        console.error("Sign in error:", error)
+        return { error }
+      }
+
+      if (data?.user) {
+        console.log("Sign in successful, user:", data.user.id)
+        // The auth state change listener will handle the user state update
+        return { error: null }
+      }
+
+      return { error: new Error("Unknown sign in error") as AuthError }
+    } catch (error) {
+      console.error("Sign in exception:", error)
+      return { error: error as AuthError }
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      console.log("Signing out...")
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Error signing out:", error)
+      }
+      // Clear local state immediately
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+      router.push("/")
+    } catch (error) {
+      console.error("Error signing out:", error)
     }
   }
 
   const resetPassword = async (email: string) => {
     try {
+      console.log("Requesting password reset for:", email)
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
+      if (error) {
+        console.error("Password reset error:", error)
+      }
+
       return { error }
     } catch (error) {
-      return { error }
+      console.error("Password reset exception:", error)
+      return { error: error as AuthError }
     }
   }
 
@@ -297,6 +302,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      console.log("Updating profile for user:", user.id)
+
       // Convert camelCase to snake_case for database
       const dbUpdates: any = {
         updated_at: new Date().toISOString(),
@@ -318,6 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.from("profiles").update(dbUpdates).eq("id", user.id)
 
       if (error) {
+        console.error("Profile update error:", error)
         return { error }
       }
 
@@ -331,7 +339,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { error: null }
     } catch (error) {
+      console.error("Profile update exception:", error)
       return { error }
+    }
+  }
+
+  const refreshSession = async () => {
+    try {
+      console.log("Refreshing session...")
+      const { data, error } = await supabase.auth.refreshSession()
+
+      if (error) {
+        console.error("Session refresh error:", error)
+        return
+      }
+
+      if (data?.session?.user) {
+        setSession(data.session)
+        await loadUserWithProfile(data.session.user)
+      }
+    } catch (error) {
+      console.error("Session refresh exception:", error)
     }
   }
 
@@ -345,6 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     updateProfile,
+    refreshSession,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
